@@ -19,6 +19,7 @@
     };
   };
 
+  process.manager.implementation = "process-compose";
   processes = {
     backend =
       let
