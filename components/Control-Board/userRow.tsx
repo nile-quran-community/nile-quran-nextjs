@@ -1,8 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import {
-  getPoints,
   addUserActivity,
   deleteUserActivity,
 } from "@/actions/ControlBoard";
@@ -13,8 +11,22 @@ import { hijriToGregorian } from "@tabby_ai/hijri-converter";
 const tajawal = Tajawal({ subsets: ["latin"], weight: "700" });
 
 type Category = { id: number; name_ar: string };
+
+type Activity = {
+  id: number;
+  category: number;
+  date: string;
+};
+
+type UserPoints = {
+  user: number;
+  points: number;
+  activities: Activity[];
+};
+
 type Props = {
   userId: number;
+  points: UserPoints[]; 
   firstname: string;
   lastname: string;
   supervisor: string;
@@ -27,23 +39,10 @@ type Props = {
   currentMonth: number;
   currentWeek: number;
 };
-type Activity = {
-  id: number;
-  category: number;
-  date: string;
-};
-type UserPoints = {
-  user: number;
-  points: number;
-  activities: Activity[];
-};
-
-type PointsResponse = {
-  points: UserPoints[];
-};
 
 export default function UserRow({
   userId,
+  points,
   firstname,
   lastname,
   supervisor,
@@ -56,41 +55,10 @@ export default function UserRow({
   currentYear,
   currentWeek,
 }: Props) {
-  const [activitiesList, setActivitiesList] = useState<Activity[]>([]);
-  const [points, setPoints] = useState<number>(0);
-  const [isRowLoading, setIsRowLoading] = useState(true);
-
-  // Fetch data using useEffect with date range
-  useEffect(() => {
-    const fetchData = async () => {
-      setIsRowLoading(true);
-      try {
-        const pointsData = await getPoints(
-          currentYear,
-          currentMonth,
-          weekIndex,
-        );
-        const pointsRes = pointsData as PointsResponse;
-
-        // Find this user's data (which includes BOTH points and activities)
-        const userData = pointsRes.points.find((p) => p.user === userId);
-
-        setPoints(userData ? userData.points : 0);
-        setActivitiesList(userData?.activities || []);
-      } catch (error) {
-        console.error("Error fetching row data", error);
-      } finally {
-        setIsRowLoading(false);
-      }
-    };
-
-    // Only fetch if we have valid dates
-    if (currentYear && currentMonth && weekIndex) {
-      fetchData();
-    }
-  }, [userId, currentYear, currentMonth, weekIndex]);
-
-  // Handle checkbox input
+  // ✅ Derive this user's data directly from the prop — no fetch, no state
+  const userData = points?.find((p) => p.user === userId);
+  const userPoints = userData?.points ?? 0;
+  const activitiesList: Activity[] = userData?.activities ?? [];
   const handleInput = async (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
     activityId: number | undefined,
@@ -99,6 +67,7 @@ export default function UserRow({
     count?: number | string,
   ) => {
     if (loading) return;
+
     let date = "";
 
     if (weekIndex === currentWeek) {
@@ -118,32 +87,21 @@ export default function UserRow({
     try {
       if (categoryId === 5) {
         const newCount = Number(count);
-
-        const existingActivities = activitiesList.filter(
-          (a) => a.category === 5,
-        );
-
+        const existingActivities = activitiesList.filter((a) => a.category === 5);
         const currentCount = existingActivities.length;
-
         if (newCount > currentCount) {
-          // ADD missing activities
           const diff = newCount - currentCount;
           for (let i = 0; i < diff; i++) {
             await addUserActivity(uid, 5, date, 1);
           }
         } else if (newCount < currentCount) {
-          // DELETE extra activities
           const toDelete = existingActivities.slice(0, currentCount - newCount);
           for (const act of toDelete) {
             await deleteUserActivity(uid, act.id);
           }
         }
       } else {
-        /* =========================
-       OTHER CATEGORIES (CHECKBOX)
-    ========================== */
         const checked = (e.target as HTMLInputElement).checked;
-
         if (checked) {
           await addUserActivity(uid, categoryId, date, 1);
         } else if (activityId !== undefined) {
@@ -151,20 +109,7 @@ export default function UserRow({
         }
       }
 
-      /* =========================
-       REFRESH DATA
-    ========================== */
-      const pointsData = await getPoints(
-        currentYear,
-        currentMonth,
-        weekIndex,
-      );
-      const pointsRes = pointsData as PointsResponse;
-      const userData = pointsRes.points.find((p) => p.user === userId);
-
-      setPoints(userData ? userData.points : 0);
-      setActivitiesList(userData?.activities || []);
-
+      // ✅ Refresh parent so points prop updates for all rows at once
       await fetchWeekData(weekIndex);
     } catch (error) {
       console.error("Error updating activity:", error);
@@ -174,27 +119,21 @@ export default function UserRow({
     }
   };
 
-  // Show loading state while fetching initial data
-  if (isRowLoading) {
-    return (
-      <div className="w-full h-8 bg-gray-100 animate-pulse border-b border-black"></div>
-    );
-  }
-
   return (
     <div
       key={userId}
       className="relative w-[1172px] h-8 flex hover:bg-black/5 transition-colors"
     >
+      {/* Points Column */}
       <div className="relative w-[200px] pr-3 border-b border-r border-black flex justify-end items-center gap-2">
-        <div className={`${tajawal.className} font-bold`}>{points}</div>
+        <div className={`${tajawal.className} font-bold`}>{userPoints}</div>
       </div>
 
+      {/* Category Columns */}
       <div className="flex-1 flex justify-center items-center h-full border-b border-r border-black">
         {categories?.map((category: Category) => {
-          // Find the specific activity for this category within the date range
           const categoryActivities = activitiesList.filter(
-            (act: { category: number }) => act.category === category.id,
+            (act) => act.category === category.id,
           );
 
           const currentActivity =
@@ -206,7 +145,6 @@ export default function UserRow({
               className="flex-1 flex h-full justify-center items-center border-r border-black"
             >
               <select
-                // Set the value based on your current state logic
                 value={
                   Array.isArray(currentActivity) ? currentActivity.length : 0
                 }
@@ -224,7 +162,6 @@ export default function UserRow({
                 }
                 className="w-16 h-5 bg-[#F3F3F3] border border-[#B6BFBC] rounded-sm cursor-pointer disabled:opacity-50 text-sm flex items-center focus:border-[#043F2E]"
               >
-                {/* Generate options from 0 to 20 */}
                 {Array.from({ length: 21 }, (_, i) => (
                   <option key={i} value={i}>
                     {i}
@@ -235,7 +172,7 @@ export default function UserRow({
           ) : (
             <div
               key={category.id}
-              className={`flex-1 flex h-full justify-center items-center border-r border-black`}
+              className="flex-1 flex h-full justify-center items-center border-r border-black"
             >
               <input
                 type="checkbox"
@@ -258,6 +195,7 @@ export default function UserRow({
         })}
       </div>
 
+      {/* Name & Supervisor Columns */}
       <div className="relative w-[400px] h-full border-b border-black flex">
         <div
           className={`w-[150px] h-full border-r border-black ${tajawal.className} font-bold text-[15px] text-[#043F2E] flex justify-center items-center`}

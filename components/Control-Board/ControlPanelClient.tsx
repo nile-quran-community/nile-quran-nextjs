@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import Image from "next/image";
 import { Lalezar, Tajawal } from "next/font/google";
 import { Progress } from "@/components/ui/progress";
-import { getUsers, getCategories } from "@/actions/ControlBoard";
+import { getUsers, getCategories, getPoints } from "@/actions/ControlBoard";
 import UserRow from "./userRow";
 import { gregorianToHijri } from "@tabby_ai/hijri-converter";
 
@@ -22,19 +22,24 @@ type User = {
   points: number;
   supervisor: string;
 };
-type Activity = {
-  id?: number;
-  user_id?: number;
-  category_id: number;
-  date?: string;
-  [key: string]: unknown;
+type UserPoints = {
+  user: number;
+  points: number;
+  activities: Activity[];
 };
-
-// Response structure expected from getUsers
+type PointsResponse = {
+  points: UserPoints[];
+};
+type Activity = {
+  id: number;
+  category: number;
+  date: string;
+};
+  
 export interface ControlPanelData {
   users: User[];
   categories: Category[];
-  activities?: Record<string, Activity[]>;
+  points: PointsResponse;
   error?: string | unknown;
 }
 
@@ -46,11 +51,11 @@ import Mask2 from "@/public/Mask2.png";
 import { getHijriMonth, toArabicDigits } from "@/lib/utils";
 
 // ============================
-// 🟢 Module-level category cache (persists across re-renders and remounts)
+// 🟢 Module-level category cache
 // ============================
 let cachedCategories: Category[] | null = null;
 let categoriesFetchedAt: number | null = null;
-const CACHE_DURATION = 60 * 60 * 1000; // 1 hour in ms
+const CACHE_DURATION = 60 * 60 * 1000;
 
 async function fetchCategoriesCached(): Promise<Category[]> {
   const now = Date.now();
@@ -82,15 +87,6 @@ export default function ControlPanelClient() {
     day: date.getDate(),
   });
 
-  const [data, setData] = useState<ControlPanelData>({
-    users: [],
-    categories: [],
-    activities: {},
-  });
-
-  const weekArabicNames = ["الأول", "الثاني", "الثالث", "الرابع", "الخامس"];
-  const [loading, setLoading] = useState(false);
-
   const getInitialWeekIndex = () => {
     if (hijriDate.day <= 28) {
       return Math.ceil(hijriDate.day / 7);
@@ -99,25 +95,32 @@ export default function ControlPanelClient() {
   };
 
   const currentWeek = getInitialWeekIndex();
+  const weekArabicNames = ["الأول", "الثاني", "الثالث", "الرابع", "الخامس"];
+
+  const [data, setData] = useState<ControlPanelData>({
+    users: [],
+    categories: [],
+    points: { points: [] },
+  });
+
+  const [loading, setLoading] = useState(false);
   const [month, setMonth] = useState(hijriDate.month);
   const [year, setYear] = useState(hijriDate.year);
   const [weekIndex, setWeekIndex] = useState<number>(getInitialWeekIndex);
 
-  // ✅ Ref holds categories so fetchWeekData never re-requests them after first load
   const categoriesRef = useRef<Category[]>([]);
 
   const fetchWeekData = useCallback(
     async (week: number) => {
       try {
-        // ✅ Skip getCategories network call if already fetched — use ref instead
-        const [usersRes, categories] = await Promise.all([
+        const [usersRes, categories, pointsRes] = await Promise.all([
           getUsers(year, month, week),
           categoriesRef.current.length > 0
             ? Promise.resolve(categoriesRef.current)
             : fetchCategoriesCached(),
+          getPoints(year, month, week),
         ]);
 
-        // ✅ Sync ref after first fetch
         if (categories.length > 0) {
           categoriesRef.current = categories;
         }
@@ -134,6 +137,16 @@ export default function ControlPanelClient() {
             newData.error = usersRes?.error || "Error loading users";
           }
 
+          // ✅ pointsRes.points is the PointsResponse object { points: UserPoints[] }
+          if (pointsRes && pointsRes.success) {
+            const raw = pointsRes.points;
+            newData.points = {
+              points: Array.isArray(raw)
+                ? raw
+                : (raw as { results?: UserPoints[] })?.results || [],
+            };
+          }
+
           newData.categories = categories;
 
           return newData;
@@ -146,6 +159,8 @@ export default function ControlPanelClient() {
     [year, month],
   );
 
+  // ✅ Single useEffect — triggers on week/month/year change
+  // ✅ Correct
   useEffect(() => {
     setLoading(true);
     fetchWeekData(weekIndex).finally(() => setLoading(false));
@@ -185,7 +200,9 @@ export default function ControlPanelClient() {
     <div className="relative flex flex-col min-h-screen items-center bg-[#EBF0EB] overflow-hidden">
       {/* 🟢 Header */}
       <div className="absolute top-0 left-0 w-full h-[207px] max-sm:h-[130px] bg-[#BEE663] py-6 z-10">
-        <p className={`${tajawal.className} text-4xl font-bold text-end pr-28 text-[#043F2E] max-sm:pr-5`}>
+        <p
+          className={`${tajawal.className} text-4xl font-bold text-end pr-28 text-[#043F2E] max-sm:pr-5`}
+        >
           لوحة التحكم
         </p>
       </div>
@@ -226,7 +243,9 @@ export default function ControlPanelClient() {
           {/* Header Row */}
           <div className="relative h-8 w-[1172px] flex">
             <div className="w-[200px] pr-3 h-full border-b border-r border-black flex justify-end items-center gap-2">
-              <div className={`${tajawal.className} font-bold text-[15px] text-[#043F2E]`}>
+              <div
+                className={`${tajawal.className} font-bold text-[15px] text-[#043F2E]`}
+              >
                 مجموع الشهر
               </div>
             </div>
@@ -240,7 +259,9 @@ export default function ControlPanelClient() {
                 <Image src={ArrwoLeft} alt="previous" width={5} height={5} />
               </button>
 
-              <div className={`${tajawal.className} font-bold text-[15px] text-[#043F2E] min-w-[100px] text-center`}>
+              <div
+                className={`${tajawal.className} font-bold text-[15px] text-[#043F2E] min-w-[100px] text-center`}
+              >
                 الأسبوع {weekArabicNames[weekIndex - 1]}
               </div>
 
@@ -254,10 +275,14 @@ export default function ControlPanelClient() {
             </div>
 
             <div className="w-[400px] h-full border-b border-black flex">
-              <div className={`w-[150px] border-r border-black ${tajawal.className} font-bold text-[15px] text-[#043F2E] flex justify-center items-center`}>
+              <div
+                className={`w-[150px] border-r border-black ${tajawal.className} font-bold text-[15px] text-[#043F2E] flex justify-center items-center`}
+              >
                 المجموعة
               </div>
-              <div className={`w-[250px] ${tajawal.className} font-bold text-[15px] text-[#043F2E] flex justify-center items-center`}>
+              <div
+                className={`w-[250px] ${tajawal.className} font-bold text-[15px] text-[#043F2E] flex justify-center items-center`}
+              >
                 الاسم
               </div>
             </div>
@@ -266,7 +291,12 @@ export default function ControlPanelClient() {
           {/* Category Header */}
           <div className="relative w-[1172px] h-8 flex">
             <div className="relative w-[200px] pr-3 border-b border-r border-black flex justify-end items-center gap-2">
-              <Image src={Mask1} alt="Previous Week" fill className="object-cover" />
+              <Image
+                src={Mask1}
+                alt="Previous Week"
+                fill
+                className="object-cover"
+              />
             </div>
 
             <div className="flex-1 flex justify-center items-center h-full border-b border-r border-black">
@@ -282,7 +312,12 @@ export default function ControlPanelClient() {
 
             <div className="relative w-[400px] h-full border-b border-black flex">
               <div className="absolute w-[400px] h-8 top-0 left-0 z-10">
-                <Image src={Mask2} alt="Next Week" fill className="object-cover" />
+                <Image
+                  src={Mask2}
+                  alt="Next Week"
+                  fill
+                  className="object-cover"
+                />
               </div>
             </div>
           </div>
@@ -290,7 +325,9 @@ export default function ControlPanelClient() {
           {/* User Rows */}
           {!data?.users || data.users.length === 0 ? (
             <div className="relative w-full h-32 flex justify-center items-center">
-              <p className={`${tajawal.className} text-2xl font-bold text-[#043F2E]`}>
+              <p
+                className={`${tajawal.className} text-2xl font-bold text-[#043F2E]`}
+              >
                 لا يوجد أشخاص
               </p>
             </div>
@@ -301,6 +338,7 @@ export default function ControlPanelClient() {
                   <UserRow
                     key={user.id}
                     userId={user.id}
+                    points={data.points.points} // ✅ Pass UserPoints[] array
                     firstname={user.first_name}
                     lastname={user.last_name}
                     supervisor={user.supervisor}
