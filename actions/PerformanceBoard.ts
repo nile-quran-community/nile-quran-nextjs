@@ -96,7 +96,6 @@ export async function getLeaderboardData(year: number, month: number) {
 
     const data: APIResponse = await result.json();
 
-
     // Handle different possible response structures
     let results: LeaderboardItem[] = [];
 

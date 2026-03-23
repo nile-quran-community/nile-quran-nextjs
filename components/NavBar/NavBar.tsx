@@ -31,10 +31,9 @@ export default async function NavBar() {
             ""
           )}
         </div>
-        <NavBarMobileMenu User={User?.user}/>
+        <NavBarMobileMenu User={User?.user} />
         <p className={`${lalezar.className} text-[30px]`}>مقرأة النيل</p>
       </div>
-      
     </>
   );
 }

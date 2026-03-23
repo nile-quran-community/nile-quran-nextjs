@@ -1,9 +1,6 @@
 "use client";
 
-import {
-  addUserActivity,
-  deleteUserActivity,
-} from "@/actions/ControlBoard";
+import { addUserActivity, deleteUserActivity } from "@/actions/ControlBoard";
 
 import { Tajawal } from "next/font/google";
 import { hijriToGregorian } from "@tabby_ai/hijri-converter";
@@ -26,7 +23,7 @@ type UserPoints = {
 
 type Props = {
   userId: number;
-  points: UserPoints[]; 
+  points: UserPoints[];
   firstname: string;
   lastname: string;
   supervisor: string;
@@ -87,7 +84,9 @@ export default function UserRow({
     try {
       if (categoryId === 5) {
         const newCount = Number(count);
-        const existingActivities = activitiesList.filter((a) => a.category === 5);
+        const existingActivities = activitiesList.filter(
+          (a) => a.category === 5,
+        );
         const currentCount = existingActivities.length;
         if (newCount > currentCount) {
           const diff = newCount - currentCount;

@@ -107,7 +107,9 @@ export default function PerformanceBoardClient({
         className="w-[800px] max-sm:w-full   p-6 h-full overflow-hidden max-sm:p-0"
         dir="rtl"
       >
-        <h2 className={`${lalezar.className} text-4xl font-bold text-center mb-8 text-[#2C5234]`}>
+        <h2
+          className={`${lalezar.className} text-4xl font-bold text-center mb-8 text-[#2C5234]`}
+        >
           لوحة الاداءات - {getHijriMonth(monthIndex)}-{year}
         </h2>
         <div className="bg-[#F7FBEA] rounded-xl p-8 shadow-sm border border-[#043F2E]">
@@ -126,7 +128,9 @@ export default function PerformanceBoardClient({
         className="w-[800px] max-sm:w-full max-w-6xl  p-6 h-[530px]"
         dir="rtl"
       >
-        <h2 className={`${lalezar.className} text-4xl font-bold text-center mb-8 text-[#2C5234]`}>
+        <h2
+          className={`${lalezar.className} text-4xl font-bold text-center mb-8 text-[#2C5234]`}
+        >
           لوحة الاداءات - {getHijriMonth(monthIndex)} - {toArabicDigits(year)}
         </h2>
         <div className="bg-[#F7FBEA] rounded-xl p-8 shadow-sm border border-[#043F2E]">
@@ -168,7 +172,9 @@ export default function PerformanceBoardClient({
   if (sortedData.length === 0) {
     return (
       <div className="w-[800px] max-w-6xl  p-6 h-[530px]" dir="rtl">
-        <h2 className={`${lalezar.className} text-4xl font-bold text-center mb-8 text-[#2C5234]`}>
+        <h2
+          className={`${lalezar.className} text-4xl font-bold text-center mb-8 text-[#2C5234]`}
+        >
           لوحة الاداءات - {getHijriMonth(monthIndex)} - {toArabicDigits(year)}
         </h2>
         <div className="bg-[#F7FBEA] rounded-xl p-8 shadow-sm border border-[#043F2E]">
@@ -203,7 +209,9 @@ export default function PerformanceBoardClient({
 
   return (
     <div className="w-[800px] h-full p-6 max-sm:p-0 max-sm:w-full" dir="rtl">
-      <h2 className={`${lalezar.className} text-4xl font-bold text-center mb-8 text-[#2C5234]`}>
+      <h2
+        className={`${lalezar.className} text-4xl font-bold text-center mb-8 text-[#2C5234]`}
+      >
         لوحة الاداءات - {getHijriMonth(monthIndex)} - {toArabicDigits(year)}
       </h2>
 
@@ -221,7 +229,6 @@ export default function PerformanceBoardClient({
                 );
 
                 return (
-               
                   <motion.div
                     key={user.id}
                     initial={{ opacity: 0, y: 20 }}
@@ -263,7 +270,6 @@ export default function PerformanceBoardClient({
                       </div>
                     </div>
                   </motion.div>
-                  
                 );
               }
             })}

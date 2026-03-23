@@ -83,7 +83,6 @@ export default async function createUser({
       referrer,
     };
 
-
     const response = await fetch(`${API_BASE}api/v1/users/`, {
       method: "POST",
       headers: {
@@ -93,7 +92,6 @@ export default async function createUser({
     });
 
     const result = await response.json();
-
 
     if (!response.ok) {
       // Handle specific error cases
@@ -114,7 +112,6 @@ export default async function createUser({
         },
       };
     }
-
 
     return { success: true, data: result };
   } catch (error: unknown) {

@@ -255,7 +255,9 @@ const getCategoriesCached = unstable_cache(
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Failed to fetch categories: ${response.status} - ${errorText}`);
+      throw new Error(
+        `Failed to fetch categories: ${response.status} - ${errorText}`,
+      );
     }
 
     const data = await response.json();
@@ -329,7 +331,9 @@ export async function getUserActivities(
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Failed to fetch activities: ${response.status} - ${errorText}`);
+      throw new Error(
+        `Failed to fetch activities: ${response.status} - ${errorText}`,
+      );
     }
 
     const data = await response.json();
@@ -383,7 +387,9 @@ export async function getPoints(
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Failed to fetch points: ${response.status} - ${errorText}`);
+      throw new Error(
+        `Failed to fetch points: ${response.status} - ${errorText}`,
+      );
     }
     const data = await response.json();
     return { success: true, points: data.results };

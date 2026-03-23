@@ -50,7 +50,9 @@ export async function login(
   if (!existingUser.access) {
     return {
       errors: {
-        email: existingUser?.detail || "فشل تسجيل الدخول، تأكد من اسم المستخدم وكلمة المرور.",
+        email:
+          existingUser?.detail ||
+          "فشل تسجيل الدخول، تأكد من اسم المستخدم وكلمة المرور.",
       },
     };
   }
