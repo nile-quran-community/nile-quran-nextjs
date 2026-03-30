@@ -1,0 +1,29 @@
+[settings]
+node.compile = false
+
+[env]
+NODE_ENV = "{{ env.NODE_ENV | default(value='development') }}"
+
+[tools]
+# NOTE: Node
+node = "lts"
+pnpm = "latest"
+# NOTE: Formatters and linters
+oxfmt = "latest"
+oxlint = "latest"
+# NOTE: Utils
+prek = "latest"
+
+[tasks.install]
+description = "Install dependencies with pnpm"
+alias = "i"
+run = "pnpm install"
+
+[tasks.dev]
+description = "Run dev script in package.json"
+depends = ["install"]
+run = "pnpm run dev"
+
+[tasks.hooks]
+description = "Run pre-commit hooks"
+run = "prek run"
