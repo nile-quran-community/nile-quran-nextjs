@@ -13,6 +13,7 @@ export async function Login(username: string, password: string) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "Accept-Language": "ar",
       },
       body: JSON.stringify({ username, password }),
     });
@@ -65,74 +66,61 @@ export async function Login(username: string, password: string) {
   }
 }
 
-export default async function createUser({
-  first_name,
-  last_name,
-  email,
-  password,
-  username,
-  referrer,
-}: types) {
+export default async function createUser(data: types) {
   try {
-    const userData = {
-      first_name,
-      last_name,
-      email,
-      password,
-      username,
-      referrer,
-    };
-
-
     const response = await fetch(`${API_BASE}api/v1/users/`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "Accept-Language": "ar",
       },
-      body: JSON.stringify(userData),
+      body: JSON.stringify(data),
     });
 
-    const result = await response.json();
-
+    let result: Record<string, unknown> | null = null;
+    try {
+      result = await response.json();
+    } catch {}
 
     if (!response.ok) {
-      // Handle specific error cases
-      if (
-        response.status === 409 ||
-        result.message?.includes("email already exists")
-      ) {
+      // Auth error
+      if (response.status === 401) {
         return {
           errors: {
-            email:
-              "It seems like an account for the chosen email already exists.",
+            auth: "Unauthorized. Please login.",
           },
         };
       }
+
+      // Validation errors (Django style)
+      if (response.status === 400 && result) {
+        return {
+          errors: result, // return full backend validation
+        };
+      }
+
+      // Conflict
+      if (response.status === 409) {
+        return {
+          errors: {
+            email: "Email already exists.",
+          },
+        };
+      }
+
+      // Fallback
       return {
         errors: {
-          email: `Server error: ${result.message || "Unknown error occurred"}`,
+          general: result?.message || "Something went wrong",
         },
       };
     }
-
 
     return { success: true, data: result };
-  } catch (error: unknown) {
-    console.error("Error creating user:", error);
-
-    // Check if it's a network error
-    if (error instanceof TypeError && error.message.includes("fetch")) {
-      return {
-        errors: {
-          email:
-            "Network error: Unable to connect to the server. Please check if the server is running.",
-        },
-      };
-    }
-
+  } catch (error) {
     return {
       errors: {
-        email: "An unexpected error occurred. Please try again.",
+        network: "Cannot connect to server.",
       },
     };
   }
@@ -143,6 +131,7 @@ export async function getUserRole(token: string) {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
+        "Accept-Language": "ar",
         Authorization: `Bearer ${token}`,
       },
     });

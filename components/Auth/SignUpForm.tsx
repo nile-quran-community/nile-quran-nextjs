@@ -13,10 +13,26 @@ interface FormState {
   errors: {
     [key: string]: string;
   };
+  values: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    username: string;
+    referrer: string;
+  };
 }
 
 export default function SignUpForm() {
-  const initialState: FormState = { errors: {} };
+  const initialState: FormState = {
+    errors: {},
+    values: {
+      firstName: "",
+      lastName: "",
+      email: "",
+      username: "",
+      referrer: "",
+    },
+  };
   const [formState, formAction, isPending] = useActionState(
     signup,
     initialState,
@@ -35,6 +51,7 @@ export default function SignUpForm() {
             type="text"
             id="lastName"
             name="lastName"
+            defaultValue={formState.values?.lastName ?? ""}
             placeholder="الاسم الاخير"
             dir="auto"
             className="bg-white w-full h-14 max-sm:h-11 rounded-[7px] border border-[#043F2E] placeholder:text-end  px-5 focus:placeholder:opacity-0"
@@ -46,6 +63,7 @@ export default function SignUpForm() {
             type="text"
             id="firstName"
             name="firstName"
+            defaultValue={formState.values?.firstName ?? ""}
             placeholder="الاسم الاول"
             dir="auto"
             required
@@ -59,6 +77,7 @@ export default function SignUpForm() {
           type="email"
           id="email"
           name="email"
+          defaultValue={formState.values?.email ?? ""}
           placeholder="البريد الالكترونى"
           dir="auto"
           required
@@ -71,6 +90,7 @@ export default function SignUpForm() {
           type="text"
           id="username"
           name="username"
+          defaultValue={formState.values?.username ?? ""}
           placeholder="اسم المستخدم"
           dir="auto"
           required
@@ -83,6 +103,7 @@ export default function SignUpForm() {
           type="referrer"
           id="referrer"
           name="referrer"
+          defaultValue={formState.values?.referrer ?? ""}
           placeholder="المرسل"
           dir="auto"
           required

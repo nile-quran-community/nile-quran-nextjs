@@ -36,6 +36,7 @@ export async function addUserActivity(
       method: "POST",
       headers: {
         Authorization: `Bearer ${access}`,
+        "Accept-Language": "ar",
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ category, count, date }),
@@ -72,6 +73,7 @@ export async function deleteUserActivity(uid: number, activityId: number) {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${access}`,
+          "Accept-Language": "ar",
           "Content-Type": "application/json",
         },
       },
@@ -120,6 +122,7 @@ export async function getUsersWithDetails(start?: string, end?: string) {
       method: "GET",
       headers: {
         Authorization: `Bearer ${access}`,
+        "Accept-Language": "ar",
         "Content-Type": "application/json",
       },
       cache: "no-store",
@@ -223,6 +226,7 @@ export async function getUsers(year: number, month: number, weekIndex: number) {
       method: "GET",
       headers: {
         Authorization: `Bearer ${access}`,
+        "Accept-Language": "ar",
         "Content-Type": "application/json",
       },
       cache: "no-store",
@@ -249,6 +253,7 @@ const getCategoriesCached = unstable_cache(
       method: "GET",
       headers: {
         Authorization: `Bearer ${access}`,
+        "Accept-Language": "ar",
         "Content-Type": "application/json",
       },
     });
@@ -321,6 +326,7 @@ export async function getUserActivities(
         method: "GET",
         headers: {
           Authorization: `Bearer ${access}`,
+          "Accept-Language": "ar",
           "Content-Type": "application/json",
         },
         cache: "no-store",
@@ -376,6 +382,7 @@ export async function getPoints(
       method: "GET",
       headers: {
         Authorization: `Bearer ${access}`,
+        "Accept-Language": "ar",
         "Content-Type": "application/json",
       },
       cache: "no-store",

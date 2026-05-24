@@ -83,6 +83,7 @@ export async function getLeaderboardData(year: number, month: number) {
       method: "GET",
       headers: {
         Authorization: `Bearer ${accessToken.value}`,
+        "Accept-Language": "ar",
         "Content-Type": "application/json",
       },
       cache: "no-store",
@@ -175,6 +176,7 @@ export async function getUserDetails(userId: number) {
     const response = await fetch(`${API_BASE}api/v1/users/${userId}/`, {
       headers: {
         Authorization: `Bearer ${accessToken.value}`,
+        "Accept-Language": "ar",
         "Content-Type": "application/json",
       },
       cache: "no-store",
