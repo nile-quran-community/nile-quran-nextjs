@@ -26,7 +26,9 @@ export default function LoginForm() {
       className={`${tajawal.className} px-20 py-5 flex flex-col gap-5 max-sm:px-8`}
     >
       <div className="flex flex-col gap-3 items-end">
-        <label className="text-[#043F2E] text-[20px] max-sm:text-[16px]">اسم المستخدم</label>
+        <label className="text-[#043F2E] text-[20px] max-sm:text-[16px]">
+          اسم المستخدم
+        </label>
         <input
           type="text"
           id="username"
@@ -38,7 +40,9 @@ export default function LoginForm() {
         />
       </div>
       <div className="flex flex-col gap-3 items-end">
-        <label className="text-[#043F2E] text-[20px] max-sm:text-[16px]">كلمة السر</label>
+        <label className="text-[#043F2E] text-[20px] max-sm:text-[16px]">
+          كلمة السر
+        </label>
         <input
           type="password"
           id="password"

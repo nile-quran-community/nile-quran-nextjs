@@ -77,10 +77,7 @@ export default async function createUser(data: types) {
       body: JSON.stringify(data),
     });
 
-    let result: Record<string, unknown> | null = null;
-    try {
-      result = await response.json();
-    } catch {}
+    const result = await response.json();
 
     if (!response.ok) {
       // Auth error
@@ -117,7 +114,7 @@ export default async function createUser(data: types) {
     }
 
     return { success: true, data: result };
-  } catch (error) {
+  } catch  {
     return {
       errors: {
         network: "Cannot connect to server.",

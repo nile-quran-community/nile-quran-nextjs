@@ -35,7 +35,7 @@ type Activity = {
   category: number;
   date: string;
 };
-  
+
 export interface ControlPanelData {
   users: User[];
   categories: Category[];

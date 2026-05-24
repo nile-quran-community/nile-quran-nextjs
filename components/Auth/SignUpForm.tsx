@@ -46,7 +46,9 @@ export default function SignUpForm() {
     >
       <div className="flex gap-3">
         <div className="w-1/2 flex  flex-col gap-3 items-end">
-          <label className="text-[#043F2E] text-[20px] max-sm:text-[16px]">الاسم الاخير</label>
+          <label className="text-[#043F2E] text-[20px] max-sm:text-[16px]">
+            الاسم الاخير
+          </label>
           <input
             type="text"
             id="lastName"
@@ -58,7 +60,9 @@ export default function SignUpForm() {
           />
         </div>
         <div className="w-1/2 flex  flex-col gap-3 items-end">
-          <label className="text-[#043F2E] text-[20px] max-sm:text-[16px]">الاسم الاول</label>
+          <label className="text-[#043F2E] text-[20px] max-sm:text-[16px]">
+            الاسم الاول
+          </label>
           <input
             type="text"
             id="firstName"
@@ -72,7 +76,9 @@ export default function SignUpForm() {
         </div>
       </div>
       <div className="flex flex-col gap-3 items-end">
-        <label className="text-[#043F2E] text-[20px] max-sm:text-[16px]">البريد الالكترونى</label>
+        <label className="text-[#043F2E] text-[20px] max-sm:text-[16px]">
+          البريد الالكترونى
+        </label>
         <input
           type="email"
           id="email"
@@ -85,7 +91,9 @@ export default function SignUpForm() {
         />
       </div>
       <div className="flex flex-col gap-3 items-end">
-        <label className="text-[#043F2E] text-[20px] max-sm:text-[16px]">اسم المستخدم</label>
+        <label className="text-[#043F2E] text-[20px] max-sm:text-[16px]">
+          اسم المستخدم
+        </label>
         <input
           type="text"
           id="username"
@@ -98,7 +106,9 @@ export default function SignUpForm() {
         />
       </div>
       <div className="flex flex-col gap-3 items-end">
-        <label className="text-[#043F2E] text-[20px] max-sm:text-[16px]">المرسل</label>
+        <label className="text-[#043F2E] text-[20px] max-sm:text-[16px]">
+          المرسل
+        </label>
         <input
           type="referrer"
           id="referrer"
@@ -111,7 +121,9 @@ export default function SignUpForm() {
         />
       </div>
       <div className="flex flex-col gap-3 items-end">
-        <label className="text-[#043F2E] text-[20px] max-sm:text-[16px]">كلمة السر</label>
+        <label className="text-[#043F2E] text-[20px] max-sm:text-[16px]">
+          كلمة السر
+        </label>
         <input
           type="password"
           id="password"
