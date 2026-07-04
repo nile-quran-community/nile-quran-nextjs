@@ -7,7 +7,7 @@ import { hijriToGregorian } from "@tabby_ai/hijri-converter";
 
 const tajawal = Tajawal({ subsets: ["latin"], weight: "700" });
 
-type Category = { id: number; name_ar: string };
+type Category = { id: number; name: string };
 
 type Activity = {
   id: number;
@@ -121,7 +121,7 @@ export default function UserRow({
   return (
     <div
       key={userId}
-      className="relative w-[1172px] h-8 flex hover:bg-black/5 transition-colors"
+      className=" relative w-full h-8 flex hover:bg-black/5 transition-colors"
     >
       {/* Points Column */}
       <div className="relative w-[200px] pr-3 border-b border-r border-black flex justify-end items-center gap-2">

@@ -217,7 +217,7 @@ export default function PerformanceBoardClient({
 
       <div className="bg-[#F7FBEA] rounded-xl p-8 shadow-sm relative border border-[#043F2E] ">
         <div className="w-full overflow-x-auto overflow-y-hidden max-sm:pb-4">
-          <div className="relative  flex items-end justify-evenly gap-8 border-b-2 border-b-[#043F2E] w-full px-4 ">
+          <div className="relative flex items-end justify-evenly gap-8 border-b-2 border-b-[#043F2E] min-w-full w-max px-4">
             {sortedData.map((user, index) => {
               if (user?.groups?.includes("Student")) {
                 const maxBarHeight = 200;
