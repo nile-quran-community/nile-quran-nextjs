@@ -57,7 +57,7 @@ export default function NavBarMobileMenu({ User }: Props) {
             className={`${lalezar.className}  text-[#E6F0E9] text-right font-bold text-2xl`}
           >
             {" "}
-            مرحبا {User.first_name} {User.last_name}
+            مرحباً ،  {User.first_name} {User.last_name}
           </p>
         </div>
         <div className="flex flex-col px-4 gap-2">

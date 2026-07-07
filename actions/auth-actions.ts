@@ -102,7 +102,9 @@ async function refreshAccessToken() {
 
   const res = await fetch(`${API_BASE}auth/refresh/`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json",
+      "Accept-Language": "ar",
+     },
     body: JSON.stringify({ refresh: refresh.value }),
   });
 
@@ -158,6 +160,8 @@ export async function signup(prevState: FormState, formData: FormData) {
   const referrer = formData.get("referrer") as string;
   const username = formData.get("username") as string;
   const password = formData.get("password") as string;
+
+  const values = { firstName, lastName, email, referrer, username };
 
   const errors: SignupErrors = {};
 
@@ -228,7 +232,7 @@ export async function signup(prevState: FormState, formData: FormData) {
   }
 
   if (Object.keys(errors).length > 0) {
-    return { errors };
+    return { errors, values };
   }
 
   try {
@@ -240,9 +244,9 @@ export async function signup(prevState: FormState, formData: FormData) {
       referrer: referrer.toLowerCase(),
       username: username.trim(),
     });
-
+    console.log(result);
     if (result?.errors) {
-      return result;
+      return {...result, values};
     }
 
     redirect("/auth");
@@ -261,6 +265,7 @@ export async function signup(prevState: FormState, formData: FormData) {
       errors: {
         email: "حدث خطأ غير متوقع، يرجى المحاولة مرة أخرى.",
       },
+      values
     };
   }
 }

@@ -56,6 +56,7 @@ export async function getGoalOfTheMonth(
       method: "GET",
       headers: {
         Authorization: `Bearer ${accessToken.value}`,
+        "Accept-Language": "ar",
         "Content-Type": "application/json",
       },
       cache: "no-store",

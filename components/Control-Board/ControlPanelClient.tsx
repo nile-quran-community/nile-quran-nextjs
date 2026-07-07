@@ -13,7 +13,7 @@ const lalezar = Lalezar({ subsets: ["latin"], weight: "400" });
 const tajawal = Tajawal({ subsets: ["latin"], weight: "700" });
 
 // 🟢 Types
-type Category = { id: number; name_ar: string };
+type Category = { id: number; name: string };
 type User = {
   id: number;
   first_name: string;
@@ -160,7 +160,6 @@ export default function ControlPanelClient() {
   );
 
   // ✅ Single useEffect — triggers on week/month/year change
-  // ✅ Correct
   useEffect(() => {
     setLoading(true);
     fetchWeekData(weekIndex).finally(() => setLoading(false));
@@ -199,16 +198,16 @@ export default function ControlPanelClient() {
   return (
     <div className="relative flex flex-col min-h-screen items-center bg-[#EBF0EB] overflow-hidden">
       {/* 🟢 Header */}
-      <div className="absolute top-0 left-0 w-full h-[207px] max-sm:h-[130px] bg-[#BEE663] py-6 z-10">
+      <div className="absolute top-0 left-0 w-full h-[207px] bg-[#BEE663] py-6 z-10">
         <p
-          className={`${tajawal.className} text-4xl font-bold text-end pr-28 text-[#043F2E] max-sm:pr-5`}
+          className={`${tajawal.className} text-4xl font-bold text-end pr-28 text-[#043F2E]`}
         >
           لوحة التحكم
         </p>
       </div>
 
       {/* 🟢 Content */}
-      <div className="relative z-20 container mt-28 max-sm:mt-12 p-6 flex flex-col gap-15">
+      <div className="relative z-20 container mt-28 p-6 flex flex-col gap-15">
         {/* Progress Bar */}
         <div className="w-full h-[123px] bg-[#F7FBEA] p-7 gap-5 border border-[#043F2E] rounded-2xl flex">
           <div className="relative flex-1 h-[35px]">
@@ -229,132 +228,133 @@ export default function ControlPanelClient() {
         </div>
 
         {/* Main Table */}
-        <div className="relative w-full bg-[#F7FBEA] p-7 border border-[#043F2E] rounded-2xl flex flex-col overflow-x-auto">
+        <div className="relative w-full bg-[#F7FBEA] p-7 border border-[#043F2E] rounded-2xl flex flex-col overflow-auto">
           {/* Loading Overlay */}
           {loading && (
-            <div className="absolute inset-0 bg-white/70 backdrop-blur-sm flex flex-col justify-center items-center z-50">
+            <div className="absolute inset-0 top-0 right-0 bg-white/70 backdrop-blur-sm flex flex-col justify-center items-center z-50">
               <div className="w-10 h-10 border-4 border-[#043F2E] border-t-transparent rounded-full animate-spin" />
               <p className="mt-4 text-[#043F2E] font-bold">
                 جارِ تحميل البيانات...
               </p>
             </div>
           )}
-
-          {/* Header Row */}
-          <div className="relative h-8 w-[1172px] flex">
-            <div className="w-[200px] pr-3 h-full border-b border-r border-black flex justify-end items-center gap-2">
-              <div
-                className={`${tajawal.className} font-bold text-[15px] text-[#043F2E]`}
-              >
-                مجموع الشهر
-              </div>
-            </div>
-
-            <div className="flex-1 flex gap-3 pr-3 justify-center items-center h-full border-b border-r border-black">
-              <button
-                onClick={() => handleWeekChange("next")}
-                disabled={loading}
-                className="relative w-[18px] h-[18px] flex justify-center items-center rounded-[3px] bg-[#043F2E] disabled:opacity-40 hover:bg-[#065f46] transition-colors"
-              >
-                <Image src={ArrwoLeft} alt="previous" width={5} height={5} />
-              </button>
-
-              <div
-                className={`${tajawal.className} font-bold text-[15px] text-[#043F2E] min-w-[100px] text-center`}
-              >
-                الأسبوع {weekArabicNames[weekIndex - 1]}
-              </div>
-
-              <button
-                onClick={() => handleWeekChange("prev")}
-                disabled={loading}
-                className="relative w-[18px] h-[18px] flex justify-center items-center rounded-[3px] bg-[#043F2E] disabled:opacity-40 hover:bg-[#065f46] transition-colors"
-              >
-                <Image src={ArrwoRight} alt="next" width={5} height={5} />
-              </button>
-            </div>
-
-            <div className="w-[400px] h-full border-b border-black flex">
-              <div
-                className={`w-[150px] border-r border-black ${tajawal.className} font-bold text-[15px] text-[#043F2E] flex justify-center items-center`}
-              >
-                المجموعة
-              </div>
-              <div
-                className={`w-[250px] ${tajawal.className} font-bold text-[15px] text-[#043F2E] flex justify-center items-center`}
-              >
-                الاسم
-              </div>
-            </div>
-          </div>
-
-          {/* Category Header */}
-          <div className="relative w-[1172px] h-8 flex">
-            <div className="relative w-[200px] pr-3 border-b border-r border-black flex justify-end items-center gap-2">
-              <Image
-                src={Mask1}
-                alt="Previous Week"
-                fill
-                className="object-cover"
-              />
-            </div>
-
-            <div className="flex-1 flex justify-center items-center h-full border-b border-r border-black">
-              {data?.categories?.map((category: Category) => (
+          <div className="min-w-[1200px] flex flex-col">
+            {/* Header Row */}
+            <div className="relative h-8 w-full flex">
+              <div className="w-[200px] pr-3 h-full border-b border-r border-black flex justify-end items-center gap-2">
                 <div
-                  key={category.id}
-                  className={`flex-1 flex h-full justify-center items-center border-r border-black ${tajawal.className} text-[12px] font-bold text-[#043F2E]`}
+                  className={`${tajawal.className} font-bold text-[15px] text-[#043F2E]`}
                 >
-                  {category.name_ar}
+                  مجموع الشهر
                 </div>
-              ))}
+              </div>
+
+              <div className="flex-1 flex gap-3 pr-3 justify-center items-center h-full border-b border-r border-black">
+                <button
+                  onClick={() => handleWeekChange("next")}
+                  disabled={loading}
+                  className="relative w-[18px] h-[18px] flex justify-center items-center rounded-[3px] bg-[#043F2E] disabled:opacity-40 hover:bg-[#065f46] transition-colors"
+                >
+                  <Image src={ArrwoLeft} alt="previous" width={5} height={5} />
+                </button>
+
+                <div
+                  className={`${tajawal.className} font-bold text-[15px] text-[#043F2E] min-w-[100px] text-center`}
+                >
+                  الأسبوع {weekArabicNames[weekIndex - 1]}
+                </div>
+
+                <button
+                  onClick={() => handleWeekChange("prev")}
+                  disabled={loading}
+                  className="relative w-[18px] h-[18px] flex justify-center items-center rounded-[3px] bg-[#043F2E] disabled:opacity-40 hover:bg-[#065f46] transition-colors"
+                >
+                  <Image src={ArrwoRight} alt="next" width={5} height={5} />
+                </button>
+              </div>
+
+              <div className="w-[400px] h-full border-b border-black flex">
+                <div
+                  className={`w-[150px] border-r border-black ${tajawal.className} font-bold text-[15px] text-[#043F2E] flex justify-center items-center`}
+                >
+                  المجموعة
+                </div>
+                <div
+                  className={`w-[250px] ${tajawal.className} font-bold text-[15px] text-[#043F2E] flex justify-center items-center`}
+                >
+                  الاسم
+                </div>
+              </div>
             </div>
 
-            <div className="relative w-[400px] h-full border-b border-black flex">
-              <div className="absolute w-[400px] h-8 top-0 left-0 z-10">
+            {/* Category Header */}
+            <div className="relative w-full h-8 flex">
+              <div className="relative w-[200px] pr-3 border-b border-r border-black flex justify-end items-center gap-2">
                 <Image
-                  src={Mask2}
-                  alt="Next Week"
+                  src={Mask1}
+                  alt="Previous Week"
                   fill
                   className="object-cover"
                 />
               </div>
-            </div>
-          </div>
 
-          {/* User Rows */}
-          {!data?.users || data.users.length === 0 ? (
-            <div className="relative w-full h-32 flex justify-center items-center">
-              <p
-                className={`${tajawal.className} text-2xl font-bold text-[#043F2E]`}
-              >
-                لا يوجد أشخاص
-              </p>
-            </div>
-          ) : (
-            data.users.map((user) => {
-              if (user?.groups?.includes("Student")) {
-                return (
-                  <UserRow
-                    key={user.id}
-                    userId={user.id}
-                    points={data.points.points} // ✅ Pass UserPoints[] array
-                    firstname={user.first_name}
-                    lastname={user.last_name}
-                    supervisor={user.supervisor}
-                    categories={data.categories}
-                    setLoading={setLoading}
-                    weekIndex={weekIndex}
-                    fetchWeekData={fetchWeekData}
-                    loading={loading}
-                    currentYear={year}
-                    currentMonth={month}
-                    currentWeek={currentWeek}
+              <div className="flex-1 flex justify-center items-center h-full border-b border-r border-black">
+                {data?.categories?.map((category: Category) => (
+                  <div
+                    key={category.id}
+                    className={`flex-1 flex h-full justify-center items-center border-r border-black ${tajawal.className} text-[12px] font-bold text-[#043F2E] px-1 text-center`}
+                  >
+                    {category.name}
+                  </div>
+                ))}
+              </div>
+
+              <div className="relative w-[400px] h-full border-b border-black flex">
+                <div className="absolute w-full h-8 top-0 left-0 z-10">
+                  <Image
+                    src={Mask2}
+                    alt="Next Week"
+                    fill
+                    className="object-cover"
                   />
-                );
-              }
-            })
-          )}
+                </div>
+              </div>
+            </div>
+
+            {/* User Rows */}
+            {!data?.users || data.users.length === 0 ? (
+              <div className="relative w-full h-32 flex justify-center items-center">
+                <p
+                  className={`${tajawal.className} text-2xl font-bold text-[#043F2E]`}
+                >
+                  لا يوجد أشخاص
+                </p>
+              </div>
+            ) : (
+              data.users.map((user) => {
+                if (user?.groups?.includes("Student")) {
+                  return (
+                    <UserRow
+                      key={user.id}
+                      userId={user.id}
+                      points={data.points.points} // ✅ Pass UserPoints[] array
+                      firstname={user.first_name}
+                      lastname={user.last_name}
+                      supervisor={user.supervisor}
+                      categories={data.categories}
+                      setLoading={setLoading}
+                      weekIndex={weekIndex}
+                      fetchWeekData={fetchWeekData}
+                      loading={loading}
+                      currentYear={year}
+                      currentMonth={month}
+                      currentWeek={currentWeek}
+                    />
+                  );
+                }
+              })
+            )}
+          </div>
         </div>
       </div>
     </div>
