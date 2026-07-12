@@ -3,27 +3,16 @@ import { Tajawal } from "next/font/google";
 import { useActionState } from "react";
 import { signup } from "@/actions/auth-actions";
 import { Spinner } from "../ui/spinner";
+import type { SignupFormState } from "@/lib/types";
 
 const tajawal = Tajawal({
   subsets: ["latin"],
   weight: "700",
 });
 
-interface FormState {
-  errors: {
-    [key: string]: string;
-  };
-  values: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    username: string;
-    referrer: string;
-  };
-}
 
 export default function SignUpForm() {
-  const initialState: FormState = {
+  const initialState: SignupFormState = {
     errors: {},
     values: {
       firstName: "",
@@ -139,7 +128,7 @@ export default function SignUpForm() {
         <ul className="list-none p-0 m-0 text-right">
           {Object.entries(formState.errors).map(([key, value]) => (
             <li key={key} className="text-red-500 text-sm text-right">
-              {value}
+              {String(value)}
             </li>
           ))}
         </ul>
