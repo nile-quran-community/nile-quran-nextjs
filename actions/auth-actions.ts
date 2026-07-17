@@ -5,6 +5,7 @@ import createUser from "@/lib/user";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { jwtDecode, JwtPayload } from "jwt-decode";
+import type { SignupErrors, SignupFormState } from "@/lib/types";
 
 const API_BASE = process.env.BASE_URL;
 
@@ -17,26 +18,6 @@ const COOKIE_OPTIONS = {
   sameSite: "lax" as const,
   path: "/",
 };
-
-interface FormState {
-  errors: {
-    firstName?: string;
-    lastName?: string;
-    email?: string;
-    referrer?: string;
-    username?: string;
-    password?: string;
-  };
-}
-
-interface SignupErrors {
-  firstName?: string;
-  lastName?: string;
-  email?: string;
-  referrer?: string;
-  username?: string;
-  password?: string;
-}
 
 export async function login(
   prevState: { errors: Record<string, string> },
@@ -102,9 +83,7 @@ async function refreshAccessToken() {
 
   const res = await fetch(`${API_BASE}auth/refresh/`, {
     method: "POST",
-    headers: { "Content-Type": "application/json",
-      "Accept-Language": "ar",
-     },
+    headers: { "Content-Type": "application/json", "Accept-Language": "ar" },
     body: JSON.stringify({ refresh: refresh.value }),
   });
 
@@ -153,7 +132,7 @@ export async function checkTokenValidity() {
   }
 }
 
-export async function signup(prevState: FormState, formData: FormData) {
+export async function signup(prevState: SignupFormState, formData: FormData) {
   const firstName = formData.get("firstName") as string;
   const lastName = formData.get("lastName") as string;
   const email = formData.get("email") as string;
@@ -246,7 +225,12 @@ export async function signup(prevState: FormState, formData: FormData) {
     });
     console.log(result);
     if (result?.errors) {
-      return {...result, values};
+      return {
+        values,
+        errors: result.errors,
+        success: result.success,
+        data: result.data,
+      };
     }
 
     redirect("/auth");
@@ -262,10 +246,10 @@ export async function signup(prevState: FormState, formData: FormData) {
     }
 
     return {
+      values,
       errors: {
         email: "حدث خطأ غير متوقع، يرجى المحاولة مرة أخرى.",
       },
-      values
     };
   }
 }
