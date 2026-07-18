@@ -1,18 +1,20 @@
-FROM node:20-alpine AS deps
+FROM node:22-alpine AS deps
 WORKDIR /app
-RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
+RUN corepack enable && corepack prepare pnpm@11.14.0 --activate
 COPY package.json pnpm-lock.yaml ./
+RUN printf 'dangerouslyAllowAllBuilds: true\n' >> pnpm-workspace.yaml
+
 RUN pnpm install --frozen-lockfile
 
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 WORKDIR /app
-RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
+RUN corepack enable && corepack prepare pnpm@11.14.0 --activate
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN pnpm build
 
 # --- runner: no node_modules install at all ---
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 
