@@ -5,7 +5,7 @@ COPY package.json pnpm-lock.yaml ./
 RUN printf 'dangerouslyAllowAllBuilds: true\n' >> pnpm-workspace.yaml
 
 RUN pnpm install --frozen-lockfile
-g
+
 FROM node:24-alpine AS builder
 WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@11.14.0 --activate
