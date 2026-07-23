@@ -1,0 +1,104 @@
+name: Publish
+on:
+  release:
+    types: [published]
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+env:
+  REGISTRY: ghcr.io/nu-quran-community
+  REGISTRY_USER: ${{ github.actor }}
+  REGISTRY_PASS: ${{ github.token }}
+  IMAGE_NAME: nu-quran-nextjs
+  IMAGE_PLATFORMS: linux/amd64,linux/arm64
+  LICENSE_SPDX: GPL-3.0-or-later
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.check.outputs.version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - id: check
+        name: Check release version and commit
+        env:
+          GH_DEFAULT_BRANCH: "${{ github.event.repository.default_branch }}"
+        run: |
+          echo "::group::Check tag commit matches latest commit on main"
+          MAIN_SHA="$(git rev-parse --verify origin/${GH_DEFAULT_BRANCH})"
+          if [ "${MAIN_SHA}" != "${GITHUB_SHA}" ]; then
+            echo "::error title=Commit mismatch::Latest commit on ${GH_DEFAULT_BRANCH} (${MAIN_SHA}) does not match tag commit (${GITHUB_SHA})"
+            exit 1
+          fi
+
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          echo "version=${TAG_VERSION}" >> "${GITHUB_OUTPUT}"
+
+  build:
+    needs: prepare
+    runs-on: ubuntu-latest
+    environment:
+      name: ghcr
+      url: https://${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.prepare.outputs.version }}
+    permissions:
+      packages: write
+      id-token: write
+      attestations: write
+    steps:
+      - id: checkout
+        name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - id: install
+        name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y qemu-user-static
+
+      - id: build
+        name: Build image
+        uses: redhat-actions/buildah-build@v2
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        with:
+          containerfiles: Dockerfile
+          platforms: ${{ env.IMAGE_PLATFORMS }}
+          image: ${{ env.IMAGE_NAME }}
+          tags: ${{ env.VERSION }} latest
+
+      - id: login
+        name: Login to registry
+        uses: redhat-actions/podman-login@v1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ env.REGISTRY_USER }}
+          password: ${{ env.REGISTRY_PASS }}
+
+      - id: push
+        name: Push image to registry
+        uses: redhat-actions/push-to-registry@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          image: ${{ steps.build.outputs.image }}
+          tags: ${{ steps.build.outputs.tags }}
+          extra-args: |-
+            --compression-format
+            zstd
+            --compression-level
+            20
+
+      - id: attest
+        name: Generate image attestation
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
