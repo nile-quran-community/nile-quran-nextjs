@@ -41,11 +41,7 @@ export function getHijriMonthDays(year: number, month: number) {
   const gregResult = hijriToGregorian({ year, month, day: 29 });
 
   // ملاحظة: في كائن Date في جافاسكريبت، الأشهر تبدأ من 0، لذا ننقص 1 من الشهر
-  const gregDate = new Date(
-    gregResult.year,
-    gregResult.month - 1,
-    gregResult.day,
-  );
+  const gregDate = new Date(gregResult.year, gregResult.month - 1, gregResult.day);
 
   // 2. نضيف يوماً واحداً للتاريخ الميلادي
   gregDate.setDate(gregDate.getDate() + 1);

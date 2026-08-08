@@ -67,17 +67,14 @@ export async function deleteUserActivity(uid: number, activityId: number) {
       return { success: false, error: "غير مصرح - الرجاء تسجيل الدخول" };
     }
 
-    const response = await fetch(
-      `${API_BASE}api/v1/users/${uid}/activities/${activityId}/`,
-      {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${access}`,
-          "Accept-Language": "ar",
-          "Content-Type": "application/json",
-        },
+    const response = await fetch(`${API_BASE}api/v1/users/${uid}/activities/${activityId}/`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${access}`,
+        "Accept-Language": "ar",
+        "Content-Type": "application/json",
       },
-    );
+    });
 
     if (!response.ok) {
       let errorData;
@@ -260,9 +257,7 @@ const getCategoriesCached = unstable_cache(
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(
-        `Failed to fetch categories: ${response.status} - ${errorText}`,
-      );
+      throw new Error(`Failed to fetch categories: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
@@ -322,24 +317,19 @@ export async function getUserActivities(
     const end = `${endDate.year}-${String(endDate.month).padStart(2, "0")}-${String(endDate.day).padStart(2, "0")}`;
 
     const query = `?date_after=${start}&date_before=${end}`;
-    const response = await fetch(
-      `${API_BASE}api/v1/users/${Id}/activities/${query}`,
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${access}`,
-          "Accept-Language": "ar",
-          "Content-Type": "application/json",
-        },
-        cache: "no-store",
+    const response = await fetch(`${API_BASE}api/v1/users/${Id}/activities/${query}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${access}`,
+        "Accept-Language": "ar",
+        "Content-Type": "application/json",
       },
-    );
+      cache: "no-store",
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(
-        `Failed to fetch activities: ${response.status} - ${errorText}`,
-      );
+      throw new Error(`Failed to fetch activities: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
@@ -350,11 +340,7 @@ export async function getUserActivities(
   }
 }
 
-export async function getPoints(
-  year: number,
-  month: number,
-  weekIndex: number,
-) {
+export async function getPoints(year: number, month: number, weekIndex: number) {
   try {
     const cookieStore = await cookies();
     const access = cookieStore.get("access")?.value;
@@ -394,9 +380,7 @@ export async function getPoints(
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(
-        `Failed to fetch points: ${response.status} - ${errorText}`,
-      );
+      throw new Error(`Failed to fetch points: ${response.status} - ${errorText}`);
     }
     const data = await response.json();
     return { success: true, points: data.results };

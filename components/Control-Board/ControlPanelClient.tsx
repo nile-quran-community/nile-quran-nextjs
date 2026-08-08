@@ -59,11 +59,7 @@ const CACHE_DURATION = 60 * 60 * 1000;
 
 async function fetchCategoriesCached(): Promise<Category[]> {
   const now = Date.now();
-  if (
-    cachedCategories &&
-    categoriesFetchedAt &&
-    now - categoriesFetchedAt < CACHE_DURATION
-  ) {
+  if (cachedCategories && categoriesFetchedAt && now - categoriesFetchedAt < CACHE_DURATION) {
     return cachedCategories;
   }
 
@@ -130,9 +126,7 @@ export default function ControlPanelClient() {
 
           if (usersRes && usersRes.success) {
             const rawUsers = usersRes.users;
-            newData.users = Array.isArray(rawUsers)
-              ? rawUsers
-              : rawUsers?.results || [];
+            newData.users = Array.isArray(rawUsers) ? rawUsers : rawUsers?.results || [];
           } else {
             newData.error = usersRes?.error || "Error loading users";
           }
@@ -141,9 +135,7 @@ export default function ControlPanelClient() {
           if (pointsRes && pointsRes.success) {
             const raw = pointsRes.points;
             newData.points = {
-              points: Array.isArray(raw)
-                ? raw
-                : (raw as { results?: UserPoints[] })?.results || [],
+              points: Array.isArray(raw) ? raw : (raw as { results?: UserPoints[] })?.results || [],
             };
           }
 
@@ -199,9 +191,7 @@ export default function ControlPanelClient() {
     <div className="relative flex flex-col min-h-screen items-center bg-[#EBF0EB] overflow-hidden">
       {/* 🟢 Header */}
       <div className="absolute top-0 left-0 w-full h-[207px] bg-[#BEE663] py-6 z-10">
-        <p
-          className={`${tajawal.className} text-4xl font-bold text-end pr-28 text-[#043F2E]`}
-        >
+        <p className={`${tajawal.className} text-4xl font-bold text-end pr-28 text-[#043F2E]`}>
           لوحة التحكم
         </p>
       </div>
@@ -233,18 +223,14 @@ export default function ControlPanelClient() {
           {loading && (
             <div className="absolute inset-0 top-0 right-0 bg-white/70 backdrop-blur-sm flex flex-col justify-center items-center z-50">
               <div className="w-10 h-10 border-4 border-[#043F2E] border-t-transparent rounded-full animate-spin" />
-              <p className="mt-4 text-[#043F2E] font-bold">
-                جارِ تحميل البيانات...
-              </p>
+              <p className="mt-4 text-[#043F2E] font-bold">جارِ تحميل البيانات...</p>
             </div>
           )}
           <div className="min-w-[1200px] flex flex-col">
             {/* Header Row */}
             <div className="relative h-8 w-full flex">
               <div className="w-[200px] pr-3 h-full border-b border-r border-black flex justify-end items-center gap-2">
-                <div
-                  className={`${tajawal.className} font-bold text-[15px] text-[#043F2E]`}
-                >
+                <div className={`${tajawal.className} font-bold text-[15px] text-[#043F2E]`}>
                   مجموع الشهر
                 </div>
               </div>
@@ -290,12 +276,7 @@ export default function ControlPanelClient() {
             {/* Category Header */}
             <div className="relative w-full h-8 flex">
               <div className="relative w-[200px] pr-3 border-b border-r border-black flex justify-end items-center gap-2">
-                <Image
-                  src={Mask1}
-                  alt="Previous Week"
-                  fill
-                  className="object-cover"
-                />
+                <Image src={Mask1} alt="Previous Week" fill className="object-cover" />
               </div>
 
               <div className="flex-1 flex justify-center items-center h-full border-b border-r border-black">
@@ -311,12 +292,7 @@ export default function ControlPanelClient() {
 
               <div className="relative w-[400px] h-full border-b border-black flex">
                 <div className="absolute w-full h-8 top-0 left-0 z-10">
-                  <Image
-                    src={Mask2}
-                    alt="Next Week"
-                    fill
-                    className="object-cover"
-                  />
+                  <Image src={Mask2} alt="Next Week" fill className="object-cover" />
                 </div>
               </div>
             </div>
@@ -324,9 +300,7 @@ export default function ControlPanelClient() {
             {/* User Rows */}
             {!data?.users || data.users.length === 0 ? (
               <div className="relative w-full h-32 flex justify-center items-center">
-                <p
-                  className={`${tajawal.className} text-2xl font-bold text-[#043F2E]`}
-                >
+                <p className={`${tajawal.className} text-2xl font-bold text-[#043F2E]`}>
                   لا يوجد أشخاص
                 </p>
               </div>

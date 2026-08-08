@@ -42,10 +42,8 @@ export default function PerformanceBoardClient({
   const monthIndex = month - 1;
   const sortedData = [...leaderboardData].sort((a, b) => a.points - b.points);
 
-  const maxPoints =
-    sortedData.length > 0 ? Math.max(...sortedData.map((u) => u.points)) : 0;
-  const minPoints =
-    sortedData.length > 0 ? Math.min(...sortedData.map((u) => u.points)) : 0;
+  const maxPoints = sortedData.length > 0 ? Math.max(...sortedData.map((u) => u.points)) : 0;
+  const minPoints = sortedData.length > 0 ? Math.min(...sortedData.map((u) => u.points)) : 0;
 
   const getBarColors = (points: number) => {
     if (sortedData.length === 1) {
@@ -84,10 +82,7 @@ export default function PerformanceBoardClient({
   const LoadingSkeleton = () => (
     <div className="flex items-end justify-evenly gap-4 w-full px-4 h-full max-sm:px-0 overflow-hidden">
       {[...Array(5)].map((_, index) => (
-        <div
-          key={index}
-          className="flex flex-col items-center justify-end gap-2 w-28"
-        >
+        <div key={index} className="flex flex-col items-center justify-end gap-2 w-28">
           <div className="animate-pulse flex flex-col items-center">
             <div className="w-12 h-12 rounded-full bg-gray-300 mb-2"></div>
             <div className="h-3 w-16 bg-gray-300 rounded mb-4"></div>
@@ -103,13 +98,8 @@ export default function PerformanceBoardClient({
 
   if (isLoading) {
     return (
-      <div
-        className="w-[800px] max-sm:w-full   p-6 h-full overflow-hidden max-sm:p-0"
-        dir="rtl"
-      >
-        <h2
-          className={`${lalezar.className} text-4xl font-bold text-center mb-8 text-[#2C5234]`}
-        >
+      <div className="w-[800px] max-sm:w-full   p-6 h-full overflow-hidden max-sm:p-0" dir="rtl">
+        <h2 className={`${lalezar.className} text-4xl font-bold text-center mb-8 text-[#2C5234]`}>
           لوحة الاداءات - {getHijriMonth(monthIndex)}-{year}
         </h2>
         <div className="bg-[#F7FBEA] rounded-xl p-8 shadow-sm border border-[#043F2E]">
@@ -124,13 +114,8 @@ export default function PerformanceBoardClient({
 
   if (error) {
     return (
-      <div
-        className="w-[800px] max-sm:w-full max-w-6xl  p-6 h-[530px]"
-        dir="rtl"
-      >
-        <h2
-          className={`${lalezar.className} text-4xl font-bold text-center mb-8 text-[#2C5234]`}
-        >
+      <div className="w-[800px] max-sm:w-full max-w-6xl  p-6 h-[530px]" dir="rtl">
+        <h2 className={`${lalezar.className} text-4xl font-bold text-center mb-8 text-[#2C5234]`}>
           لوحة الاداءات - {getHijriMonth(monthIndex)} - {toArabicDigits(year)}
         </h2>
         <div className="bg-[#F7FBEA] rounded-xl p-8 shadow-sm border border-[#043F2E]">
@@ -172,9 +157,7 @@ export default function PerformanceBoardClient({
   if (sortedData.length === 0) {
     return (
       <div className="w-[800px] max-w-6xl  p-6 h-[530px]" dir="rtl">
-        <h2
-          className={`${lalezar.className} text-4xl font-bold text-center mb-8 text-[#2C5234]`}
-        >
+        <h2 className={`${lalezar.className} text-4xl font-bold text-center mb-8 text-[#2C5234]`}>
           لوحة الاداءات - {getHijriMonth(monthIndex)} - {toArabicDigits(year)}
         </h2>
         <div className="bg-[#F7FBEA] rounded-xl p-8 shadow-sm border border-[#043F2E]">
@@ -193,9 +176,7 @@ export default function PerformanceBoardClient({
                   d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
                 />
               </svg>
-              <p className="text-gray-600 text-lg font-medium mb-2">
-                لا توجد بيانات لعرضها
-              </p>
+              <p className="text-gray-600 text-lg font-medium mb-2">لا توجد بيانات لعرضها</p>
               <p className="text-gray-400 text-sm">
                 لا توجد نقاط مسجلة لهذا الشهر، جرب التنقل إلى شهر آخر
               </p>
@@ -209,9 +190,7 @@ export default function PerformanceBoardClient({
 
   return (
     <div className="w-[800px] h-full p-6 max-sm:p-0 max-sm:w-full" dir="rtl">
-      <h2
-        className={`${lalezar.className} text-4xl font-bold text-center mb-8 text-[#2C5234]`}
-      >
+      <h2 className={`${lalezar.className} text-4xl font-bold text-center mb-8 text-[#2C5234]`}>
         لوحة الاداءات - {getHijriMonth(monthIndex)} - {toArabicDigits(year)}
       </h2>
 
@@ -223,10 +202,7 @@ export default function PerformanceBoardClient({
                 const maxBarHeight = 200;
                 const minBarHeight = 50;
                 const normalized = maxPoints > 0 ? user.points / maxPoints : 0;
-                const heightPx = Math.max(
-                  normalized * maxBarHeight,
-                  minBarHeight,
-                );
+                const heightPx = Math.max(normalized * maxBarHeight, minBarHeight);
 
                 return (
                   <motion.div

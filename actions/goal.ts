@@ -19,10 +19,7 @@ interface GoalResponse {
   error?: string;
 }
 
-export async function getGoalOfTheMonth(
-  year: number,
-  month: number,
-): Promise<GoalResponse> {
+export async function getGoalOfTheMonth(year: number, month: number): Promise<GoalResponse> {
   try {
     const lastDay = getHijriMonthDays(year, month);
     const startDate = hijriToGregorian({
@@ -63,9 +60,7 @@ export async function getGoalOfTheMonth(
     });
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(
-        `Failed to fetch goal data: ${response.status} - ${errorText}`,
-      );
+      throw new Error(`Failed to fetch goal data: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
