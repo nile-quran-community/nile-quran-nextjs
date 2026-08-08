@@ -1,16 +1,26 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
-import Image from "next/image";
+import { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import { Lalezar, Tajawal } from "next/font/google";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Search,
+  Users,
+  Sparkles,
+  CheckCircle2,
+  TrendingUp,
+  Inbox,
+} from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { getUsers, getCategories, getPoints } from "@/actions/ControlBoard";
 import UserRow from "./userRow";
 import { gregorianToHijri } from "@tabby_ai/hijri-converter";
+import { getHijriMonth, toArabicDigits } from "@/lib/utils";
 
 // 🟢 Fonts
-const lalezar = Lalezar({ subsets: ["latin"], weight: "400" });
-const tajawal = Tajawal({ subsets: ["latin"], weight: "700" });
+const lalezar = Lalezar({ subsets: ["arabic"], weight: "400" });
+const tajawal = Tajawal({ subsets: ["arabic"], weight: ["400", "500", "700"] });
 
 // 🟢 Types
 type Category = { id: number; name: string };
@@ -43,13 +53,6 @@ export interface ControlPanelData {
   error?: string | unknown;
 }
 
-// 🟢 Assets
-import ArrwoLeft from "@/public/ArrowLeft.png";
-import ArrwoRight from "@/public/Arrowright.png";
-import Mask1 from "@/public/Mask.png";
-import Mask2 from "@/public/Mask2.png";
-import { getHijriMonth, toArabicDigits } from "@/lib/utils";
-
 // ============================
 // 🟢 Module-level category cache
 // ============================
@@ -59,11 +62,7 @@ const CACHE_DURATION = 60 * 60 * 1000;
 
 async function fetchCategoriesCached(): Promise<Category[]> {
   const now = Date.now();
-  if (
-    cachedCategories &&
-    categoriesFetchedAt &&
-    now - categoriesFetchedAt < CACHE_DURATION
-  ) {
+  if (cachedCategories && categoriesFetchedAt && now - categoriesFetchedAt < CACHE_DURATION) {
     return cachedCategories;
   }
 
@@ -107,6 +106,7 @@ export default function ControlPanelClient() {
   const [month, setMonth] = useState(hijriDate.month);
   const [year, setYear] = useState(hijriDate.year);
   const [weekIndex, setWeekIndex] = useState<number>(getInitialWeekIndex);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const categoriesRef = useRef<Category[]>([]);
 
@@ -130,20 +130,15 @@ export default function ControlPanelClient() {
 
           if (usersRes && usersRes.success) {
             const rawUsers = usersRes.users;
-            newData.users = Array.isArray(rawUsers)
-              ? rawUsers
-              : rawUsers?.results || [];
+            newData.users = Array.isArray(rawUsers) ? rawUsers : rawUsers?.results || [];
           } else {
             newData.error = usersRes?.error || "Error loading users";
           }
 
-          // ✅ pointsRes.points is the PointsResponse object { points: UserPoints[] }
           if (pointsRes && pointsRes.success) {
             const raw = pointsRes.points;
             newData.points = {
-              points: Array.isArray(raw)
-                ? raw
-                : (raw as { results?: UserPoints[] })?.results || [],
+              points: Array.isArray(raw) ? raw : (raw as { results?: UserPoints[] })?.results || [],
             };
           }
 
@@ -159,7 +154,6 @@ export default function ControlPanelClient() {
     [year, month],
   );
 
-  // ✅ Single useEffect — triggers on week/month/year change
   useEffect(() => {
     setLoading(true);
     fetchWeekData(weekIndex).finally(() => setLoading(false));
@@ -195,168 +189,393 @@ export default function ControlPanelClient() {
     }
   };
 
+  // 🟢 Filtered & sorted users (by points desc)
+  const filteredUsers = useMemo(() => {
+    const students = (data?.users || []).filter((u) => u?.groups?.includes("Student"));
+
+    if (!searchQuery.trim()) return students;
+
+    const q = searchQuery.trim().toLowerCase();
+    return students.filter((u) => {
+      const fullName = `${u.first_name} ${u.last_name}`.toLowerCase();
+      const supervisor = (u.supervisor || "").toLowerCase();
+      return fullName.includes(q) || supervisor.includes(q);
+    });
+  }, [data?.users, searchQuery]);
+
+  // 🟢 Summary statistics
+  const summary = useMemo(() => {
+    const students = (data?.users || []).filter((u) => u?.groups?.includes("Student"));
+
+    const totalStudents = students.length;
+    const totalPoints = data.points?.points?.reduce((sum, p) => sum + (p.points || 0), 0);
+    const activeStudents =
+      data.points?.points?.filter((p) => (p.activities?.length || 0) > 0).length || 0;
+    const completionRate =
+      totalStudents > 0 ? Math.round((activeStudents / totalStudents) * 100) : 0;
+
+    return { totalStudents, totalPoints, activeStudents, completionRate };
+  }, [data?.users, data.points]);
+
   return (
-    <div className="relative flex flex-col min-h-screen items-center bg-[#EBF0EB] overflow-hidden">
-      {/* 🟢 Header */}
-      <div className="absolute top-0 left-0 w-full h-[207px] bg-[#BEE663] py-6 z-10">
-        <p
-          className={`${tajawal.className} text-4xl font-bold text-end pr-28 text-[#043F2E]`}
-        >
-          لوحة التحكم
-        </p>
+    <div className="relative flex flex-col min-h-screen bg-[#EBF0EB]" dir="rtl">
+      {/* 🟢 Hero Header */}
+      <div className="relative w-full bg-[#043F2E] overflow-hidden">
+        {/* Decorative geometric accents */}
+        <div
+          aria-hidden
+          className="absolute -top-24 -left-24 w-72 h-72 rounded-full bg-[#BEE663]/10 blur-2xl"
+        />
+        <div
+          aria-hidden
+          className="absolute -bottom-32 -right-16 w-96 h-96 rounded-full bg-[#BEE663]/5 blur-3xl"
+        />
+
+        <div className="relative container mx-auto px-6 lg:px-12 py-10 flex flex-col gap-6">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-[#BEE663] flex items-center justify-center shadow-md">
+                <Sparkles className="w-7 h-7 text-[#043F2E]" strokeWidth={2.2} />
+              </div>
+              <div className="flex flex-col">
+                <h1
+                  className={`${lalezar.className} text-3xl md:text-4xl text-white leading-tight`}
+                >
+                  لوحة التحكم
+                </h1>
+                <p
+                  className={`${tajawal.className} text-sm md:text-base text-[#BEE663]/80 font-medium`}
+                >
+                  إدارة نقاط الطلاب والمتابعة الأسبوعية
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* 🟢 Content */}
-      <div className="relative z-20 container mt-28 p-6 flex flex-col gap-15">
-        {/* Progress Bar */}
-        <div className="w-full h-[123px] bg-[#F7FBEA] p-7 gap-5 border border-[#043F2E] rounded-2xl flex">
-          <div className="relative flex-1 h-[35px]">
+      {/* 🟢 Main content */}
+      <div className="container mx-auto px-4 lg:px-12 -mt-6 pb-12 relative z-10 flex flex-col gap-6">
+        {/* 🟢 Summary Stats */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+          <SummaryStat
+            icon={<Users className="w-5 h-5" strokeWidth={2.2} />}
+            label="إجمالي الطلاب"
+            value={toArabicDigits(summary.totalStudents)}
+            tone="primary"
+            loading={loading}
+          />
+          <SummaryStat
+            icon={<TrendingUp className="w-5 h-5" strokeWidth={2.2} />}
+            label="إجمالي النقاط"
+            value={toArabicDigits(summary.totalPoints)}
+            tone="accent"
+            loading={loading}
+          />
+          <SummaryStat
+            icon={<CheckCircle2 className="w-5 h-5" strokeWidth={2.2} />}
+            label="الطلاب النشطون"
+            value={toArabicDigits(summary.activeStudents)}
+            tone="muted"
+            loading={loading}
+          />
+          <SummaryStat
+            icon={<Sparkles className="w-5 h-5" strokeWidth={2.2} />}
+            label="نسبة الإنجاز"
+            value={`${toArabicDigits(summary.completionRate)}٪`}
+            tone="primary"
+            loading={loading}
+          />
+        </div>
+
+        {/* 🟢 Filter + Progress card */}
+        <div className="bg-white rounded-3xl border border-[#043F2E]/15 shadow-sm p-5 md:p-6 flex flex-col gap-5">
+          {/* Month progress */}
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-3">
+                <div
+                  className={`${lalezar.className} text-2xl md:text-[28px] text-[#043F2E] leading-none`}
+                >
+                  {getHijriMonth(month - 1)} <span className="text-[#043F2E]/40">—</span>{" "}
+                  {toArabicDigits(year)}
+                </div>
+                <span className={`${tajawal.className} text-sm text-[#043F2E]/60 font-medium`}>
+                  الأسبوع {weekArabicNames[weekIndex - 1]}
+                </span>
+              </div>
+            </div>
+
             <Progress
               value={(weekIndex / 5) * 100}
-              className="h-[35px] bg-[#DEFF90]"
+              className="h-3 bg-[#DEFF90]"
               className2="bg-[#9ADD00]"
             />
+
+            {/* Week dots */}
+            <div className="flex items-center justify-between px-1">
+              {weekArabicNames.map((name, idx) => {
+                const isActive = idx + 1 === weekIndex;
+                const isPast = idx + 1 < weekIndex;
+                return (
+                  <div key={name} className="flex flex-col items-center gap-1.5 flex-1">
+                    <div
+                      className={`w-3 h-3 rounded-full transition-all ${
+                        isActive
+                          ? "bg-[#9ADD00] ring-4 ring-[#BEE663]/40 scale-110"
+                          : isPast
+                            ? "bg-[#9ADD00]"
+                            : "bg-[#DEFF90]"
+                      }`}
+                    />
+                    <span
+                      className={`${tajawal.className} text-[11px] md:text-xs font-medium ${
+                        isActive ? "text-[#043F2E]" : "text-[#043F2E]/40"
+                      }`}
+                    >
+                      {name}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-          <div className="flex flex-col text-[#043F2E]">
-            <p className={`${lalezar.className} text-[28.5px]`}>
-              {getHijriMonth(month - 1)} -{toArabicDigits(year)}
-            </p>
-            <p className={`${lalezar.className} text-[17px] text-end`}>
-              الأسبوع {weekArabicNames[weekIndex - 1]}
-            </p>
+
+          {/* Divider */}
+          <div className="h-px bg-[#043F2E]/10" />
+
+          {/* Search + Navigation */}
+          <div className="flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
+            {/* Search */}
+            <div className="relative flex-1 max-w-md">
+              <Search
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#043F2E]/50"
+                strokeWidth={2.2}
+              />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="ابحث عن طالب أو مشرف..."
+                className={`${tajawal.className} w-full h-12 pr-11 pl-4 bg-[#F7FBEA] border border-[#043F2E]/15 rounded-2xl text-[#043F2E] placeholder:text-[#043F2E]/40 focus:outline-none focus:border-[#043F2E]/40 focus:bg-white transition-colors text-sm font-medium`}
+              />
+            </div>
+
+            {/* Week navigation */}
+            <div className="flex items-center gap-2 bg-[#F7FBEA] border border-[#043F2E]/15 rounded-2xl p-1.5">
+              <button
+                onClick={() => handleWeekChange("prev")}
+                disabled={loading}
+                aria-label="الأسبوع السابق"
+                className="w-10 h-10 rounded-xl bg-white hover:bg-[#BEE663] text-[#043F2E] flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+              >
+                <ChevronRight className="w-5 h-5" strokeWidth={2.4} />
+              </button>
+
+              <div
+                className={`${tajawal.className} px-4 min-w-[120px] text-center text-sm font-bold text-[#043F2E]`}
+              >
+                الأسبوع {weekArabicNames[weekIndex - 1]}
+              </div>
+
+              <button
+                onClick={() => handleWeekChange("next")}
+                disabled={loading}
+                aria-label="الأسبوع التالي"
+                className="w-10 h-10 rounded-xl bg-white hover:bg-[#BEE663] text-[#043F2E] flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+              >
+                <ChevronLeft className="w-5 h-5" strokeWidth={2.4} />
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Main Table */}
-        <div className="relative w-full bg-[#F7FBEA] p-7 border border-[#043F2E] rounded-2xl flex flex-col overflow-auto">
-          {/* Loading Overlay */}
+        {/* 🟢 Table Card */}
+        <div className="bg-white rounded-3xl border border-[#043F2E]/15 shadow-sm overflow-hidden">
+          {/* Table Header (sticky) */}
+          <div className="hidden lg:block">
+            {data.categories.length > 0 && <TableHeader categories={data.categories} />}
+          </div>
+
+          {/* Loading skeleton */}
           {loading && (
-            <div className="absolute inset-0 top-0 right-0 bg-white/70 backdrop-blur-sm flex flex-col justify-center items-center z-50">
-              <div className="w-10 h-10 border-4 border-[#043F2E] border-t-transparent rounded-full animate-spin" />
-              <p className="mt-4 text-[#043F2E] font-bold">
-                جارِ تحميل البيانات...
+            <div className="p-4 md:p-6 flex flex-col gap-3">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="h-16 md:h-14 rounded-2xl bg-[#F7FBEA] animate-pulse" />
+              ))}
+            </div>
+          )}
+
+          {/* Empty state */}
+          {!loading && filteredUsers.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+              <div className="w-16 h-16 rounded-2xl bg-[#F7FBEA] flex items-center justify-center mb-4">
+                <Inbox className="w-7 h-7 text-[#043F2E]/40" strokeWidth={1.8} />
+              </div>
+              <h3 className={`${lalezar.className} text-xl text-[#043F2E] mb-1`}>
+                {searchQuery ? "لا توجد نتائج" : "لا يوجد طلاب"}
+              </h3>
+              <p className={`${tajawal.className} text-sm text-[#043F2E]/60 font-medium`}>
+                {searchQuery ? "جرب البحث بكلمة مختلفة" : "لم يتم العثور على طلاب لهذا الأسبوع"}
               </p>
             </div>
           )}
-          <div className="min-w-[1200px] flex flex-col">
-            {/* Header Row */}
-            <div className="relative h-8 w-full flex">
-              <div className="w-[200px] pr-3 h-full border-b border-r border-black flex justify-end items-center gap-2">
-                <div
-                  className={`${tajawal.className} font-bold text-[15px] text-[#043F2E]`}
-                >
-                  مجموع الشهر
-                </div>
-              </div>
 
-              <div className="flex-1 flex gap-3 pr-3 justify-center items-center h-full border-b border-r border-black">
-                <button
-                  onClick={() => handleWeekChange("next")}
-                  disabled={loading}
-                  className="relative w-[18px] h-[18px] flex justify-center items-center rounded-[3px] bg-[#043F2E] disabled:opacity-40 hover:bg-[#065f46] transition-colors"
-                >
-                  <Image src={ArrwoLeft} alt="previous" width={5} height={5} />
-                </button>
-
-                <div
-                  className={`${tajawal.className} font-bold text-[15px] text-[#043F2E] min-w-[100px] text-center`}
-                >
-                  الأسبوع {weekArabicNames[weekIndex - 1]}
-                </div>
-
-                <button
-                  onClick={() => handleWeekChange("prev")}
-                  disabled={loading}
-                  className="relative w-[18px] h-[18px] flex justify-center items-center rounded-[3px] bg-[#043F2E] disabled:opacity-40 hover:bg-[#065f46] transition-colors"
-                >
-                  <Image src={ArrwoRight} alt="next" width={5} height={5} />
-                </button>
-              </div>
-
-              <div className="w-[400px] h-full border-b border-black flex">
-                <div
-                  className={`w-[150px] border-r border-black ${tajawal.className} font-bold text-[15px] text-[#043F2E] flex justify-center items-center`}
-                >
-                  المجموعة
-                </div>
-                <div
-                  className={`w-[250px] ${tajawal.className} font-bold text-[15px] text-[#043F2E] flex justify-center items-center`}
-                >
-                  الاسم
-                </div>
-              </div>
-            </div>
-
-            {/* Category Header */}
-            <div className="relative w-full h-8 flex">
-              <div className="relative w-[200px] pr-3 border-b border-r border-black flex justify-end items-center gap-2">
-                <Image
-                  src={Mask1}
-                  alt="Previous Week"
-                  fill
-                  className="object-cover"
+          {/* Desktop table rows */}
+          {!loading && filteredUsers.length > 0 && (
+            <div className="hidden lg:flex flex-col">
+              {filteredUsers.map((user, index) => (
+                <UserRow
+                  key={user.id}
+                  variant="desktop"
+                  isLast={index === filteredUsers.length - 1}
+                  userId={user.id}
+                  points={data.points.points}
+                  firstname={user.first_name}
+                  lastname={user.last_name}
+                  supervisor={user.supervisor}
+                  categories={data.categories}
+                  setLoading={setLoading}
+                  weekIndex={weekIndex}
+                  fetchWeekData={fetchWeekData}
+                  loading={loading}
+                  currentYear={year}
+                  currentMonth={month}
+                  currentWeek={currentWeek}
                 />
-              </div>
-
-              <div className="flex-1 flex justify-center items-center h-full border-b border-r border-black">
-                {data?.categories?.map((category: Category) => (
-                  <div
-                    key={category.id}
-                    className={`flex-1 flex h-full justify-center items-center border-r border-black ${tajawal.className} text-[12px] font-bold text-[#043F2E] px-1 text-center`}
-                  >
-                    {category.name}
-                  </div>
-                ))}
-              </div>
-
-              <div className="relative w-[400px] h-full border-b border-black flex">
-                <div className="absolute w-full h-8 top-0 left-0 z-10">
-                  <Image
-                    src={Mask2}
-                    alt="Next Week"
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-              </div>
+              ))}
             </div>
+          )}
 
-            {/* User Rows */}
-            {!data?.users || data.users.length === 0 ? (
-              <div className="relative w-full h-32 flex justify-center items-center">
-                <p
-                  className={`${tajawal.className} text-2xl font-bold text-[#043F2E]`}
-                >
-                  لا يوجد أشخاص
-                </p>
-              </div>
-            ) : (
-              data.users.map((user) => {
-                if (user?.groups?.includes("Student")) {
-                  return (
-                    <UserRow
-                      key={user.id}
-                      userId={user.id}
-                      points={data.points.points} // ✅ Pass UserPoints[] array
-                      firstname={user.first_name}
-                      lastname={user.last_name}
-                      supervisor={user.supervisor}
-                      categories={data.categories}
-                      setLoading={setLoading}
-                      weekIndex={weekIndex}
-                      fetchWeekData={fetchWeekData}
-                      loading={loading}
-                      currentYear={year}
-                      currentMonth={month}
-                      currentWeek={currentWeek}
-                    />
-                  );
-                }
-              })
-            )}
-          </div>
+          {/* Mobile cards */}
+          {!loading && filteredUsers.length > 0 && (
+            <div className="lg:hidden flex flex-col gap-3 p-4">
+              {filteredUsers.map((user) => (
+                <UserRow
+                  key={user.id}
+                  variant="mobile"
+                  userId={user.id}
+                  points={data.points.points}
+                  firstname={user.first_name}
+                  lastname={user.last_name}
+                  supervisor={user.supervisor}
+                  categories={data.categories}
+                  setLoading={setLoading}
+                  weekIndex={weekIndex}
+                  fetchWeekData={fetchWeekData}
+                  loading={loading}
+                  currentYear={year}
+                  currentMonth={month}
+                  currentWeek={currentWeek}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
+  );
+}
+
+// ============================
+// 🟢 Summary Stat Card
+// ============================
+function SummaryStat({
+  icon,
+  label,
+  value,
+  tone,
+  loading,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  tone: "primary" | "accent" | "muted";
+  loading: boolean;
+}) {
+  const toneClasses = {
+    primary: "bg-[#043F2E] text-white",
+    accent: "bg-[#BEE663] text-[#043F2E]",
+    muted: "bg-[#F7FBEA] text-[#043F2E]",
+  };
+
+  return (
+    <div
+      className={`${toneClasses[tone]} rounded-2xl px-4 py-4 md:px-5 md:py-5 shadow-sm border border-[#043F2E]/10 flex items-center gap-3 md:gap-4 transition-transform hover:scale-[1.01]`}
+    >
+      <div
+        className={`w-11 h-11 md:w-12 md:h-12 rounded-xl flex items-center justify-center shrink-0 ${
+          tone === "primary"
+            ? "bg-white/10"
+            : tone === "accent"
+              ? "bg-[#043F2E]/10"
+              : "bg-[#043F2E]/5"
+        }`}
+      >
+        {icon}
+      </div>
+      <div className="flex flex-col min-w-0">
+        <span
+          className={`${tajawal.className} text-[11px] md:text-xs font-medium opacity-80 truncate`}
+        >
+          {label}
+        </span>
+        {loading ? (
+          <div className="h-6 md:h-7 w-12 mt-1 rounded-md bg-current/20 animate-pulse" />
+        ) : (
+          <span className={`${lalezar.className} text-2xl md:text-[28px] leading-tight`}>
+            {value}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============================
+// 🟢 Table Header (desktop)
+// ============================
+function TableHeader({ categories }: { categories: Category[] }) {
+  return (
+    <div className="bg-[#F7FBEA] border-b border-[#043F2E]/10 px-4 py-3 flex items-center gap-3">
+      {/* Student avatar column header */}
+      <div className="w-[60px] shrink-0" />
+
+      {/* Name */}
+      <div className="w-[180px] shrink-0">
+        <HeaderLabel>الاسم</HeaderLabel>
+      </div>
+
+      {/* Group */}
+      <div className="w-[140px] shrink-0">
+        <HeaderLabel>المجموعة</HeaderLabel>
+      </div>
+
+      {/* Categories */}
+      <div className="flex-1 flex items-center gap-1 min-w-0">
+        {categories.map((cat) => (
+          <div
+            key={cat.id}
+            className={`${tajawal.className} flex-1 min-w-0 text-center text-[12px] font-bold text-[#043F2E] px-1 truncate`}
+            title={cat.name}
+          >
+            {cat.name}
+          </div>
+        ))}
+      </div>
+
+      {/* Total */}
+      <div className="w-[90px] shrink-0">
+        <HeaderLabel>مجموع الشهر</HeaderLabel>
+      </div>
+    </div>
+  );
+}
+
+function HeaderLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <span className={`${tajawal.className} text-[12px] font-bold text-[#043F2E] block truncate`}>
+      {children}
+    </span>
   );
 }
