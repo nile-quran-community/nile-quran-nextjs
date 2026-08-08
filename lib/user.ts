@@ -24,8 +24,7 @@ export async function Login(username: string, password: string) {
       if (response.status === 404 || response.status === 401) {
         return {
           errors: {
-            email:
-              "Could not authenticate user. Please check your credentials.",
+            email: "Could not authenticate user. Please check your credentials.",
           },
         };
       }
@@ -114,7 +113,7 @@ export default async function createUser(data: types) {
     }
 
     return { success: true, data: result };
-  } catch  {
+  } catch {
     return {
       errors: {
         network: "Cannot connect to server.",
@@ -139,8 +138,7 @@ export async function getUserRole(token: string) {
       if (response.status === 404 || response.status === 401) {
         return {
           errors: {
-            email:
-              "Could not authenticate user. Please check your credentials.",
+            email: "Could not authenticate user. Please check your credentials.",
           },
         };
       }

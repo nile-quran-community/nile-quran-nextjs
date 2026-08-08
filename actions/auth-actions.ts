@@ -19,10 +19,7 @@ const COOKIE_OPTIONS = {
   path: "/",
 };
 
-export async function login(
-  prevState: { errors: Record<string, string> },
-  formData: FormData,
-) {
+export async function login(prevState: { errors: Record<string, string> }, formData: FormData) {
   const username = formData.get("username") as string;
   const password = formData.get("password") as string;
 
@@ -31,9 +28,7 @@ export async function login(
   if (!existingUser.access) {
     return {
       errors: {
-        email:
-          existingUser?.detail ||
-          "فشل تسجيل الدخول، تأكد من اسم المستخدم وكلمة المرور.",
+        email: existingUser?.detail || "فشل تسجيل الدخول، تأكد من اسم المستخدم وكلمة المرور.",
       },
     };
   }
@@ -151,11 +146,8 @@ export async function signup(prevState: SignupFormState, formData: FormData) {
     errors.firstName = "يجب أن يحتوي الاسم الأول على حرفين على الأقل";
   } else if (firstName.trim().length > 50) {
     errors.firstName = "يجب ألا يتجاوز الاسم الأول 50 حرفًا";
-  } else if (
-    !/^[\u0621-\u064A\u0660-\u0669a-zA-Z\s'-]+$/.test(firstName.trim())
-  ) {
-    errors.firstName =
-      "يسمح فقط بالحروف العربية أو الإنجليزية والمسافات والواصلات";
+  } else if (!/^[\u0621-\u064A\u0660-\u0669a-zA-Z\s'-]+$/.test(firstName.trim())) {
+    errors.firstName = "يسمح فقط بالحروف العربية أو الإنجليزية والمسافات والواصلات";
   }
 
   // Last Name
@@ -165,11 +157,8 @@ export async function signup(prevState: SignupFormState, formData: FormData) {
     errors.lastName = "يجب أن يحتوي اسم العائلة على حرفين على الأقل";
   } else if (lastName.trim().length > 50) {
     errors.lastName = "يجب ألا يتجاوز اسم العائلة 50 حرفًا";
-  } else if (
-    !/^[\u0621-\u064A\u0660-\u0669a-zA-Z\s'-]+$/.test(lastName.trim())
-  ) {
-    errors.lastName =
-      "يسمح فقط بالحروف العربية أو الإنجليزية والمسافات والواصلات";
+  } else if (!/^[\u0621-\u064A\u0660-\u0669a-zA-Z\s'-]+$/.test(lastName.trim())) {
+    errors.lastName = "يسمح فقط بالحروف العربية أو الإنجليزية والمسافات والواصلات";
   }
 
   // Email
