@@ -29,10 +29,7 @@ export default function NavBarMobileMenu({ User }: Props) {
   if (!User) return null;
   return (
     <div className="">
-      <div
-        onClick={() => setIsMobileMenuOpen(true)}
-        className="sm:hidden cursor-pointer"
-      >
+      <div onClick={() => setIsMobileMenuOpen(true)} className="sm:hidden cursor-pointer">
         <Image src={Menu} alt="" />
       </div>
       {/* Overlay — clicking it closes the menu */}
@@ -53,11 +50,9 @@ export default function NavBarMobileMenu({ User }: Props) {
         onClick={(e: React.MouseEvent<HTMLDivElement>) => e.stopPropagation()}
       >
         <div className="w-full bg-[#2A5A45] h-28 flex items-center justify-center ">
-          <p
-            className={`${lalezar.className}  text-[#E6F0E9] text-right font-bold text-2xl`}
-          >
+          <p className={`${lalezar.className}  text-[#E6F0E9] text-right font-bold text-2xl`}>
             {" "}
-            مرحباً ،  {User.first_name} {User.last_name}
+            مرحباً ، {User.first_name} {User.last_name}
           </p>
         </div>
         <div className="flex flex-col px-4 gap-2">
@@ -66,6 +61,12 @@ export default function NavBarMobileMenu({ User }: Props) {
             className={`${tajawal.className} p-3 flex rounded-2xl bg-[#2A5A45] text-[#E6F0E9] text-lg font-semibold justify-center`}
           >
             <p>الصفحة الرئيسية</p>
+          </Link>
+          <Link
+            href={"/about"}
+            className={`${tajawal.className} p-3 flex rounded-2xl bg-[#2A5A45] text-[#E6F0E9] text-lg font-semibold justify-center`}
+          >
+            <p>عن المجتمع</p>
           </Link>
           <Link
             href={"/control-board"}
