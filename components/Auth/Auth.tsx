@@ -15,7 +15,7 @@ export default function AuthForm({ mode }: Props) {
   return (
     <div className="w-[630px] flex z-30 flex-col items-center justify-center h-full max-sm:w-full">
       <p className={`text-[54px] text-[#043F2E] max-sm:text-[38px] ${lalezar.className}`}>
-        قرآن النيل
+        مقرأة النيل
       </p>
       <div className="w-full rounded-2xl border border-[#043F2E] bg-[#F7FBEA] overflow-hidden">
         <div className={`w-full flex ${tajawal.className}`}>
