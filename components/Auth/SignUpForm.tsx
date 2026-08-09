@@ -1,7 +1,7 @@
 "use client";
 import { Tajawal } from "next/font/google";
 import { useActionState } from "react";
-import { Lock, Mail, AtSign, UserPlus } from "lucide-react";
+import { AlertCircle, Lock, Mail, AtSign, UserPlus } from "lucide-react";
 import { signup } from "@/actions/auth-actions";
 import { Spinner } from "../ui/spinner";
 import type { SignupFormState } from "@/lib/types";
@@ -11,6 +11,16 @@ const tajawal = Tajawal({
   subsets: ["arabic"],
   weight: "700",
 });
+
+function inputClass(hasError: string | undefined, withIcon: boolean) {
+  return [
+    "bg-white w-full h-14 max-sm:h-11 rounded-[7px] border placeholder:text-end outline-none focus:placeholder:opacity-0 transition-colors",
+    hasError
+      ? "border-[#9B3D2E] focus:border-[#9B3D2E]"
+      : "border-[#043F2E] focus:border-[#043F2E]",
+    withIcon ? "pr-11 pl-5" : "px-5",
+  ].join(" ");
+}
 
 export default function SignUpForm() {
   const initialState: SignupFormState = {
@@ -41,7 +51,7 @@ export default function SignUpForm() {
             defaultValue={formState.values?.lastName ?? ""}
             placeholder="الاسم الاخير"
             dir="auto"
-            className="bg-white w-full h-14 max-sm:h-11 rounded-[7px] border border-[#043F2E] placeholder:text-end px-5 focus:placeholder:opacity-0"
+            className={inputClass(formState.errors?.lastName, false)}
           />
         </div>
         <div className="w-1/2 flex flex-col gap-3 items-end">
@@ -54,7 +64,7 @@ export default function SignUpForm() {
             placeholder="الاسم الاول"
             dir="auto"
             required
-            className="bg-white w-full h-14 max-sm:h-11 rounded-[7px] border border-[#043F2E] placeholder:text-end px-5 focus:placeholder:opacity-0"
+            className={inputClass(formState.errors?.firstName, false)}
           />
         </div>
       </div>
@@ -73,7 +83,7 @@ export default function SignUpForm() {
             placeholder="البريد الالكترونى"
             dir="auto"
             required
-            className="bg-white w-full h-14 max-sm:h-11 rounded-[7px] border border-[#043F2E] placeholder:text-end pr-11 pl-5 focus:placeholder:opacity-0"
+            className={inputClass(formState.errors?.email, true)}
           />
         </div>
       </div>
@@ -92,7 +102,7 @@ export default function SignUpForm() {
             placeholder="اسم المستخدم"
             dir="auto"
             required
-            className="bg-white w-full h-14 max-sm:h-11 rounded-[7px] border border-[#043F2E] placeholder:text-end pr-11 pl-5 focus:placeholder:opacity-0"
+            className={inputClass(formState.errors?.username, true)}
           />
         </div>
       </div>
@@ -116,7 +126,7 @@ export default function SignUpForm() {
             placeholder="اسم المستخدم لمن دعاك"
             dir="auto"
             required
-            className="bg-white w-full h-14 max-sm:h-11 rounded-[7px] border border-[#043F2E] placeholder:text-end pr-11 pl-5 focus:placeholder:opacity-0"
+            className={inputClass(formState.errors?.referrer, true)}
           />
         </div>
       </div>
@@ -134,18 +144,26 @@ export default function SignUpForm() {
             required
             placeholder="كلمة السر"
             dir="auto"
-            className="bg-white w-full h-14 max-sm:h-11 rounded-[7px] border border-[#043F2E] placeholder:text-end pr-11 pl-5 focus:placeholder:opacity-0"
+            className={inputClass(formState.errors?.password, true)}
           />
         </div>
       </div>
       {/* ERRORS */}
       {formState.errors && Object.keys(formState.errors).length > 0 && (
-        <ul dir="rtl" className="list-none p-0 m-0 text-right w-full">
-          {Object.entries(formState.errors).map(([key, value]) => (
-            <li key={key} className="text-red-500 text-sm text-right">
-              {String(value)}
-            </li>
-          ))}
+        <ul dir="rtl" className="list-none p-0 m-0 text-right w-full flex flex-col gap-2">
+          {Object.entries(formState.errors).map(([key, value]) => {
+            if (!value) return null;
+            return (
+              <li
+                key={key}
+                role="alert"
+                className="flex items-center gap-1.5 text-sm text-[#9B3D2E] font-medium"
+              >
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" strokeWidth={2.4} />
+                <span>{String(value)}</span>
+              </li>
+            );
+          })}
         </ul>
       )}
       <button

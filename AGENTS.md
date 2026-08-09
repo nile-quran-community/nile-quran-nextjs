@@ -21,6 +21,7 @@ The product is a web app with three user roles:
 **Pages in the app:**
 
 - `/` — home with monthly goal + leaderboard (any logged-in user)
+- `/profile` — personal profile (name, email, username, phone, password) + read-only supervisor/groups info (any logged-in user)
 - `/control-board` — admin panel for adjusting student points (Admin only)
 - `/about` — community about page (public)
 - `/auth` — login + signup (public)
@@ -55,20 +56,20 @@ npx tsc --noEmit  # type check (always run before finishing a task)
 
 ### 4.1 Brand colors — USE ONLY THESE
 
-| Token         | Hex                    | Usage                                 |
-| ------------- | ---------------------- | ------------------------------------- |
-| Primary       | `#043F2E`              | Headings, dark surfaces, primary text |
-| Accent        | `#BEE663`              | Buttons, highlights, badges           |
-| Background    | `#EBF0EB`              | Page background                       |
-| Card surface  | `#F7FBEA`              | Light cards, hover states             |
-| Soft lime     | `#DEFF90`              | Progress bar tracks, subtle accents   |
-| Strong lime   | `#9ADD00`              | Progress fill, hover on accent        |
-| Dark hover    | `#065f46`              | Hover state on `#043F2E`              |
-| Dark mid      | `#2A5A45`              | Nav bar mobile menu surface           |
-| Subtle border | `#043F2E]/10` or `/15` | Card borders, dividers                |
-| Muted text    | `#043F2E]/40`–`/70`    | Placeholders, secondary text          |
-
-**Do NOT introduce new colors.** No grays, no blue, no red. Map status/feedback to brand tints (e.g., `text-[#043F2E]/70` for muted errors).
+| Token         | Hex                    | Usage                                                |
+| ------------- | ---------------------- | ---------------------------------------------------- |
+| Primary       | `#043F2E`              | Headings, dark surfaces, primary text                |
+| Accent        | `#BEE663`              | Buttons, highlights, badges                          |
+| Background    | `#EBF0EB`              | Page background                                      |
+| Card surface  | `#F7FBEA`              | Light cards, hover states                            |
+| Soft lime     | `#DEFF90`              | Progress bar tracks, subtle accents, success banners |
+| Strong lime   | `#9ADD00`              | Progress fill, hover on accent                       |
+| Dark hover    | `#065f46`              | Hover state on `#043F2E`                             |
+| Dark mid      | `#2A5A45`              | Nav bar mobile menu surface                          |
+| Subtle border | `#043F2E]/10` or `/15` | Card borders, dividers                               |
+| Muted text    | `#043F2E]/40`–`/70`    | Placeholders, secondary text                         |
+| Error         | #9B3D2E                | Error text, error icons, error borders on inputs     |
+| Error surface | #F4E0D6                | Error banners / callouts background                  |
 
 ### 4.2 Typography
 
@@ -115,6 +116,7 @@ app/
   (main)/               # authenticated routes
     layout.tsx          # <html lang="en"> (do NOT change)
     page.tsx            # home (leaderboard + goal)
+    profile/            # personal profile (any logged-in user)
     control-board/      # admin panel
     about/              # community about page
   globals.css
@@ -124,6 +126,7 @@ components/
   Control-Board/        # ControlPanelClient.tsx, userRow.tsx
   Home/                 # DashboardContainer, PerformanceBoardClient, MonthGoalClient
   NavBar/               # NavBar, NavBarMobileMenu, LogoutButton
+  Profile/              # ProfileClient, ProfileHero, ProfileStats, EditProfileForm, ChangePasswordForm, ProfileInfoCard, ProfileSkeleton
   About/                # AboutContent.tsx
   ui/                   # progress.tsx, spinner.tsx (shared primitives)
 
@@ -132,6 +135,7 @@ actions/
   ControlBoard.ts       # getUsers, getCategories, getPoints, addUserActivity, deleteUserActivity
   PerformanceBoard.ts   # getLeaderboardData, getUserDetails
   goal.ts               # getGoalOfTheMonth
+  profile.ts            # getMyProfile (real), updateProfile + changePassword (stubs)
 
 lib/
   utils.ts              # cn, getHijriMonth, toArabicDigits, getHijriMonthDays
@@ -247,6 +251,69 @@ Forms use the LTR page context with `items-end` for right-alignment:
 
 For RTL form contexts, swap to `items-start` + `placeholder:text-start` to keep right-alignment.
 
+### 6.5a Form error styling
+
+Form errors use the **Error** + **Error surface** tokens (`#9B3D2E` and `#F4E0D6`). Three surfaces:
+
+**Field error** (under an input, in the same RTL flex as the label):
+
+```tsx
+{
+  state.errors.firstName && (
+    <div
+      dir="rtl"
+      className={`${tajawal.className} flex items-center gap-1.5 text-xs text-[#9B3D2E] font-medium`}
+      role="alert"
+    >
+      <AlertCircle className="w-3.5 h-3.5 shrink-0" strokeWidth={2.4} />
+      <span>{state.errors.firstName}</span>
+    </div>
+  );
+}
+```
+
+**Invalid input border** — the input class flips to `border-[#9B3D2E]` and the focus state also flips to `focus:border-[#9B3D2E]` so the border stays red while focused:
+
+```tsx
+hasError
+  ? "border-[#9B3D2E] focus:border-[#9B3D2E]"
+  : "border-[#043F2E]/30 focus:border-[#043F2E]",
+```
+
+**Form-level alert banner** (e.g. for `errors.general`):
+
+```tsx
+{
+  state.errors.general && (
+    <div
+      dir="rtl"
+      role="alert"
+      className="flex items-start gap-2 rounded-xl bg-[#F4E0D6] border border-[#9B3D2E]/30 p-3 text-sm text-[#9B3D2E]"
+    >
+      <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" strokeWidth={2.2} />
+      <span>{state.errors.general}</span>
+    </div>
+  );
+}
+```
+
+**Success banner** (no new color needed — use existing `Soft lime`):
+
+```tsx
+{
+  state.success && (
+    <div
+      dir="rtl"
+      role="status"
+      className="flex items-center gap-2 rounded-xl bg-[#DEFF90] border border-[#9ADD00]/40 p-3 text-sm text-[#043F2E] font-bold"
+    >
+      <CheckCircle2 className="w-4 h-4" strokeWidth={2.4} />
+      <span>تم الحفظ بنجاح.</span>
+    </div>
+  );
+}
+```
+
 ### 6.6 Server action (auth-gated fetcher)
 
 ```ts
@@ -359,9 +426,13 @@ const max = items.length > 0 ? Math.max(...items.map((u) => u.points)) : 0;
 
 8. **Empty state for tables with < N items** — always use a fixed grid with invisible placeholders so the layout doesn't collapse. E.g., the top-3 podium always has 3 cells.
 
+9. **Profile page backend integration** — `actions/profile.ts` uses the real `PATCH /api/v1/users/{id}/` endpoint exposed by the backend (verified against `/api/v1/schema/`). The user PATCHes their own record using their JWT cookie. Both `updateProfile` and `changePassword` go through the same PATCH; the backend has no separate change-password endpoint, so the form only asks for the new password + confirmation (no current-password field, since the schema does not verify it server-side).
+
+10. **No `phone_number` field** — the backend `User` schema does NOT include a `phone_number` field, despite the legacy type in `actions/PerformanceBoard.ts:16`. The profile edit form therefore exposes only `first_name`, `last_name`, `email`, `username`. The `referrer` field IS in the response (nullable) and is shown read-only in the info card.
+
 ## 8. Things NOT to do
 
-- ❌ Add new brand colors (blue, red, gray, etc.)
+- ❌ Add new brand colors beyond the approved Error tokens (no blue, no bright red, no gray)
 - ❌ Use `["latin"]` font subsets for Arabic content
 - ❌ Use `next/image` for purely decorative backgrounds
 - ❌ Use emoji as UI icons
