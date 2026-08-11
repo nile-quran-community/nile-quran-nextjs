@@ -1,3 +1,9 @@
 allowBuilds:
-  sharp: true
-  unrs-resolver: true
+  sharp: false
+  unrs-resolver: false
+onlyBuiltDependencies:
+  - sharp
+  - unrs-resolver
+overrides:
+  flatted: "3.4.2"
+  minimatch: "3.1.4"
