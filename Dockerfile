@@ -3,7 +3,7 @@ WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@11.14.0 --activate
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
-RUN pnpm install --prod --frozen-lockfile
+RUN pnpm install --frozen-lockfile
 
 FROM node:24-alpine AS builder
 WORKDIR /app
