@@ -49,7 +49,7 @@ export async function getGoalOfTheMonth(year: number, month: number): Promise<Go
       "0",
     )}-${String(endDate.day).padStart(2, "0")}`;
     const query = `?date_after=${start}&date_before=${end}`;
-    const response = await fetch(`${API_BASE}api/v1/users/points/${query}`, {
+    const response = await fetch(`${API_BASE}api/v1/goals/${query}`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${accessToken.value}`,
