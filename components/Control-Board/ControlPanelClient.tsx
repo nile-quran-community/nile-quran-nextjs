@@ -566,7 +566,7 @@ function TableHeader({ categories }: { categories: Category[] }) {
 
       {/* Total */}
       <div className="w-[90px] shrink-0">
-        <HeaderLabel>مجموع الشهر</HeaderLabel>
+        <HeaderLabel>مجموع الأسبوع</HeaderLabel>
       </div>
     </div>
   );
