@@ -63,6 +63,12 @@ export default function NavBarMobileMenu({ User }: Props) {
             <p>الصفحة الرئيسية</p>
           </Link>
           <Link
+            href={"/about"}
+            className={`${tajawal.className} p-3 flex rounded-2xl bg-[#2A5A45] text-[#E6F0E9] text-lg font-semibold justify-center`}
+          >
+            <p>عن المجتمع</p>
+          </Link>
+          <Link
             href={"/control-board"}
             className={`${tajawal.className} p-3 flex rounded-2xl bg-[#2A5A45] text-[#E6F0E9] text-lg font-semibold justify-center`}
           >

@@ -20,9 +20,6 @@ export default async function NavBar() {
       <div className=" text-[#BEE663] h-[68px] bg-[#043F2E] flex justify-between  items-center px-28 max-sm:px-5">
         <div className={`flex gap-10 max-sm:hidden ${tajawal.className}`}>
           <LogoutButton />
-          <Link href={"/"} className="">
-            الصفحة الرئيسية
-          </Link>
           {User?.user?.groups?.includes("Admin") ? (
             <Link href={"/control-board"} className="">
               لوحة التحكم
@@ -30,6 +27,12 @@ export default async function NavBar() {
           ) : (
             ""
           )}
+          <Link href={"/about"} className="">
+            عن المجتمع
+          </Link>
+          <Link href={"/"} className="">
+            الصفحة الرئيسية
+          </Link>
         </div>
         <NavBarMobileMenu User={User?.user} />
         <p className={`${lalezar.className} text-[30px]`}>مقرأة النيل</p>
