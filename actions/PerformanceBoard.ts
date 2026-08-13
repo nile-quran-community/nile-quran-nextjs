@@ -90,9 +90,7 @@ export async function getLeaderboardData(year: number, month: number) {
     });
     if (!result.ok) {
       const errorText = await result.text();
-      throw new Error(
-        `Failed to fetch leaderboard data: ${result.status} - ${errorText}`,
-      );
+      throw new Error(`Failed to fetch leaderboard data: ${result.status} - ${errorText}`);
     }
 
     const data: APIResponse = await result.json();

@@ -4,17 +4,11 @@ import * as React from "react";
 import * as ProgressPrimitive from "@radix-ui/react-progress";
 import { cn } from "@/lib/utils";
 
-interface ProgressProps
-  extends React.ComponentProps<typeof ProgressPrimitive.Root> {
+interface ProgressProps extends React.ComponentProps<typeof ProgressPrimitive.Root> {
   className2?: string;
 }
 
-function Progress({
-  className = "",
-  className2 = "",
-  value,
-  ...props
-}: ProgressProps) {
+function Progress({ className = "", className2 = "", value, ...props }: ProgressProps) {
   return (
     <ProgressPrimitive.Root
       dir="rtl"

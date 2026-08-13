@@ -84,9 +84,7 @@ export default function UserRow({
     try {
       if (categoryId === 5) {
         const newCount = Number(count);
-        const existingActivities = activitiesList.filter(
-          (a) => a.category === 5,
-        );
+        const existingActivities = activitiesList.filter((a) => a.category === 5);
         const currentCount = existingActivities.length;
         if (newCount > currentCount) {
           const diff = newCount - currentCount;
@@ -119,10 +117,7 @@ export default function UserRow({
   };
 
   return (
-    <div
-      key={userId}
-      className=" relative w-full h-8 flex hover:bg-black/5 transition-colors"
-    >
+    <div key={userId} className=" relative w-full h-8 flex hover:bg-black/5 transition-colors">
       {/* Points Column */}
       <div className="relative w-[200px] pr-3 border-b border-r border-black flex justify-end items-center gap-2">
         <div className={`${tajawal.className} font-bold`}>{userPoints}</div>
@@ -131,12 +126,9 @@ export default function UserRow({
       {/* Category Columns */}
       <div className="flex-1 flex justify-center items-center h-full border-b border-r border-black">
         {categories?.map((category: Category) => {
-          const categoryActivities = activitiesList.filter(
-            (act) => act.category === category.id,
-          );
+          const categoryActivities = activitiesList.filter((act) => act.category === category.id);
 
-          const currentActivity =
-            category.id === 5 ? categoryActivities : categoryActivities[0];
+          const currentActivity = category.id === 5 ? categoryActivities : categoryActivities[0];
 
           return category.id === 5 ? (
             <div
@@ -144,16 +136,12 @@ export default function UserRow({
               className="flex-1 flex h-full justify-center items-center border-r border-black"
             >
               <select
-                value={
-                  Array.isArray(currentActivity) ? currentActivity.length : 0
-                }
+                value={Array.isArray(currentActivity) ? currentActivity.length : 0}
                 disabled={loading}
                 onChange={(e) =>
                   handleInput(
                     e,
-                    Array.isArray(currentActivity)
-                      ? currentActivity[0]?.id
-                      : undefined,
+                    Array.isArray(currentActivity) ? currentActivity[0]?.id : undefined,
                     category.id,
                     userId,
                     e.target.value,
@@ -179,9 +167,7 @@ export default function UserRow({
                 onChange={(e) =>
                   handleInput(
                     e,
-                    Array.isArray(currentActivity)
-                      ? currentActivity[0]?.id
-                      : currentActivity?.id,
+                    Array.isArray(currentActivity) ? currentActivity[0]?.id : currentActivity?.id,
                     category.id,
                     userId,
                   )
