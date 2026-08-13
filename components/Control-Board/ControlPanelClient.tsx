@@ -362,12 +362,12 @@ export default function ControlPanelClient() {
             </div>
 
             {/* Week navigation */}
-            <div className="flex items-center gap-2 bg-[#F7FBEA] border border-[#043F2E]/15 rounded-2xl p-1.5">
+            <div className="flex justify-between items-center gap-2 bg-[#F7FBEA] border border-[#043F2E]/15 rounded-2xl p-1.5">
               <button
                 onClick={() => handleWeekChange("prev")}
                 disabled={loading}
                 aria-label="الأسبوع السابق"
-                className="w-10 h-10 rounded-xl bg-white hover:bg-[#BEE663] text-[#043F2E] flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+                className="w-10 h-10 rounded-xl bg-white hover:bg-[#BEE663] text-[#043F2E] flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm cursor-pointer"
               >
                 <ChevronRight className="w-5 h-5" strokeWidth={2.4} />
               </button>
@@ -382,7 +382,7 @@ export default function ControlPanelClient() {
                 onClick={() => handleWeekChange("next")}
                 disabled={loading}
                 aria-label="الأسبوع التالي"
-                className="w-10 h-10 rounded-xl bg-white hover:bg-[#BEE663] text-[#043F2E] flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+                className="w-10 h-10 rounded-xl bg-white hover:bg-[#BEE663] text-[#043F2E] flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm cursor-pointer"
               >
                 <ChevronLeft className="w-5 h-5" strokeWidth={2.4} />
               </button>
