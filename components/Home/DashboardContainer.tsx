@@ -115,7 +115,7 @@ export default function DashboardContainer() {
   };
 
   return (
-    <div className="w-full h-full flex items-start gap-10 justify-center max-sm:px-5 max-sm:flex-col-reverse">
+    <div className="w-full h-full flex items-start gap-10 justify-center px-5 max-lg:flex-col-reverse">
       <MonthGoalClient goalData={goalData} isLoading={isLoading} />
       <PerformanceBoardClient
         leaderboardData={leaderboardData}

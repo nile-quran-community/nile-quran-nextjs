@@ -236,7 +236,6 @@ lib/
 public/
   abstract.png          # desktop decorative background (auth page)
   abstract mob.svg      # mobile decorative background (auth page)
-  goalArrow.png         # MonthGoalClient card decoration
   menu.png              # mobile nav trigger icon
   ArrowLeft.png         # control-board week navigation
   Arrowright.png        # control-board week navigation
