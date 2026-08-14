@@ -243,14 +243,14 @@ export default function PerformanceBoardClient({
           {rest.length > 0 && (
             <div className="p-3 md:p-5">
               <div
-                className={`${tajawal.className} flex items-center gap-3 px-3 py-2 text-[11px] font-bold text-[#043F2E]/50 uppercase tracking-wider`}
+                className={`${tajawal.className} flex items-center gap-3 max-sm:gap-2 px-3 py-2 text-[11px] font-bold text-[#043F2E]/50 uppercase tracking-wider`}
               >
-                <div className="shrink-0 w-10 text-center">المركز</div>
+                <div className="shrink-0 w-10 max-sm:w-8 text-center">المركز</div>
                 {Object.keys(previousRanks).length > 0 && (
-                  <div className="shrink-0 w-12 text-center">الحركة</div>
+                  <div className="shrink-0 w-12 max-sm:w-8 text-center">الحركة</div>
                 )}
                 <div className="flex-1 text-start">الاسم</div>
-                <div className="shrink-0 w-20 text-start">النقاط</div>
+                <div className="shrink-0 w-20 max-sm:w-14 text-start">النقاط</div>
               </div>
               <div className="flex flex-col">
                 {rest.map((user, idx) => {
@@ -505,7 +505,7 @@ function RankRow({
       initial={{ opacity: 0, x: 8 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.3, delay, ease: "easeOut" }}
-      className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${
+      className={`group flex items-center gap-3 max-sm:gap-2 px-3 py-2.5 rounded-xl transition-colors ${
         highlight
           ? "bg-[#BEE663]/25 border border-[#043F2E]/15"
           : "hover:bg-[#F7FBEA]/70 border border-transparent"
@@ -513,7 +513,7 @@ function RankRow({
     >
       {/* Rank */}
       <div
-        className={`${lalezar.className} shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-base ${
+        className={`${lalezar.className} shrink-0 w-10 h-10 max-sm:w-8 max-sm:h-8 rounded-lg flex items-center justify-center text-base ${
           highlight ? "bg-[#043F2E] text-[#BEE663]" : "bg-[#F7FBEA] text-[#043F2E]"
         }`}
       >
@@ -522,15 +522,15 @@ function RankRow({
 
       {/* Movement */}
       {showMovement && (
-        <div className="shrink-0 w-12 flex justify-center">
+        <div className="shrink-0 w-12 max-sm:w-8 flex justify-center">
           <MovementIndicator movement={movement} />
         </div>
       )}
 
-      {/* Avatar + Name */}
+      {/* Avatar + Name — avatar hidden on mobile to leave room for the name */}
       <div className="flex-1 min-w-0 flex items-center gap-2.5">
         <div
-          className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm ${
+          className={`shrink-0 w-9 h-9 max-sm:hidden rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm ${
             highlight ? "bg-[#043F2E]" : "bg-gradient-to-br from-[#043F2E] to-[#065f46]"
           }`}
         >
@@ -563,12 +563,14 @@ function RankRow({
         </div>
       </div>
 
-      {/* Points */}
-      <div className="shrink-0 w-20 flex items-baseline justify-start gap-1">
+      {/* Points — narrower on mobile; the column header already labels النقاط */}
+      <div className="shrink-0 w-20 max-sm:w-14 flex items-baseline justify-start gap-1">
         <span className={`${lalezar.className} text-lg text-[#043F2E] leading-none`}>
           {toArabicDigits(user.points)}
         </span>
-        <span className={`${tajawal.className} text-[10px] text-[#043F2E]/50 font-medium`}>
+        <span
+          className={`${tajawal.className} text-[10px] text-[#043F2E]/50 font-medium max-sm:hidden`}
+        >
           نقطة
         </span>
       </div>
