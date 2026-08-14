@@ -78,7 +78,7 @@ export async function getLeaderboardData(year: number, month: number) {
       "0",
     )}-${String(endDate.day).padStart(2, "0")}`;
 
-    const query = `?date_after=${start}&date_before=${end}`;
+    const query = `?date_after=${start}&date_before=${end}&ordering=-points`;
     const result = await fetch(`${API_BASE}api/v1/users/points/${query}`, {
       method: "GET",
       headers: {
@@ -113,16 +113,11 @@ export async function getLeaderboardData(year: number, month: number) {
       };
     }
 
-    // Sort by points descending
-    const sortedResults = results.sort((a, b) => {
-      const aPoints = a.points || 0;
-      const bPoints = b.points || 0;
-      return bPoints - aPoints;
-    });
+    // Results are already ordered by points descending (ordering=-points)
 
     // Fetch user details for each user ID
     const mappedData: MappedLeaderboardUser[] = await Promise.all(
-      sortedResults.map(async (item) => {
+      results.map(async (item) => {
         const userId = item.user;
 
         const userDetailsResponse = await getUserDetails(userId);

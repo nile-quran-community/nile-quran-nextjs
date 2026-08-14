@@ -64,6 +64,8 @@ export default function DashboardContainer() {
       if (goalResult.success) setGoalData(goalResult.data);
 
       if (previousResult.success) {
+        // The API returns Students only, pre-sorted by points, so these ranks
+        // align exactly with the ranks the leaderboard displays.
         const ranks: Record<number, number> = {};
         previousResult.data.forEach((user, idx) => {
           ranks[user.id] = idx + 1;

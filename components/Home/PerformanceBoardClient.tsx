@@ -63,11 +63,9 @@ export default function PerformanceBoardClient({
 }: Props) {
   const monthIndex = month - 1;
 
-  const sortedData = React.useMemo(() => {
-    return leaderboardData
-      .filter((u) => u?.groups?.includes("Student"))
-      .sort((a, b) => b.points - a.points);
-  }, [leaderboardData]);
+  // Data arrives from the API pre-sorted by points descending (ordering=-points)
+  // and containing Students only — no client-side sorting or filtering needed.
+  const sortedData = leaderboardData;
 
   const topThree = sortedData.slice(0, 3);
   const rest = sortedData.slice(3);
