@@ -8,11 +8,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Lalezar, Tajawal } from "next/font/google";
 
-const lalezar = Lalezar({ subsets: ["latin"], weight: "400" });
-const tajawal = Tajawal({ subsets: ["latin"], weight: "700" });
+const lalezar = Lalezar({ subsets: ["arabic"], weight: "400" });
+const tajawal = Tajawal({ subsets: ["arabic"], weight: "700" });
 interface User {
   first_name: string;
   last_name: string;
+  groups?: string[];
 }
 interface Props {
   User: User;
@@ -68,12 +69,14 @@ export default function NavBarMobileMenu({ User }: Props) {
           >
             <p>عن المجتمع</p>
           </Link>
-          <Link
-            href={"/control-board"}
-            className={`${tajawal.className} p-3 flex rounded-2xl bg-[#2A5A45] text-[#E6F0E9] text-lg font-semibold justify-center`}
-          >
-            <p>لوحه التحكم</p>
-          </Link>
+          {User.groups?.includes("Admin") && (
+            <Link
+              href={"/control-board"}
+              className={`${tajawal.className} p-3 flex rounded-2xl bg-[#2A5A45] text-[#E6F0E9] text-lg font-semibold justify-center`}
+            >
+              <p>لوحه التحكم</p>
+            </Link>
+          )}
           <div
             className={`${tajawal.className} p-3 flex rounded-2xl bg-[#2A5A45]  text-lg font-semibold justify-center`}
           >
