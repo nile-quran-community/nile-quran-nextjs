@@ -1,6 +1,6 @@
 "use client";
 
-import { addUserActivity, deleteUserActivity } from "@/actions/ControlBoard";
+import { addUserActivity, deleteUserActivity, updateUserSupervisor } from "@/actions/ControlBoard";
 
 import { Tajawal } from "next/font/google";
 import { hijriToGregorian } from "@tabby_ai/hijri-converter";
@@ -22,12 +22,15 @@ type UserPoints = {
   activities: Activity[];
 };
 
+type SupervisorOption = { username: string; first_name: string; last_name: string };
+
 type Props = {
   userId: number;
   points: UserPoints[];
   firstname: string;
   lastname: string;
-  supervisor: string;
+  supervisor: string | null;
+  supervisors: SupervisorOption[];
   categories: Category[];
   setLoading: (arg0: boolean) => void;
   weekIndex: number;
@@ -46,6 +49,7 @@ export default function UserRow({
   firstname,
   lastname,
   supervisor,
+  supervisors,
   categories,
   setLoading,
   weekIndex,
@@ -123,12 +127,26 @@ export default function UserRow({
     }
   };
 
+  const handleSupervisorChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    if (loading) return;
+
+    setLoading(true);
+    const res = await updateUserSupervisor(userId, e.target.value || null);
+    if (!res.success && res.error) {
+      alert(res.error);
+    }
+    await fetchWeekData(weekIndex);
+    setLoading(false);
+  };
+
   if (variant === "mobile") {
     return (
       <MobileCard
         fullName={fullName}
         initials={initials}
         supervisor={supervisor}
+        supervisors={supervisors}
+        onSupervisorChange={handleSupervisorChange}
         userPoints={userPoints}
         categories={categories}
         activitiesList={activitiesList}
@@ -153,7 +171,7 @@ export default function UserRow({
       </div>
 
       {/* Name */}
-      <div className="w-[180px] shrink-0 min-w-0">
+      <div className="w-[150px] shrink-0 min-w-0">
         <p
           className={`${tajawal.className} text-sm font-bold text-[#043F2E] truncate`}
           title={fullName}
@@ -163,77 +181,87 @@ export default function UserRow({
       </div>
 
       {/* Group / Supervisor */}
-      <div className="w-[140px] shrink-0 min-w-0 flex items-center gap-1.5">
+      <div className="w-[120px] shrink-0 min-w-0 flex items-center gap-1.5">
         <Users className="w-3.5 h-3.5 text-[#043F2E]/40 shrink-0" strokeWidth={2.2} />
-        <p
-          className={`${tajawal.className} text-xs font-medium text-[#043F2E]/70 truncate`}
-          title={supervisor}
+        <select
+          value={supervisor || ""}
+          disabled={loading}
+          onChange={handleSupervisorChange}
+          title={supervisor || "بدون مشرف"}
+          className={`${tajawal.className} w-full h-8 min-w-0 bg-transparent border-none rounded-md text-xs font-medium text-[#043F2E]/70 truncate focus:outline-none focus:bg-[#F7FBEA] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer appearance-none`}
         >
-          {supervisor || "—"}
-        </p>
+          <option value="">— بدون مشرف —</option>
+          {supervisors.map((s) => (
+            <option key={s.username} value={s.username}>
+              {`${s.first_name} ${s.last_name}`.trim() || s.username}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Categories */}
       <div className="flex-1 flex items-center gap-1 min-w-0">
-        {categories?.map((category: Category) => {
-          const categoryActivities = activitiesList.filter((act) => act.category === category.id);
+        {[...(categories || [])]
+          .sort((a, b) => (a.id === 5 ? 1 : b.id === 5 ? -1 : 0))
+          .map((category: Category) => {
+            const categoryActivities = activitiesList.filter((act) => act.category === category.id);
 
-          const currentActivity = category.id === 5 ? categoryActivities : categoryActivities[0];
+            const currentActivity = category.id === 5 ? categoryActivities : categoryActivities[0];
 
-          if (category.id === 5) {
+            if (category.id === 5) {
+              return (
+                <div key={category.id} className="flex-1 min-w-0 flex justify-center">
+                  <select
+                    value={Array.isArray(currentActivity) ? currentActivity.length : 0}
+                    disabled={loading}
+                    onChange={(e) =>
+                      handleInput(
+                        e,
+                        Array.isArray(currentActivity) ? currentActivity[0]?.id : undefined,
+                        category.id,
+                        userId,
+                        e.target.value,
+                      )
+                    }
+                    className={`${tajawal.className} w-full max-w-[64px] h-9 bg-[#F7FBEA] border border-[#043F2E]/15 rounded-lg cursor-pointer disabled:opacity-50 text-xs font-bold text-[#043F2E] text-center focus:outline-none focus:border-[#043F2E]/40 focus:bg-white transition-colors appearance-none`}
+                    style={{
+                      backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23043F2E'%3e%3cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'/%3e%3c/svg%3e")`,
+                      backgroundRepeat: "no-repeat",
+                      backgroundPosition: "left 0.4rem center",
+                      backgroundSize: "14px 14px",
+                      paddingLeft: "1.5rem",
+                      paddingRight: "0.5rem",
+                    }}
+                  >
+                    {Array.from({ length: 21 }, (_, i) => (
+                      <option key={i} value={i}>
+                        {i}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              );
+            }
+
+            const isChecked = !!currentActivity;
             return (
               <div key={category.id} className="flex-1 min-w-0 flex justify-center">
-                <select
-                  value={Array.isArray(currentActivity) ? currentActivity.length : 0}
+                <Checkbox
+                  checked={isChecked}
                   disabled={loading}
                   onChange={(e) =>
                     handleInput(
                       e,
-                      Array.isArray(currentActivity) ? currentActivity[0]?.id : undefined,
+                      Array.isArray(currentActivity) ? currentActivity[0]?.id : currentActivity?.id,
                       category.id,
                       userId,
-                      e.target.value,
                     )
                   }
-                  className={`${tajawal.className} w-full max-w-[64px] h-9 bg-[#F7FBEA] border border-[#043F2E]/15 rounded-lg cursor-pointer disabled:opacity-50 text-xs font-bold text-[#043F2E] text-center focus:outline-none focus:border-[#043F2E]/40 focus:bg-white transition-colors appearance-none`}
-                  style={{
-                    backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23043F2E'%3e%3cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'/%3e%3c/svg%3e")`,
-                    backgroundRepeat: "no-repeat",
-                    backgroundPosition: "left 0.4rem center",
-                    backgroundSize: "14px 14px",
-                    paddingLeft: "1.5rem",
-                    paddingRight: "0.5rem",
-                  }}
-                >
-                  {Array.from({ length: 21 }, (_, i) => (
-                    <option key={i} value={i}>
-                      {i}
-                    </option>
-                  ))}
-                </select>
+                  title={category.name}
+                />
               </div>
             );
-          }
-
-          const isChecked = !!currentActivity;
-          return (
-            <div key={category.id} className="flex-1 min-w-0 flex justify-center">
-              <Checkbox
-                checked={isChecked}
-                disabled={loading}
-                onChange={(e) =>
-                  handleInput(
-                    e,
-                    Array.isArray(currentActivity) ? currentActivity[0]?.id : currentActivity?.id,
-                    category.id,
-                    userId,
-                  )
-                }
-                title={category.name}
-              />
-            </div>
-          );
-        })}
+          })}
       </div>
 
       {/* Total */}
@@ -292,6 +320,8 @@ function MobileCard({
   fullName,
   initials,
   supervisor,
+  supervisors,
+  onSupervisorChange,
   userPoints,
   categories,
   activitiesList,
@@ -301,7 +331,9 @@ function MobileCard({
 }: {
   fullName: string;
   initials: string;
-  supervisor: string;
+  supervisor: string | null;
+  supervisors: SupervisorOption[];
+  onSupervisorChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
   userPoints: number;
   categories: Category[];
   activitiesList: Activity[];
@@ -328,14 +360,22 @@ function MobileCard({
           <p className={`${tajawal.className} text-base font-bold text-[#043F2E] truncate`}>
             {fullName}
           </p>
-          {supervisor && (
-            <div className="flex items-center gap-1 mt-0.5">
-              <Users className="w-3 h-3 text-[#043F2E]/40 shrink-0" strokeWidth={2.2} />
-              <p className={`${tajawal.className} text-xs font-medium text-[#043F2E]/60 truncate`}>
-                {supervisor}
-              </p>
-            </div>
-          )}
+          <div className="flex items-center gap-1 mt-0.5">
+            <Users className="w-3 h-3 text-[#043F2E]/40 shrink-0" strokeWidth={2.2} />
+            <select
+              value={supervisor || ""}
+              disabled={loading}
+              onChange={onSupervisorChange}
+              className={`${tajawal.className} max-w-[150px] bg-transparent border-none text-xs font-medium text-[#043F2E]/60 truncate focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer appearance-none`}
+            >
+              <option value="">— بدون مشرف —</option>
+              {supervisors.map((s) => (
+                <option key={s.username} value={s.username}>
+                  {`${s.first_name} ${s.last_name}`.trim() || s.username}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
         <div
           className={`${tajawal.className} shrink-0 min-w-[56px] h-10 px-3 flex items-center justify-center rounded-xl font-bold text-base ${

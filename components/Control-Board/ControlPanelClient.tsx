@@ -26,11 +26,12 @@ const tajawal = Tajawal({ subsets: ["arabic"], weight: ["400", "500", "700"] });
 type Category = { id: number; name: string };
 type User = {
   id: number;
+  username: string;
   first_name: string;
   last_name: string;
   groups: string[];
   points: number;
-  supervisor: string;
+  supervisor: string | null;
 };
 type UserPoints = {
   user: number;
@@ -107,18 +108,20 @@ export default function ControlPanelClient() {
   const [year, setYear] = useState(hijriDate.year);
   const [weekIndex, setWeekIndex] = useState<number>(getInitialWeekIndex);
   const [searchQuery, setSearchQuery] = useState("");
+  const [supervisors, setSupervisors] = useState<User[]>([]);
 
   const categoriesRef = useRef<Category[]>([]);
 
   const fetchWeekData = useCallback(
     async (week: number) => {
       try {
-        const [usersRes, categories, pointsRes] = await Promise.all([
-          getUsers(year, month, week),
+        const [usersRes, categories, pointsRes, supervisorsRes] = await Promise.all([
+          getUsers(year, month, week, "Student"),
           categoriesRef.current.length > 0
             ? Promise.resolve(categoriesRef.current)
             : fetchCategoriesCached(),
           getPoints(year, month, week),
+          getUsers(year, month, week, "Supervisor"),
         ]);
 
         if (categories.length > 0) {
@@ -146,6 +149,13 @@ export default function ControlPanelClient() {
 
           return newData;
         });
+
+        if (supervisorsRes && supervisorsRes.success) {
+          const rawSupervisors = supervisorsRes.users;
+          setSupervisors(
+            Array.isArray(rawSupervisors) ? rawSupervisors : rawSupervisors?.results || [],
+          );
+        }
       } catch (error) {
         console.error("Fetch error:", error);
         setData((prev) => ({ ...prev, error: "System error loading data" }));
@@ -191,21 +201,24 @@ export default function ControlPanelClient() {
 
   // 🟢 Filtered & sorted users (by points desc)
   const filteredUsers = useMemo(() => {
-    const students = (data?.users || []).filter((u) => u?.groups?.includes("Student"));
+    const students = data?.users || [];
 
     if (!searchQuery.trim()) return students;
 
     const q = searchQuery.trim().toLowerCase();
     return students.filter((u) => {
       const fullName = `${u.first_name} ${u.last_name}`.toLowerCase();
-      const supervisor = (u.supervisor || "").toLowerCase();
-      return fullName.includes(q) || supervisor.includes(q);
+      const supervisorUser = supervisors.find((s) => s.username === u.supervisor);
+      const supervisorName = supervisorUser
+        ? `${supervisorUser.first_name} ${supervisorUser.last_name}`.toLowerCase()
+        : "";
+      return fullName.includes(q) || supervisorName.includes(q);
     });
-  }, [data?.users, searchQuery]);
+  }, [data?.users, searchQuery, supervisors]);
 
   // 🟢 Summary statistics
   const summary = useMemo(() => {
-    const students = (data?.users || []).filter((u) => u?.groups?.includes("Student"));
+    const students = data?.users || [];
 
     const totalStudents = students.length;
     const totalPoints = data.points?.points?.reduce((sum, p) => sum + (p.points || 0), 0);
@@ -434,6 +447,7 @@ export default function ControlPanelClient() {
                   firstname={user.first_name}
                   lastname={user.last_name}
                   supervisor={user.supervisor}
+                  supervisors={supervisors}
                   categories={data.categories}
                   setLoading={setLoading}
                   weekIndex={weekIndex}
@@ -459,6 +473,7 @@ export default function ControlPanelClient() {
                   firstname={user.first_name}
                   lastname={user.last_name}
                   supervisor={user.supervisor}
+                  supervisors={supervisors}
                   categories={data.categories}
                   setLoading={setLoading}
                   weekIndex={weekIndex}
@@ -539,29 +554,30 @@ function TableHeader({ categories }: { categories: Category[] }) {
   return (
     <div className="bg-[#F7FBEA] border-b border-[#043F2E]/10 px-4 py-3 flex items-center gap-3">
       {/* Student avatar column header */}
-      <div className="w-[60px] shrink-0" />
+      <div className="w-[44px] shrink-0" />
 
       {/* Name */}
-      <div className="w-[180px] shrink-0">
+      <div className="w-[150px] shrink-0">
         <HeaderLabel>الاسم</HeaderLabel>
       </div>
 
       {/* Group */}
-      <div className="w-[140px] shrink-0">
+      <div className="w-[120px] shrink-0">
         <HeaderLabel>المجموعة</HeaderLabel>
       </div>
 
       {/* Categories */}
-      <div className="flex-1 flex items-center gap-1 min-w-0">
-        {categories.map((cat) => (
-          <div
-            key={cat.id}
-            className={`${tajawal.className} flex-1 min-w-0 text-center text-[12px] font-bold text-[#043F2E] px-1 truncate`}
-            title={cat.name}
-          >
-            {cat.name}
-          </div>
-        ))}
+      <div className="flex-1 flex items-start gap-1 min-w-0">
+        {[...categories]
+          .sort((a, b) => (a.id === 5 ? 1 : b.id === 5 ? -1 : 0))
+          .map((cat) => (
+            <div
+              key={cat.id}
+              className={`${tajawal.className} flex-1 min-w-0 text-center text-[11px] font-bold text-[#043F2E] px-1 leading-tight break-words`}
+            >
+              {cat.name}
+            </div>
+          ))}
       </div>
 
       {/* Total */}

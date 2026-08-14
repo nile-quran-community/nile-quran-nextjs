@@ -104,6 +104,37 @@ export async function deleteUserActivity(uid: number, activityId: number) {
 }
 
 // ===============================
+// UPDATE USER SUPERVISOR
+// ===============================
+export async function updateUserSupervisor(uid: number, supervisorUsername: string | null) {
+  try {
+    const cookieStore = await cookies();
+    const access = cookieStore.get("access")?.value;
+
+    const response = await fetch(`${API_BASE}api/v1/users/${uid}/`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${access}`,
+        "Accept-Language": "ar",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ supervisor: supervisorUsername }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return { success: false, error: errorData?.supervisor?.[0] || errorData?.detail };
+    }
+
+    revalidatePath("/control-board");
+    return { success: true };
+  } catch (error) {
+    console.error("Error updating supervisor:", error);
+    return { success: false };
+  }
+}
+
+// ===============================
 // GET USERS WITH DETAILS (WITH DATES)
 // ===============================
 export async function getUsersWithDetails(start?: string, end?: string) {
@@ -191,7 +222,7 @@ export async function getWeekData(start: string, end: string) {
   }
 }
 
-export async function getUsers(year: number, month: number, weekIndex: number) {
+export async function getUsers(year: number, month: number, weekIndex: number, group?: string) {
   try {
     const cookieStore = await cookies();
     const access = cookieStore.get("access")?.value;
@@ -218,7 +249,7 @@ export async function getUsers(year: number, month: number, weekIndex: number) {
     const start = `${startDate.year}-${String(startDate.month).padStart(2, "0")}-${String(startDate.day).padStart(2, "0")}`;
     const end = `${endDate.year}-${String(endDate.month).padStart(2, "0")}-${String(endDate.day).padStart(2, "0")}`;
 
-    const query = `?date_after=${start}&date_before=${end}`;
+    const query = `?date_after=${start}&date_before=${end}${group ? `&group=${group}` : ""}`;
     const result = await fetch(`${API_BASE}api/v1/users/${query}`, {
       method: "GET",
       headers: {
