@@ -123,6 +123,16 @@ jobs:
           client-id: "${{ vars.SEMANTIC_RELEASE_APP_CLIENT_ID }}"
           private-key: "${{ secrets.SEMANTIC_RELEASE_APP_PRIVATE_KEY }}"
 
+      - name: Configure Git CLI
+        env:
+          GH_TOKEN: "${{ steps.app-token.outputs.token }}"
+          SEMANTIC_RELEASE_APP_SLUG: "${{ steps.app-token.outputs.app-slug }}"
+        run: |
+          export SEMANTIC_RELEASE_APP_UID="$(gh api "/users/${SEMANTIC_RELEASE_APP_SLUG}[bot]" --jq .id)"
+          git config --global user.name "${SEMANTIC_RELEASE_APP_SLUG}[bot]"
+          git config --global user.email "${SEMANTIC_RELEASE_APP_UID}+${SEMANTIC_RELEASE_APP_SLUG}[bot]@users.noreply.github.com"
+          gh auth setup-git
+
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
