@@ -2,7 +2,7 @@ branches:
   - master
 plugins:
   - - "@semantic-release/commit-analyzer"
-    - preset: conventionalcommits
+    - preset: angular
       releaseRules:
         - type: refactor
           release: minor
@@ -42,6 +42,26 @@ plugins:
             hidden: true
   - - "@semantic-release/changelog"
     - changelogTitle: "# CHANGELOG"
+      presetConfig:
+        types:
+          - type: feat
+            section: Features
+          - type: fix
+            section: Bug Fixes
+          - type: style
+            section: Styles
+          - type: refactor
+            section: Refactors
+          - type: perf
+            section: Performance Improvements
+          - type: test
+            section: Tests
+          - type: ci
+            section: Continuous Integration
+          - type: revert
+            section: Reverts
+          - type: chore
+            hidden: true
   - - "@semantic-release/github"
     - assets:
         - path: CHANGELOG.md
