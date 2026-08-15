@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import DashboardContainer from "@/components/Home/DashboardContainer";
 
 export const metadata: Metadata = {
-  title: "الصفحة الرئيسية",
+  title: "الصفحة الرئيسية | مقرأة النيل",
   description:
     "تابع هدف الشهر وتقدمك في الحفظ والتسميع، وشارك مجتمعك في المسابقة الشهرية على منصة مقرأة النيل.",
   robots: { index: false, follow: false },

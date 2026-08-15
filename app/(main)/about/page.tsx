@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import AboutContent from "@/components/About/AboutContent";
 
 export const metadata: Metadata = {
-  title: "عن المجتمع - مقرأة النيل",
+  title: "عن المجتمع",
   description: "تعرف على مجتمع مقرأة النيل، رؤيتنا، قيمنا، وفرق العمل المختلفة",
 };
 
