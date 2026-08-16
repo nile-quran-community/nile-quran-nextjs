@@ -4,12 +4,13 @@ import AbstractMob from "@/public/abstract mob.svg";
 import { redirect } from "next/navigation";
 import { checkTokenValidity } from "@/actions/auth-actions";
 
-export default async function Page({ searchParams }: { searchParams: { mode?: string } }) {
+export default async function Page({ searchParams }: { searchParams: Promise<{ mode?: string }> }) {
   const User = await checkTokenValidity();
   if (User.isValid) {
     redirect("/");
   }
-  const formMode = searchParams.mode || "login";
+  const { mode } = await searchParams;
+  const formMode = mode || "login";
   return (
     <div className="w-full py-10 min-h-screen bg-[#EBF0EB] flex items-start justify-center max-sm:px-5 max-sm:py-7">
       <div className="relative w-full h-full pl-44 flex flex-col justify-center items-start max-sm:pl-0">

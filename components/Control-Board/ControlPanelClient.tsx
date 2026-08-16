@@ -45,6 +45,7 @@ type Activity = {
   id: number;
   category: number;
   date: string;
+  multiplier: number;
 };
 
 export interface ControlPanelData {
