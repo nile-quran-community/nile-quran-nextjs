@@ -90,8 +90,13 @@ export default async function createUser(data: types) {
 
       // Validation errors (Django style)
       if (response.status === 400 && result) {
+        const { first_name, last_name, ...rest } = result;
         return {
-          errors: result, // return full backend validation
+          errors: {
+            ...rest,
+            ...(first_name && { firstName: first_name }),
+            ...(last_name && { lastName: last_name }),
+          },
         };
       }
 
