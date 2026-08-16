@@ -11,6 +11,7 @@ type Activity = {
   id: number;
   category: number;
   date: string;
+  multiplier: number;
   points?: number;
 };
 type UserSummary = {
@@ -26,7 +27,7 @@ export async function addUserActivity(
   uid: number,
   category: number,
   date: string,
-  count: number | null,
+  multiplier: number | null,
 ) {
   try {
     const cookieStore = await cookies();
@@ -39,7 +40,7 @@ export async function addUserActivity(
         "Accept-Language": "ar",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ category, count, date }),
+      body: JSON.stringify({ category, multiplier, date }),
     });
 
     revalidatePath("/control-panel");
@@ -47,6 +48,44 @@ export async function addUserActivity(
   } catch (error) {
     console.error("Error adding activity:", error);
     return { success: false, error: "فشل إضافة النشاط" };
+  }
+}
+
+// ===============================
+// UPDATE USER ACTIVITY
+// ===============================
+export async function updateUserActivity(uid: number, activityId: number, multiplier: number) {
+  try {
+    const cookieStore = await cookies();
+    const access = cookieStore.get("access")?.value;
+
+    if (!access) {
+      return { success: false, error: "غير مصرح - الرجاء تسجيل الدخول" };
+    }
+
+    const response = await fetch(`${API_BASE}api/v1/users/${uid}/activities/${activityId}/`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${access}`,
+        "Accept-Language": "ar",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ multiplier }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return {
+        success: false,
+        error: errorData?.detail || `فشل تحديث النشاط (${response.status})`,
+      };
+    }
+
+    revalidatePath("/control-panel");
+    return { success: true };
+  } catch (error) {
+    console.error("Error updating activity:", error);
+    return { success: false, error: "فشل تحديث النشاط" };
   }
 }
 

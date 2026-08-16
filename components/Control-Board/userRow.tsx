@@ -1,10 +1,17 @@
 "use client";
 
-import { addUserActivity, deleteUserActivity, updateUserSupervisor } from "@/actions/ControlBoard";
+import { useState } from "react";
+
+import {
+  addUserActivity,
+  deleteUserActivity,
+  updateUserActivity,
+  updateUserSupervisor,
+} from "@/actions/ControlBoard";
 
 import { Tajawal } from "next/font/google";
 import { hijriToGregorian } from "@tabby_ai/hijri-converter";
-import { Check, User, Users } from "lucide-react";
+import { Check, Minus, Plus, User, Users, X } from "lucide-react";
 
 const tajawal = Tajawal({ subsets: ["arabic"], weight: ["400", "500", "700"] });
 
@@ -14,6 +21,7 @@ type Activity = {
   id: number;
   category: number;
   date: string;
+  multiplier: number;
 };
 
 type UserPoints = {
@@ -23,6 +31,8 @@ type UserPoints = {
 };
 
 type SupervisorOption = { username: string; first_name: string; last_name: string };
+
+type MultiplierEdit = { categoryId: number; name: string; value: number };
 
 type Props = {
   userId: number;
@@ -68,56 +78,28 @@ export default function UserRow({
   const fullName = `${firstname} ${lastname}`.trim();
   const initials = `${firstname?.charAt(0) || ""}${lastname?.charAt(0) || ""}`.trim();
 
-  const handleInput = async (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-    activityId: number | undefined,
-    categoryId: number,
-    uid: number,
-    count?: number | string,
-  ) => {
-    if (loading) return;
+  const [multiplierEdit, setMultiplierEdit] = useState<MultiplierEdit | null>(null);
 
-    let date = "";
-
+  const getActivityDate = () => {
     if (weekIndex === currentWeek) {
-      date = new Date().toISOString();
-    } else {
-      const day = weekIndex === 1 ? 1 : (weekIndex - 1) * 7 + 1;
-      const currentDate = hijriToGregorian({
-        year: currentYear,
-        month: currentMonth,
-        day,
-      });
-      date = `${currentDate.year}-${currentDate.month}-${currentDate.day}T17:55:09.157Z`;
+      return new Date().toISOString();
     }
+    const day = weekIndex === 1 ? 1 : (weekIndex - 1) * 7 + 1;
+    const currentDate = hijriToGregorian({
+      year: currentYear,
+      month: currentMonth,
+      day,
+    });
+    return `${currentDate.year}-${currentDate.month}-${currentDate.day}T17:55:09.157Z`;
+  };
+
+  const runUpdate = async (update: () => Promise<void>) => {
+    if (loading) return;
 
     setLoading(true);
 
     try {
-      if (categoryId === 5) {
-        const newCount = Number(count);
-        const existingActivities = activitiesList.filter((a) => a.category === 5);
-        const currentCount = existingActivities.length;
-        if (newCount > currentCount) {
-          const diff = newCount - currentCount;
-          for (let i = 0; i < diff; i++) {
-            await addUserActivity(uid, 5, date, 1);
-          }
-        } else if (newCount < currentCount) {
-          const toDelete = existingActivities.slice(0, currentCount - newCount);
-          for (const act of toDelete) {
-            await deleteUserActivity(uid, act.id);
-          }
-        }
-      } else {
-        const checked = (e.target as HTMLInputElement).checked;
-        if (checked) {
-          await addUserActivity(uid, categoryId, date, 1);
-        } else if (activityId !== undefined) {
-          await deleteUserActivity(uid, activityId);
-        }
-      }
-
+      await update();
       await fetchWeekData(weekIndex);
     } catch (error) {
       console.error("Error updating activity:", error);
@@ -126,6 +108,35 @@ export default function UserRow({
       setLoading(false);
     }
   };
+
+  const handleToggle = async (
+    activityId: number | undefined,
+    categoryId: number,
+    uid: number,
+    checked: boolean,
+  ) =>
+    runUpdate(async () => {
+      if (checked) {
+        await addUserActivity(uid, categoryId, getActivityDate(), 1);
+      } else if (activityId !== undefined) {
+        await deleteUserActivity(uid, activityId);
+      }
+    });
+
+  const handleMultiplierChange = async (categoryId: number, uid: number, multiplier: number) =>
+    runUpdate(async () => {
+      const existingActivity = activitiesList.find((a) => a.category === categoryId);
+
+      if (multiplier > 0) {
+        if (existingActivity) {
+          await updateUserActivity(uid, existingActivity.id, multiplier);
+        } else {
+          await addUserActivity(uid, categoryId, getActivityDate(), multiplier);
+        }
+      } else if (existingActivity) {
+        await deleteUserActivity(uid, existingActivity.id);
+      }
+    });
 
   const handleSupervisorChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     if (loading) return;
@@ -139,21 +150,39 @@ export default function UserRow({
     setLoading(false);
   };
 
+  const multiplierModal = multiplierEdit && (
+    <MultiplierModal
+      categoryName={multiplierEdit.name}
+      value={multiplierEdit.value}
+      loading={loading}
+      onClose={() => setMultiplierEdit(null)}
+      onSelect={(n) => {
+        setMultiplierEdit(null);
+        handleMultiplierChange(multiplierEdit.categoryId, userId, n);
+      }}
+    />
+  );
+
   if (variant === "mobile") {
     return (
-      <MobileCard
-        fullName={fullName}
-        initials={initials}
-        supervisor={supervisor}
-        supervisors={supervisors}
-        onSupervisorChange={handleSupervisorChange}
-        userPoints={userPoints}
-        categories={categories}
-        activitiesList={activitiesList}
-        loading={loading}
-        onInput={handleInput}
-        userId={userId}
-      />
+      <>
+        <MobileCard
+          fullName={fullName}
+          initials={initials}
+          supervisor={supervisor}
+          supervisors={supervisors}
+          onSupervisorChange={handleSupervisorChange}
+          userPoints={userPoints}
+          categories={categories}
+          activitiesList={activitiesList}
+          loading={loading}
+          onToggle={handleToggle}
+          onMultiplierChange={handleMultiplierChange}
+          onOpenMultiplier={setMultiplierEdit}
+          userId={userId}
+        />
+        {multiplierModal}
+      </>
     );
   }
 
@@ -204,61 +233,51 @@ export default function UserRow({
         {[...(categories || [])]
           .sort((a, b) => (a.id === 5 ? 1 : b.id === 5 ? -1 : 0))
           .map((category: Category) => {
-            const categoryActivities = activitiesList.filter((act) => act.category === category.id);
-
-            const currentActivity = category.id === 5 ? categoryActivities : categoryActivities[0];
+            const categoryActivity = activitiesList.find((act) => act.category === category.id);
 
             if (category.id === 5) {
               return (
                 <div key={category.id} className="flex-1 min-w-0 flex justify-center">
-                  <select
-                    value={Array.isArray(currentActivity) ? currentActivity.length : 0}
+                  <MultiplierStepper
+                    value={categoryActivity?.multiplier ?? 0}
+                    min={0}
+                    max={20}
                     disabled={loading}
-                    onChange={(e) =>
-                      handleInput(
-                        e,
-                        Array.isArray(currentActivity) ? currentActivity[0]?.id : undefined,
-                        category.id,
-                        userId,
-                        e.target.value,
-                      )
-                    }
-                    className={`${tajawal.className} w-full max-w-[64px] h-9 bg-[#F7FBEA] border border-[#043F2E]/15 rounded-lg cursor-pointer disabled:opacity-50 text-xs font-bold text-[#043F2E] text-center focus:outline-none focus:border-[#043F2E]/40 focus:bg-white transition-colors appearance-none`}
-                    style={{
-                      backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23043F2E'%3e%3cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'/%3e%3c/svg%3e")`,
-                      backgroundRepeat: "no-repeat",
-                      backgroundPosition: "left 0.4rem center",
-                      backgroundSize: "14px 14px",
-                      paddingLeft: "1.5rem",
-                      paddingRight: "0.5rem",
-                    }}
-                  >
-                    {Array.from({ length: 21 }, (_, i) => (
-                      <option key={i} value={i}>
-                        {i}
-                      </option>
-                    ))}
-                  </select>
+                    title={category.name}
+                    onCommit={(n) => handleMultiplierChange(category.id, userId, n)}
+                  />
                 </div>
               );
             }
 
-            const isChecked = !!currentActivity;
+            const isChecked = !!categoryActivity;
             return (
-              <div key={category.id} className="flex-1 min-w-0 flex justify-center">
+              <div
+                key={category.id}
+                className="flex-1 min-w-0 flex items-center justify-center gap-1"
+              >
                 <Checkbox
                   checked={isChecked}
                   disabled={loading}
                   onChange={(e) =>
-                    handleInput(
-                      e,
-                      Array.isArray(currentActivity) ? currentActivity[0]?.id : currentActivity?.id,
-                      category.id,
-                      userId,
-                    )
+                    handleToggle(categoryActivity?.id, category.id, userId, e.target.checked)
                   }
                   title={category.name}
                 />
+                {categoryActivity && (
+                  <MultiplierBadge
+                    value={categoryActivity.multiplier}
+                    disabled={loading}
+                    title={category.name}
+                    onClick={() =>
+                      setMultiplierEdit({
+                        categoryId: category.id,
+                        name: category.name,
+                        value: categoryActivity.multiplier,
+                      })
+                    }
+                  />
+                )}
               </div>
             );
           })}
@@ -274,6 +293,8 @@ export default function UserRow({
           {userPoints}
         </div>
       </div>
+
+      {multiplierModal}
     </div>
   );
 }
@@ -314,6 +335,151 @@ function Checkbox({
 }
 
 // ============================
+// 🟢 Multiplier stepper (invite member)
+// ============================
+function MultiplierStepper({
+  value,
+  min,
+  max,
+  disabled,
+  title,
+  onCommit,
+}: {
+  value: number;
+  min: number;
+  max: number;
+  disabled?: boolean;
+  title?: string;
+  onCommit: (value: number) => void;
+}) {
+  const stepperButton =
+    "w-7 h-full flex items-center justify-center text-[#043F2E]/70 hover:bg-[#DEFF90]/60 hover:text-[#043F2E] transition-colors disabled:opacity-30 disabled:pointer-events-none";
+
+  return (
+    <div
+      title={title}
+      className={`flex items-center shrink-0 h-9 rounded-lg border border-[#043F2E]/15 bg-[#F7FBEA] overflow-hidden ${
+        disabled ? "opacity-50" : ""
+      }`}
+    >
+      <button
+        type="button"
+        aria-label="إنقاص"
+        disabled={disabled || value <= min}
+        onClick={() => onCommit(value - 1)}
+        className={stepperButton}
+      >
+        <Minus className="w-3.5 h-3.5" strokeWidth={2.5} />
+      </button>
+      <span
+        className={`${tajawal.className} w-7 text-center text-xs font-bold text-[#043F2E] tabular-nums border-x border-[#043F2E]/10 leading-9`}
+      >
+        {value}
+      </span>
+      <button
+        type="button"
+        aria-label="زيادة"
+        disabled={disabled || value >= max}
+        onClick={() => onCommit(value + 1)}
+        className={stepperButton}
+      >
+        <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />
+      </button>
+    </div>
+  );
+}
+
+// ============================
+// 🟢 Multiplier badge (opens modal)
+// ============================
+function MultiplierBadge({
+  value,
+  disabled,
+  title,
+  onClick,
+}: {
+  value: number;
+  disabled?: boolean;
+  title?: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      title={title}
+      onClick={onClick}
+      className={`${tajawal.className} h-6 min-w-[28px] px-1.5 rounded-md bg-[#F7FBEA] border border-[#043F2E]/15 text-[11px] font-bold leading-none text-[#043F2E]/70 hover:border-[#043F2E]/40 hover:text-[#043F2E] transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+    >
+      {value}x
+    </button>
+  );
+}
+
+// ============================
+// 🟢 Multiplier modal
+// ============================
+function MultiplierModal({
+  categoryName,
+  value,
+  loading,
+  onSelect,
+  onClose,
+}: {
+  categoryName: string;
+  value: number;
+  loading: boolean;
+  onSelect: (value: number) => void;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[#043F2E]/40 p-4"
+      onClick={onClose}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={categoryName}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-[280px] bg-white rounded-3xl border border-[#043F2E]/10 shadow-lg p-5 flex flex-col gap-4"
+      >
+        <div className="flex items-center justify-between gap-2">
+          <h3 className={`${tajawal.className} text-sm font-bold text-[#043F2E] truncate`}>
+            {categoryName}
+          </h3>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="إغلاق"
+            className="w-7 h-7 shrink-0 rounded-lg flex items-center justify-center text-[#043F2E]/60 hover:bg-[#F7FBEA] hover:text-[#043F2E] transition-colors"
+          >
+            <X className="w-4 h-4" strokeWidth={2.2} />
+          </button>
+        </div>
+        <div className="flex items-center justify-center gap-2">
+          {[1, 2, 3, 4, 5].map((n) => (
+            <button
+              key={n}
+              type="button"
+              disabled={loading}
+              onClick={() => onSelect(n)}
+              className={`${tajawal.className} w-10 h-10 rounded-xl border text-sm font-bold transition-all disabled:opacity-50 ${
+                n === value
+                  ? "bg-[#BEE663] border-[#043F2E] text-[#043F2E] shadow-sm"
+                  : "bg-[#F7FBEA] border-[#043F2E]/15 text-[#043F2E]/70 hover:border-[#043F2E]/40"
+              }`}
+            >
+              {n}x
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================
 // 🟢 Mobile Card variant
 // ============================
 function MobileCard({
@@ -326,7 +492,9 @@ function MobileCard({
   categories,
   activitiesList,
   loading,
-  onInput,
+  onToggle,
+  onMultiplierChange,
+  onOpenMultiplier,
   userId,
 }: {
   fullName: string;
@@ -338,13 +506,14 @@ function MobileCard({
   categories: Category[];
   activitiesList: Activity[];
   loading: boolean;
-  onInput: (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  onToggle: (
     activityId: number | undefined,
     categoryId: number,
     uid: number,
-    count?: number | string,
+    checked: boolean,
   ) => void;
+  onMultiplierChange: (categoryId: number, uid: number, multiplier: number) => void;
+  onOpenMultiplier: (edit: MultiplierEdit) => void;
   userId: number;
 }) {
   return (
@@ -394,89 +563,72 @@ function MobileCard({
       {/* Categories grid */}
       <div className="grid grid-cols-2 gap-2">
         {categories?.map((category: Category) => {
-          const categoryActivities = activitiesList.filter((act) => act.category === category.id);
-
-          const currentActivity = category.id === 5 ? categoryActivities : categoryActivities[0];
+          const categoryActivity = activitiesList.find((act) => act.category === category.id);
 
           if (category.id === 5) {
             return (
               <div
                 key={category.id}
-                className="flex flex-col gap-1.5 bg-white rounded-xl p-2.5 border border-[#043F2E]/8"
+                className="flex items-center justify-between gap-2 bg-white rounded-xl p-2.5 border border-[#043F2E]/8"
               >
                 <span
-                  className={`${tajawal.className} text-[11px] font-medium text-[#043F2E]/60 truncate`}
+                  className={`${tajawal.className} flex-1 min-w-0 text-[11px] font-medium text-[#043F2E]/60 truncate`}
                 >
                   {category.name}
                 </span>
-                <select
-                  value={Array.isArray(currentActivity) ? currentActivity.length : 0}
+                <MultiplierStepper
+                  value={categoryActivity?.multiplier ?? 0}
+                  min={0}
+                  max={20}
                   disabled={loading}
-                  onChange={(e) =>
-                    onInput(
-                      e,
-                      Array.isArray(currentActivity) ? currentActivity[0]?.id : undefined,
-                      category.id,
-                      userId,
-                      e.target.value,
-                    )
-                  }
-                  className={`${tajawal.className} w-full h-9 bg-[#F7FBEA] border border-[#043F2E]/15 rounded-lg cursor-pointer disabled:opacity-50 text-xs font-bold text-[#043F2E] text-center focus:outline-none focus:border-[#043F2E]/40 focus:bg-white transition-colors appearance-none`}
-                  style={{
-                    backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23043F2E'%3e%3cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'/%3e%3c/svg%3e")`,
-                    backgroundRepeat: "no-repeat",
-                    backgroundPosition: "left 0.4rem center",
-                    backgroundSize: "14px 14px",
-                    paddingLeft: "1.5rem",
-                    paddingRight: "0.5rem",
-                  }}
-                >
-                  {Array.from({ length: 21 }, (_, i) => (
-                    <option key={i} value={i}>
-                      {i}
-                    </option>
-                  ))}
-                </select>
+                  title={category.name}
+                  onCommit={(n) => onMultiplierChange(category.id, userId, n)}
+                />
               </div>
             );
           }
 
-          const isChecked = !!currentActivity;
+          const isChecked = !!categoryActivity;
           return (
-            <button
-              key={category.id}
-              type="button"
-              disabled={loading}
-              onClick={() => {
-                const syntheticEvent = {
-                  target: { checked: !isChecked },
-                } as React.ChangeEvent<HTMLInputElement>;
-                onInput(
-                  syntheticEvent,
-                  Array.isArray(currentActivity) ? currentActivity[0]?.id : currentActivity?.id,
-                  category.id,
-                  userId,
-                );
-              }}
-              className={`flex items-center gap-2.5 bg-white rounded-xl p-2.5 border transition-all text-start ${
-                isChecked ? "border-[#043F2E]/30 bg-[#BEE663]/10" : "border-[#043F2E]/8"
-              } ${loading ? "opacity-50" : "active:scale-[0.98]"}`}
-            >
-              <div
-                className={`shrink-0 w-7 h-7 rounded-lg flex items-center justify-center transition-all ${
-                  isChecked
-                    ? "bg-[#BEE663] border border-[#043F2E]"
-                    : "bg-[#F7FBEA] border border-[#043F2E]/15"
-                }`}
+            <div key={category.id} className="flex items-center gap-1.5">
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => onToggle(categoryActivity?.id, category.id, userId, !isChecked)}
+                className={`flex-1 min-w-0 flex items-center gap-2.5 bg-white rounded-xl p-2.5 border transition-all text-start ${
+                  isChecked ? "border-[#043F2E]/30 bg-[#BEE663]/10" : "border-[#043F2E]/8"
+                } ${loading ? "opacity-50" : "active:scale-[0.98]"}`}
               >
-                {isChecked && <Check className="w-4 h-4 text-[#043F2E]" strokeWidth={3} />}
-              </div>
-              <span
-                className={`${tajawal.className} text-xs font-medium text-[#043F2E] truncate flex-1`}
-              >
-                {category.name}
-              </span>
-            </button>
+                <div
+                  className={`shrink-0 w-7 h-7 rounded-lg flex items-center justify-center transition-all ${
+                    isChecked
+                      ? "bg-[#BEE663] border border-[#043F2E]"
+                      : "bg-[#F7FBEA] border border-[#043F2E]/15"
+                  }`}
+                >
+                  {isChecked && <Check className="w-4 h-4 text-[#043F2E]" strokeWidth={3} />}
+                </div>
+                <span
+                  className={`${tajawal.className} text-xs font-medium text-[#043F2E] truncate flex-1`}
+                >
+                  {category.name}
+                </span>
+              </button>
+              {categoryActivity && (
+                <MultiplierBadge
+                  value={categoryActivity.multiplier}
+                  disabled={loading}
+                  title={category.name}
+                  onClick={() =>
+                    onOpenMultiplier({
+                      categoryId: category.id,
+                      name: category.name,
+                      value: categoryActivity.multiplier,
+                    })
+                  }
+                />
+              )}
+            </div>
           );
         })}
       </div>

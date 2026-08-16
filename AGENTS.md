@@ -223,7 +223,7 @@ components/
 actions/
   auth-actions.ts       # login, signup, logout, checkTokenValidity (auto-refreshes access token internally)
   ControlBoard.ts       # getUsers, getUsersWithDetails, getWeekData, getPoints, getCategories,
-                        # getUserActivities, addUserActivity, deleteUserActivity
+                        # getUserActivities, addUserActivity, updateUserActivity, deleteUserActivity
   PerformanceBoard.ts   # getLeaderboardData, getUserDetails
   goal.ts               # getGoalOfTheMonth
 
