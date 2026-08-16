@@ -23,7 +23,7 @@ const lalezar = Lalezar({ subsets: ["arabic"], weight: "400" });
 const tajawal = Tajawal({ subsets: ["arabic"], weight: ["400", "500", "700"] });
 
 // 🟢 Types
-type Category = { id: number; name: string };
+type Category = { id: number; name: string; value: number };
 type User = {
   id: number;
   username: string;
@@ -572,11 +572,17 @@ function TableHeader({ categories }: { categories: Category[] }) {
         {[...categories]
           .sort((a, b) => (a.id === 5 ? 1 : b.id === 5 ? -1 : 0))
           .map((cat) => (
-            <div
-              key={cat.id}
-              className={`${tajawal.className} flex-1 min-w-0 text-center text-[11px] font-bold text-[#043F2E] px-1 leading-tight break-words`}
-            >
-              {cat.name}
+            <div key={cat.id} className="flex-1 min-w-0 flex flex-col items-center gap-1 px-1">
+              <span
+                className={`${tajawal.className} text-center text-[11px] font-bold text-[#043F2E] leading-tight break-words`}
+              >
+                {cat.name}
+              </span>
+              <span
+                className={`${tajawal.className} text-[10px] font-bold text-[#043F2E] bg-[#BEE663] rounded-full px-1.5 py-0.5 leading-none`}
+              >
+                +{toArabicDigits(cat.value)}
+              </span>
             </div>
           ))}
       </div>
