@@ -9,7 +9,9 @@ import {
   TrendingUp,
   BookOpen,
   Award,
-  Users,
+  UserCheck,
+  UserPlus,
+  Calendar,
 } from "lucide-react";
 import ProfileActivityList from "../ProfileActivityList";
 import { toArabicDigits, getHijriMonth } from "@/lib/utils";
@@ -23,18 +25,31 @@ interface Props {
   points: number;
   activities: UserActivity[];
   rank?: number | null;
-  multiplierTotal?: number;
   supervisorName?: string;
   referrerName?: string;
+  dateJoined?: string;
+}
+
+function formatDateArabic(dateStr: string): string {
+  try {
+    const d = new Date(dateStr);
+    const months = [
+      "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
+      "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر",
+    ];
+    return `${toArabicDigits(d.getDate())} ${months[d.getMonth()]} ${toArabicDigits(d.getFullYear())}`;
+  } catch {
+    return dateStr;
+  }
 }
 
 export default function StudentProfileView({
   points,
   activities,
   rank,
-  multiplierTotal,
   supervisorName,
   referrerName,
+  dateJoined,
 }: Props) {
   const recentActivities = [...activities]
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -57,6 +72,17 @@ export default function StudentProfileView({
     categoryMap.set(a.category, existing);
   }
 
+  // Calculate attendance: activities with category_name containing "حضور"
+  const attendanceActivities = activities.filter(
+    (a) => a.category_name?.includes("حضور") || a.category_name?.includes("اجتماع")
+  );
+  // Assume ~4 sessions per month as baseline for percentage
+  const attendanceBaseline = 4;
+  const attendancePercent = Math.min(
+    Math.round((attendanceActivities.length / attendanceBaseline) * 100),
+    100
+  );
+
   return (
     <div className="flex flex-col gap-6" dir="rtl">
       {/* Hero stats banner */}
@@ -73,8 +99,8 @@ export default function StudentProfileView({
           icon={<Activity className="w-5 h-5" strokeWidth={2.2} />}
         />
         <HeroStat
-          label="المضاعفات"
-          value={toArabicDigits(multiplierTotal ?? 0)}
+          label="نسبة الحضور"
+          value={`${toArabicDigits(attendancePercent)}٪`}
           icon={<TrendingUp className="w-5 h-5" strokeWidth={2.2} />}
         />
         <HeroStat
@@ -99,6 +125,22 @@ export default function StudentProfileView({
           <div className="text-left">
             <span className={`${lalezar.className} text-3xl text-[#BEE663]`}>{toArabicDigits(points)}</span>
             <span className={`${tajawal.className} text-xs text-white/60 mr-1`}>نقطة</span>
+          </div>
+        </div>
+
+        {/* Attendance progress bar */}
+        <div className="px-5 pt-4 pb-2 flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <span className={`${tajawal.className} text-xs font-bold text-[#043F2E]/70`}>نسبة الحضور</span>
+            <span className={`${tajawal.className} text-xs font-bold text-[#043F2E]`}>
+              {toArabicDigits(attendancePercent)}٪
+            </span>
+          </div>
+          <div className="h-2.5 bg-[#F7FBEA] rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-l from-[#9ADD00] to-[#BEE663] rounded-full transition-all"
+              style={{ width: `${attendancePercent}%` }}
+            />
           </div>
         </div>
 
@@ -133,22 +175,32 @@ export default function StudentProfileView({
         )}
       </div>
 
-      {/* Supervisor + Referrer cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {supervisorName && (
-          <InfoCard
-            icon={<Users className="w-4 h-4" strokeWidth={2.2} />}
-            label="مشرفي"
-            value={supervisorName}
-          />
-        )}
-        {referrerName && (
-          <InfoCard
-            icon={<Sparkles className="w-4 h-4" strokeWidth={2.2} />}
-            label="الجهة المرجعة"
-            value={referrerName}
-          />
-        )}
+      {/* Info section — supervisor, referrer, date joined */}
+      <div className="bg-white rounded-3xl border border-[#043F2E]/10 shadow-sm p-5 md:p-6">
+        <h3 className={`${lalezar.className} text-lg text-[#043F2E] mb-4`}>معلومات</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {supervisorName && (
+            <InfoCard
+              icon={<UserCheck className="w-4 h-4" strokeWidth={2.2} />}
+              label="المشرف"
+              value={supervisorName}
+            />
+          )}
+          {referrerName && (
+            <InfoCard
+              icon={<UserPlus className="w-4 h-4" strokeWidth={2.2} />}
+              label="الجهة المرجعة"
+              value={referrerName}
+            />
+          )}
+          {dateJoined && (
+            <InfoCard
+              icon={<Calendar className="w-4 h-4" strokeWidth={2.2} />}
+              label="تاريخ الانضمام"
+              value={formatDateArabic(dateJoined)}
+            />
+          )}
+        </div>
       </div>
 
       {/* Recent activities */}
@@ -211,7 +263,7 @@ function HeroStat({
 }
 
 // ============================
-// Info Card (supervisor / referrer)
+// Info Card (supervisor / referrer / date)
 // ============================
 function InfoCard({
   icon,

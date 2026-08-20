@@ -105,7 +105,7 @@ export default async function ProfilePage({
     }));
   }
 
-  const multiplierTotal = activities.reduce((sum, a) => sum + a.multiplier, 0);
+  // multiplierTotal removed — replaced with attendance percentage
   const fullName = `${targetUser.first_name} ${targetUser.last_name}`.trim();
 
   // Fetch supervisor info (id + full name) for clickable link
@@ -168,9 +168,9 @@ export default async function ProfilePage({
         <StudentProfileView
           points={points}
           activities={enrichedActivities}
-          multiplierTotal={multiplierTotal}
           supervisorName={targetUser.supervisor || undefined}
           referrerName={targetUser.referrer || undefined}
+          dateJoined={targetUser.date_joined}
         />
       );
     }
