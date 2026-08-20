@@ -168,7 +168,7 @@ export default async function ProfilePage({
         <StudentProfileView
           points={points}
           activities={enrichedActivities}
-          supervisorName={targetUser.supervisor || undefined}
+          supervisorName={supervisorInfo?.fullName || targetUser.supervisor || undefined}
           supervisorId={supervisorInfo?.id}
           referrerName={targetUser.referrer || undefined}
           dateJoined={targetUser.date_joined}

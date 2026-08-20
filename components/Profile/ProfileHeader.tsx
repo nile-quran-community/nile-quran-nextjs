@@ -35,8 +35,8 @@ export default function ProfileHeader({
 
   return (
     <div className="flex items-center gap-4 flex-wrap" dir="rtl">
-      {/* Avatar */}
-      <div className="shrink-0 w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-gradient-to-br from-[#043F2E] to-[#065f46] flex items-center justify-center text-white shadow-md">
+      {/* Avatar — circular */}
+      <div className="shrink-0 w-16 h-16 md:w-20 md:h-20 rounded-full bg-gradient-to-br from-[#043F2E] to-[#065f46] flex items-center justify-center text-white shadow-md ring-2 ring-white">
         <span className={`${tajawal.className} text-xl md:text-2xl font-bold`}>
           {initials || <User className="w-6 h-6" strokeWidth={2.2} />}
         </span>
@@ -59,7 +59,7 @@ export default function ProfileHeader({
           )}
         </p>
 
-        {/* Supervisor link */}
+        {/* Supervisor link — name only, clickable */}
         {supervisor && (
           <Link
             href={`/profile/${supervisor.id}`}
@@ -68,9 +68,6 @@ export default function ProfileHeader({
             <UserCheck className="w-3.5 h-3.5 text-[#043F2E]/50 group-hover:text-[#043F2E]" strokeWidth={2.2} />
             <span className={`${tajawal.className} text-xs font-bold text-[#043F2E]/60 group-hover:text-[#043F2E] group-hover:underline`}>
               {supervisor.fullName}
-            </span>
-            <span className={`${tajawal.className} text-[10px] text-[#043F2E]/40`}>
-              @{supervisor.username}
             </span>
           </Link>
         )}

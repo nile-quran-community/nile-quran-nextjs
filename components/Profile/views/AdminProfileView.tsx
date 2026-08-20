@@ -140,7 +140,7 @@ export default function AdminProfileView({ users }: Props) {
                   href={`/profile/${user.id}`}
                   className={`flex items-center gap-3 px-4 py-3 bg-white hover:bg-[#F7FBEA]/60 transition-colors ${!isLast ? "border-b border-[#043F2E]/8" : ""} cursor-pointer`}
                 >
-                  <div className="w-[44px] h-[44px] shrink-0 rounded-xl bg-gradient-to-br from-[#043F2E] to-[#065f46] flex items-center justify-center text-white shadow-sm">
+                  <div className="w-[44px] h-[44px] shrink-0 rounded-full bg-gradient-to-br from-[#043F2E] to-[#065f46] flex items-center justify-center text-white shadow-sm">
                     <span className={`${tajawal.className} text-sm font-bold`}>{initials || "؟"}</span>
                   </div>
                   <div className="w-[140px] shrink-0 min-w-0">
