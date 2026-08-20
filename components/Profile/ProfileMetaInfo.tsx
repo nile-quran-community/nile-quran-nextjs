@@ -57,7 +57,7 @@ export default function ProfileMetaInfo({
     {
       show: visibility.showReferrer,
       icon: <UserPlus className="w-4 h-4" strokeWidth={2.2} />,
-      label: "الجهة المرجعة",
+      label: "المُحيل",
       value: referrer?.fullName || "بدون",
       linkHref: referrer ? `/profile/${referrer.id}` : undefined,
     },

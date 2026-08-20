@@ -67,7 +67,7 @@ export function getPrimaryRole(groups: string[]): RoleType {
 export function getRoleLabel(role: RoleType): string {
   switch (role) {
     case "Admin":
-      return "إدمن";
+      return "مدير";
     case "Supervisor":
       return "مشرف";
     case "Student":

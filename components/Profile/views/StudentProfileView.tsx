@@ -207,7 +207,7 @@ export default function StudentProfileView({
               <Link href={`/profile/${referrerId}`} className="block">
                 <InfoCard
                   icon={<UserPlus className="w-4 h-4" strokeWidth={2.2} />}
-                  label="الجهة المرجعة"
+                  label="المُحيل"
                   value={referrerName}
                   clickable
                 />
@@ -215,7 +215,7 @@ export default function StudentProfileView({
             ) : (
               <InfoCard
                 icon={<UserPlus className="w-4 h-4" strokeWidth={2.2} />}
-                label="الجهة المرجعة"
+                label="المُحيل"
                 value={referrerName}
               />
             )

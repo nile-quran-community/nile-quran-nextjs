@@ -213,7 +213,7 @@ export default function AdminProfileView({
                   roleFilter === role ? "bg-[#043F2E] text-white" : "text-[#043F2E]/60 hover:bg-[#BEE663]/30"
                 }`}
               >
-                {role === "all" ? "الكل" : role === "Admin" ? "إدمن" : role === "Supervisor" ? "مشرف" : "طالب"}
+                {role === "all" ? "الكل" : role === "Admin" ? "مدير" : role === "Supervisor" ? "مشرف" : "طالب"}
               </button>
             ))}
           </div>
@@ -268,7 +268,7 @@ export default function AdminProfileView({
                   <div className="w-[100px] shrink-0">
                     <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${roleBadgeClass[primaryRole]}`}>
                       {roleIcon[primaryRole]}
-                      {primaryRole === "Admin" ? "إدمن" : primaryRole === "Supervisor" ? "مشرف" : "طالب"}
+                      {primaryRole === "Admin" ? "مدير" : primaryRole === "Supervisor" ? "مشرف" : "طالب"}
                     </span>
                   </div>
 
@@ -481,7 +481,7 @@ function EditUserModal({
           {/* Referrer (Admin only) */}
           {canEditRelations && (
             <div className="flex flex-col gap-1.5">
-              <label className={`${tajawal.className} text-xs font-bold text-[#043F2E]/70`}>الجهة المرجعة</label>
+              <label className={`${tajawal.className} text-xs font-bold text-[#043F2E]/70`}>المُحيل</label>
               <select value={referrer} onChange={(e) => setReferrer(e.target.value)} disabled={isPending} className={`${inputClass} cursor-pointer`}>
                 <option value="">— بدون —</option>
                 {Object.entries(supervisorMap).map(([username, info]) => (

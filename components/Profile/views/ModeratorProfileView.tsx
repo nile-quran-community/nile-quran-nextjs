@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useTransition } from "react";
+import { useState, useMemo, useEffect, useTransition } from "react";
 import { Lalezar, Tajawal } from "next/font/google";
 import {
   Search,
@@ -488,7 +488,7 @@ function ManageActivitiesModal({ student, onClose }: { student: SupervisedStuden
   const initials = `${student.first_name?.charAt(0) || ""}${student.last_name?.charAt(0) || ""}`.trim();
 
   // Load activities on mount
-  useState(() => {
+  useEffect(() => {
     getStudentActivities(student.id).then((res) => {
       setLoading(false);
       if (res.success && res.data) {
@@ -497,7 +497,7 @@ function ManageActivitiesModal({ student, onClose }: { student: SupervisedStuden
         setError(res.error || "فشل تحميل الأنشطة");
       }
     });
-  });
+  }, [student.id]);
 
   const handleUpdate = (activityId: number) => {
     startTransition(async () => {
