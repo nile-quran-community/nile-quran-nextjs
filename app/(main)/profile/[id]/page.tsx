@@ -141,10 +141,38 @@ export default async function ProfilePage({
     let roleView: React.ReactNode = null;
 
     if (viewerRole === "Admin") {
-      // Fetch all users with their data
-      const allUsersResult = await getAllUsersWithRoles();
-      const allUsers: AdminUserSummary[] = [];
+      // Fetch all users + points in parallel
+      const { getGlobalStats, getTopSupervisors } = await import("@/actions/profile");
+      const [allUsersResult, statsResult, topSupervisorsResult] = await Promise.all([
+        getAllUsersWithRoles(),
+        getGlobalStats(),
+        getTopSupervisors(),
+      ]);
 
+      // Fetch points for all users
+      const pointsMap: Record<number, number> = {};
+      try {
+        const pointsRes = await fetch(`${process.env.BASE_URL}api/v1/users/points/`, {
+          headers: {
+            Authorization: `Bearer ${(await cookies()).get("access")?.value}`,
+            "Accept-Language": "ar",
+          },
+          cache: "no-store",
+        });
+        if (pointsRes.ok) {
+          const pointsData = await pointsRes.json();
+          const results = pointsData.results || pointsData;
+          if (Array.isArray(results)) {
+            for (const p of results) {
+              pointsMap[p.user] = p.points ?? 0;
+            }
+          }
+        }
+      } catch {
+        // points fetch failed — users will show 0
+      }
+
+      const allUsers: AdminUserSummary[] = [];
       if (allUsersResult.success && allUsersResult.data) {
         for (const u of allUsersResult.data) {
           allUsers.push({
@@ -157,7 +185,7 @@ export default async function ProfilePage({
             supervisor: u.supervisor,
             referrer: u.referrer,
             date_joined: u.date_joined,
-            points: 0,
+            points: pointsMap[u.id] ?? 0,
           });
         }
       }
@@ -170,13 +198,6 @@ export default async function ProfilePage({
           supervisorMap[u.username] = { id: u.id, fullName };
         }
       }
-
-      // Fetch global stats
-      const { getGlobalStats, getTopSupervisors } = await import("@/actions/profile");
-      const [statsResult, topSupervisorsResult] = await Promise.all([
-        getGlobalStats(),
-        getTopSupervisors(),
-      ]);
 
       roleView = (
         <AdminProfileView

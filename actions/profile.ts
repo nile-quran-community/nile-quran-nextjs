@@ -395,7 +395,7 @@ export async function getTopSupervisors(): Promise<FetchResult<Array<{
 
 export async function updateUser(
   userId: number,
- data: { first_name?: string; last_name?: string; email?: string; supervisor?: string | null; referrer?: string | null },
+ data: { first_name?: string; last_name?: string; email?: string; supervisor?: string | null; referrer?: string | null; groups?: string[] },
 ): Promise<FetchResult<null>> {
   try {
     const token = await getToken();

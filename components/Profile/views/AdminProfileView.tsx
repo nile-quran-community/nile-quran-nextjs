@@ -371,6 +371,7 @@ function EditUserModal({
   const [email, setEmail] = useState(user.email || "");
   const [supervisor, setSupervisor] = useState(user.supervisor || "");
   const [referrer, setReferrer] = useState(user.referrer || "");
+  const [role, setRole] = useState(user.groups.includes("Admin") ? "Admin" : user.groups.includes("Supervisor") ? "Supervisor" : "Student");
   const [isPending, startTransition] = useTransition();
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
 
@@ -388,6 +389,11 @@ function EditUserModal({
     if (canEditRelations) {
       if (supervisor !== (user.supervisor || "")) data.supervisor = supervisor || null;
       if (referrer !== (user.referrer || "")) data.referrer = referrer || null;
+      // Check if role changed
+      const originalRole = user.groups.includes("Admin") ? "Admin" : user.groups.includes("Supervisor") ? "Supervisor" : "Student";
+      if (role !== originalRole) {
+        data.groups = [role];
+      }
     }
 
     if (Object.keys(data).length === 0) {
@@ -488,6 +494,19 @@ function EditUserModal({
                   <option key={username} value={username}>{info.fullName}</option>
                 ))}
               </select>
+            </div>
+          )}
+
+          {/* Role (Admin only — promote/demote) */}
+          {canEditRelations && (
+            <div className="flex flex-col gap-1.5">
+              <label className={`${tajawal.className} text-xs font-bold text-[#043F2E]/70`}>الدور</label>
+              <select value={role} onChange={(e) => setRole(e.target.value)} disabled={isPending} className={`${inputClass} cursor-pointer`}>
+                <option value="Student">طالب</option>
+                <option value="Supervisor">مشرف</option>
+                <option value="Admin">مدير</option>
+              </select>
+              <span className={`${tajawal.className} text-[10px] text-[#043F2E]/40`}>⚠️ تغيير الدور بيأثر على الصلاحيات</span>
             </div>
           )}
         </div>
