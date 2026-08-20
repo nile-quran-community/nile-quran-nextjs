@@ -121,6 +121,19 @@ export default async function ProfilePage({
     }
   }
 
+  // Fetch referrer info (id + full name) for clickable link
+  let referrerInfo: { id: number; fullName: string; username: string } | null = null;
+  if (targetUser.referrer) {
+    const refResult = await getUserByUsername(targetUser.referrer);
+    if (refResult.success && refResult.data) {
+      referrerInfo = {
+        id: refResult.data.id,
+        fullName: `${refResult.data.first_name} ${refResult.data.last_name}`.trim() || refResult.data.username,
+        username: refResult.data.username,
+      };
+    }
+  }
+
   // ============================
   // Own profile — show role-specific dashboard
   // ============================
@@ -250,8 +263,8 @@ export default async function ProfilePage({
         <div className="bg-white rounded-3xl border border-[#043F2E]/10 shadow-sm p-5 md:p-6">
           <h3 className={`${lalezar.className} text-lg text-[#043F2E] mb-4`}>معلومات</h3>
           <ProfileMetaInfo
-            supervisor={visibility.showSupervisor ? targetUser.supervisor : null}
-            referrer={visibility.showReferrer ? targetUser.referrer : null}
+            supervisor={visibility.showSupervisor ? supervisorInfo : null}
+            referrer={visibility.showReferrer ? referrerInfo : null}
             email={visibility.showEmail ? targetUser.email : ""}
             dateJoined={visibility.showDateJoined ? targetUser.date_joined : ""}
             visibility={visibility}
