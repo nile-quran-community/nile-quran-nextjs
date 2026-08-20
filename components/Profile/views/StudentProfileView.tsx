@@ -17,6 +17,7 @@ import ProfileActivityList from "../ProfileActivityList";
 import { toArabicDigits, getHijriMonth } from "@/lib/utils";
 import { gregorianToHijri } from "@tabby_ai/hijri-converter";
 import type { UserActivity } from "@/lib/profile-types";
+import Link from "next/link";
 
 const lalezar = Lalezar({ subsets: ["arabic"], weight: "400" });
 const tajawal = Tajawal({ subsets: ["arabic"], weight: ["400", "500", "700"] });
@@ -26,6 +27,7 @@ interface Props {
   activities: UserActivity[];
   rank?: number | null;
   supervisorName?: string;
+  supervisorId?: number | null;
   referrerName?: string;
   dateJoined?: string;
 }
@@ -48,6 +50,7 @@ export default function StudentProfileView({
   activities,
   rank,
   supervisorName,
+  supervisorId,
   referrerName,
   dateJoined,
 }: Props) {
@@ -180,11 +183,22 @@ export default function StudentProfileView({
         <h3 className={`${lalezar.className} text-lg text-[#043F2E] mb-4`}>معلومات</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {supervisorName && (
-            <InfoCard
-              icon={<UserCheck className="w-4 h-4" strokeWidth={2.2} />}
-              label="المشرف"
-              value={supervisorName}
-            />
+            supervisorId ? (
+              <Link href={`/profile/${supervisorId}`} className="block">
+                <InfoCard
+                  icon={<UserCheck className="w-4 h-4" strokeWidth={2.2} />}
+                  label="المشرف"
+                  value={supervisorName}
+                  clickable
+                />
+              </Link>
+            ) : (
+              <InfoCard
+                icon={<UserCheck className="w-4 h-4" strokeWidth={2.2} />}
+                label="المشرف"
+                value={supervisorName}
+              />
+            )
           )}
           {referrerName && (
             <InfoCard
@@ -269,19 +283,25 @@ function InfoCard({
   icon,
   label,
   value,
+  clickable,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
+  clickable?: boolean;
 }) {
   return (
-    <div className="bg-[#F7FBEA] rounded-2xl border border-[#043F2E]/8 px-4 py-3 flex items-center gap-3">
+    <div
+      className={`bg-[#F7FBEA] rounded-2xl border border-[#043F2E]/8 px-4 py-3 flex items-center gap-3 transition-colors ${
+        clickable ? "hover:border-[#043F2E]/30 hover:bg-white cursor-pointer" : ""
+      }`}
+    >
       <div className="w-9 h-9 rounded-lg bg-[#043F2E]/5 flex items-center justify-center shrink-0 text-[#043F2E]/70">
         {icon}
       </div>
       <div className="flex flex-col min-w-0">
         <span className={`${tajawal.className} text-[11px] font-medium text-[#043F2E]/50`}>{label}</span>
-        <span className={`${tajawal.className} text-sm font-bold text-[#043F2E] truncate`}>{value}</span>
+        <span className={`${tajawal.className} text-sm font-bold text-[#043F2E] truncate ${clickable ? "hover:underline" : ""}`}>{value}</span>
       </div>
     </div>
   );

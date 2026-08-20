@@ -169,6 +169,7 @@ export default async function ProfilePage({
           points={points}
           activities={enrichedActivities}
           supervisorName={targetUser.supervisor || undefined}
+          supervisorId={supervisorInfo?.id}
           referrerName={targetUser.referrer || undefined}
           dateJoined={targetUser.date_joined}
         />
