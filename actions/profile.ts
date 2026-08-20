@@ -171,7 +171,7 @@ export async function getAllUsersWithRoles(): Promise<
     if (!token) throw new Error("No access token");
 
     const data = await fetchJson<{ results: ApiUser[] }>(
-      `${API_BASE}api/v1/users/?ordering=date_joined`,
+      `${API_BASE}api/v1/users/`,
       token,
     );
 
@@ -275,7 +275,7 @@ export async function getGlobalStats(): Promise<FetchResult<{
 
     // Fetch all users
     const usersData = await fetchJson<{ results: ApiUser[] }>(
-      `${API_BASE}api/v1/users/?ordering=date_joined`,
+      `${API_BASE}api/v1/users/`,
       token,
     );
     const allUsers = usersData.results || [];
@@ -340,7 +340,7 @@ export async function getTopSupervisors(): Promise<FetchResult<Array<{
 
     // Fetch all users
     const usersData = await fetchJson<{ results: ApiUser[] }>(
-      `${API_BASE}api/v1/users/?ordering=date_joined`,
+      `${API_BASE}api/v1/users/`,
       token,
     );
     const allUsers = usersData.results || [];
