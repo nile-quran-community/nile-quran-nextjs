@@ -163,7 +163,16 @@ export default async function ProfilePage({
         }
       }
 
-      roleView = <AdminProfileView users={allUsers} />;
+      // Build supervisor map for AdminProfileView (username → {id, fullName})
+      const supervisorMap: Record<string, { id: number; fullName: string }> = {};
+      if (allUsersResult.success && allUsersResult.data) {
+        for (const u of allUsersResult.data) {
+          const fullName = `${u.first_name} ${u.last_name}`.trim() || u.username;
+          supervisorMap[u.username] = { id: u.id, fullName };
+        }
+      }
+
+      roleView = <AdminProfileView users={allUsers} supervisorMap={supervisorMap} />;
     } else if (viewerRole === "Supervisor") {
       const studentsResult = await getSupervisedStudents(targetUser.username);
       const students: SupervisedStudent[] = studentsResult.success
@@ -183,7 +192,8 @@ export default async function ProfilePage({
           activities={enrichedActivities}
           supervisorName={supervisorInfo?.fullName || targetUser.supervisor || undefined}
           supervisorId={supervisorInfo?.id}
-          referrerName={targetUser.referrer || undefined}
+          referrerName={referrerInfo?.fullName || targetUser.referrer || undefined}
+          referrerId={referrerInfo?.id}
           dateJoined={targetUser.date_joined}
         />
       );

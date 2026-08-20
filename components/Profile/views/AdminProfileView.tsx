@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { Lalezar, Tajawal } from "next/font/google";
 import {
   Search,
@@ -10,6 +11,7 @@ import {
   BookOpen,
   ChevronLeft,
   ChevronRight,
+  ExternalLink,
 } from "lucide-react";
 import Link from "next/link";
 import { toArabicDigits } from "@/lib/utils";
@@ -20,6 +22,7 @@ const tajawal = Tajawal({ subsets: ["arabic"], weight: ["400", "500", "700"] });
 
 interface Props {
   users: AdminUserSummary[];
+  supervisorMap: Record<string, { id: number; fullName: string }>;
 }
 
 const roleIcon: Record<string, React.ReactNode> = {
@@ -36,7 +39,8 @@ const roleBadgeClass: Record<string, string> = {
 
 const PAGE_SIZE = 10;
 
-export default function AdminProfileView({ users }: Props) {
+export default function AdminProfileView({ users, supervisorMap }: Props) {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [page, setPage] = useState(0);
@@ -133,38 +137,61 @@ export default function AdminProfileView({ users }: Props) {
               const fullName = `${user.first_name} ${user.last_name}`.trim();
               const initials = `${user.first_name?.charAt(0) || ""}${user.last_name?.charAt(0) || ""}`.trim();
               const isLast = idx === pageData.length - 1;
+              const supInfo = user.supervisor ? supervisorMap[user.supervisor] : null;
 
               return (
-                <Link
+                <div
                   key={user.id}
-                  href={`/profile/${user.id}`}
+                  onClick={() => router.push(`/profile/${user.id}`)}
                   className={`flex items-center gap-3 px-4 py-3 bg-white hover:bg-[#F7FBEA]/60 transition-colors ${!isLast ? "border-b border-[#043F2E]/8" : ""} cursor-pointer`}
                 >
+                  {/* Avatar — circular */}
                   <div className="w-[44px] h-[44px] shrink-0 rounded-full bg-gradient-to-br from-[#043F2E] to-[#065f46] flex items-center justify-center text-white shadow-sm">
                     <span className={`${tajawal.className} text-sm font-bold`}>{initials || "؟"}</span>
                   </div>
+
+                  {/* Name */}
                   <div className="w-[140px] shrink-0 min-w-0">
                     <p className={`${tajawal.className} text-sm font-bold text-[#043F2E] truncate`}>{fullName || user.username}</p>
                     <p className={`${tajawal.className} text-[10px] text-[#043F2E]/40`}>@{user.username}</p>
                   </div>
+
+                  {/* Role badge */}
                   <div className="w-[100px] shrink-0">
                     <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${roleBadgeClass[primaryRole]}`}>
                       {roleIcon[primaryRole]}
                       {primaryRole === "Admin" ? "إدمن" : primaryRole === "Supervisor" ? "مشرف" : "طالب"}
                     </span>
                   </div>
+
+                  {/* Supervisor — clickable, stops row click */}
                   <div className="w-[120px] shrink-0 min-w-0">
-                    <p className={`${tajawal.className} text-xs text-[#043F2E]/60 truncate`}>{user.supervisor || "—"}</p>
+                    {supInfo ? (
+                      <Link
+                        href={`/profile/${supInfo.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className={`${tajawal.className} text-xs font-bold text-[#043F2E] hover:underline truncate inline-flex items-center gap-1`}
+                      >
+                        {supInfo.fullName}
+                        <ExternalLink className="w-3 h-3 opacity-50" strokeWidth={2.2} />
+                      </Link>
+                    ) : (
+                      <span className={`${tajawal.className} text-xs text-[#043F2E]/40 truncate`}>—</span>
+                    )}
                   </div>
+
+                  {/* Email */}
                   <div className="flex-1 min-w-0 hidden md:block">
                     <p className={`${tajawal.className} text-xs text-[#043F2E]/60 truncate`}>{user.email}</p>
                   </div>
+
+                  {/* Points */}
                   <div className="w-[80px] shrink-0 flex justify-center">
                     <span className={`${tajawal.className} min-w-[40px] h-8 px-2 flex items-center justify-center rounded-lg text-xs font-bold ${user.points > 0 ? "bg-[#BEE663] text-[#043F2E]" : "bg-[#F7FBEA] text-[#043F2E]/40"}`}>
                       {toArabicDigits(user.points)}
                     </span>
                   </div>
-                </Link>
+                </div>
               );
             })
           )}

@@ -29,6 +29,7 @@ interface Props {
   supervisorName?: string;
   supervisorId?: number | null;
   referrerName?: string;
+  referrerId?: number | null;
   dateJoined?: string;
 }
 
@@ -52,6 +53,7 @@ export default function StudentProfileView({
   supervisorName,
   supervisorId,
   referrerName,
+  referrerId,
   dateJoined,
 }: Props) {
   const recentActivities = [...activities]
@@ -201,11 +203,22 @@ export default function StudentProfileView({
             )
           )}
           {referrerName && (
-            <InfoCard
-              icon={<UserPlus className="w-4 h-4" strokeWidth={2.2} />}
-              label="الجهة المرجعة"
-              value={referrerName}
-            />
+            referrerId ? (
+              <Link href={`/profile/${referrerId}`} className="block">
+                <InfoCard
+                  icon={<UserPlus className="w-4 h-4" strokeWidth={2.2} />}
+                  label="الجهة المرجعة"
+                  value={referrerName}
+                  clickable
+                />
+              </Link>
+            ) : (
+              <InfoCard
+                icon={<UserPlus className="w-4 h-4" strokeWidth={2.2} />}
+                label="الجهة المرجعة"
+                value={referrerName}
+              />
+            )
           )}
           {dateJoined && (
             <InfoCard
