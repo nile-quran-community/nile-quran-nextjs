@@ -37,7 +37,7 @@ export default function ProfileHeader({
       <div className="flex flex-col gap-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <h1 className={`${lalezar.className} text-2xl md:text-3xl text-[#043F2E] leading-tight`}>
-            {fullName || "مستخدم"}
+            {fullName || username}
           </h1>
           <RoleBadge role={role} />
         </div>
