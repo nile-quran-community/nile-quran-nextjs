@@ -146,7 +146,6 @@ export default async function ProfilePage({
       const allUsers: AdminUserSummary[] = [];
 
       if (allUsersResult.success && allUsersResult.data) {
-        // Try to fetch points for all users
         for (const u of allUsersResult.data) {
           allUsers.push({
             id: u.id,
@@ -158,12 +157,12 @@ export default async function ProfilePage({
             supervisor: u.supervisor,
             referrer: u.referrer,
             date_joined: u.date_joined,
-            points: 0, // Will be enriched if points API supports bulk
+            points: 0,
           });
         }
       }
 
-      // Build supervisor map for AdminProfileView (username → {id, fullName})
+      // Build supervisor map
       const supervisorMap: Record<string, { id: number; fullName: string }> = {};
       if (allUsersResult.success && allUsersResult.data) {
         for (const u of allUsersResult.data) {
@@ -172,7 +171,21 @@ export default async function ProfilePage({
         }
       }
 
-      roleView = <AdminProfileView users={allUsers} supervisorMap={supervisorMap} />;
+      // Fetch global stats
+      const { getGlobalStats, getTopSupervisors } = await import("@/actions/profile");
+      const [statsResult, topSupervisorsResult] = await Promise.all([
+        getGlobalStats(),
+        getTopSupervisors(),
+      ]);
+
+      roleView = (
+        <AdminProfileView
+          users={allUsers}
+          supervisorMap={supervisorMap}
+          globalStats={statsResult.success ? statsResult.data : null}
+          topSupervisors={topSupervisorsResult.success ? topSupervisorsResult.data : []}
+        />
+      );
     } else if (viewerRole === "Supervisor") {
       const studentsResult = await getSupervisedStudents(targetUser.username);
       const students: SupervisedStudent[] = studentsResult.success

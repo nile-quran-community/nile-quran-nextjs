@@ -257,6 +257,180 @@ export async function getSupervisedStudents(
 }
 
 // ===============================
+// Get Global Stats (Admin only)
+// ===============================
+
+export async function getGlobalStats(): Promise<FetchResult<{
+  totalUsers: number;
+  totalStudents: number;
+  totalSupervisors: number;
+  totalAdmins: number;
+  totalPoints: number;
+  avgPoints: number;
+  avgAttendance: number;
+}>> {
+  try {
+    const token = await getToken();
+    if (!token) throw new Error("No access token");
+
+    // Fetch all users
+    const usersData = await fetchJson<{ results: ApiUser[] }>(
+      `${API_BASE}api/v1/users/?ordering=date_joined`,
+      token,
+    );
+    const allUsers = usersData.results || [];
+
+    // Fetch all points
+    const pointsData = await fetchJson<{ results: ApiPoints[] } | ApiPoints[]>(
+      `${API_BASE}api/v1/users/points/`,
+      token,
+    );
+    let allPoints: ApiPoints[] = [];
+    if (Array.isArray(pointsData)) {
+      allPoints = pointsData;
+    } else if ("results" in pointsData && Array.isArray(pointsData.results)) {
+      allPoints = pointsData.results;
+    }
+
+    const totalUsers = allUsers.length;
+    const totalStudents = allUsers.filter((u) => u.groups.includes("Student")).length;
+    const totalSupervisors = allUsers.filter((u) => u.groups.includes("Supervisor")).length;
+    const totalAdmins = allUsers.filter((u) => u.groups.includes("Admin")).length;
+    const totalPoints = allPoints.reduce((sum, p) => sum + (p.points ?? 0), 0);
+    const avgPoints = totalStudents > 0 ? Math.round(totalPoints / totalStudents) : 0;
+
+    // Calculate avg attendance: activities with category 1 (حضور خاطرة) or 6 (اجتماع)
+    let attendanceActivities = 0;
+    for (const p of allPoints) {
+      for (const a of p.activities) {
+        if (a.category === 1 || a.category === 6) {
+          attendanceActivities++;
+        }
+      }
+    }
+    const avgAttendance = totalStudents > 0
+      ? Math.min(Math.round((attendanceActivities / (totalStudents * 4)) * 100), 100)
+      : 0;
+
+    return {
+      success: true,
+      data: { totalUsers, totalStudents, totalSupervisors, totalAdmins, totalPoints, avgPoints, avgAttendance },
+    };
+  } catch (error) {
+    console.error("Error fetching global stats:", error);
+    return { success: false, error: error instanceof Error ? error.message : "Unknown error" };
+  }
+}
+
+// ===============================
+// Get Top Supervisors (Admin only)
+// ===============================
+
+export async function getTopSupervisors(): Promise<FetchResult<Array<{
+  id: number;
+  username: string;
+  fullName: string;
+  studentCount: number;
+  totalPoints: number;
+  avgPoints: number;
+}>>> {
+  try {
+    const token = await getToken();
+    if (!token) throw new Error("No access token");
+
+    // Fetch all users
+    const usersData = await fetchJson<{ results: ApiUser[] }>(
+      `${API_BASE}api/v1/users/?ordering=date_joined`,
+      token,
+    );
+    const allUsers = usersData.results || [];
+
+    // Fetch all points
+    const pointsData = await fetchJson<{ results: ApiPoints[] } | ApiPoints[]>(
+      `${API_BASE}api/v1/users/points/`,
+      token,
+    );
+    let allPoints: ApiPoints[] = [];
+    if (Array.isArray(pointsData)) {
+      allPoints = pointsData;
+    } else if ("results" in pointsData && Array.isArray(pointsData.results)) {
+      allPoints = pointsData.results;
+    }
+
+    // Group students by supervisor
+    const supervisorMap: Record<string, { students: ApiUser[]; points: number }> = {};
+    for (const u of allUsers) {
+      if (u.groups.includes("Student") && u.supervisor) {
+        if (!supervisorMap[u.supervisor]) {
+          supervisorMap[u.supervisor] = { students: [], points: 0 };
+        }
+        supervisorMap[u.supervisor].students.push(u);
+        const pts = allPoints.find((p) => p.user === u.id);
+        if (pts) {
+          supervisorMap[u.supervisor].points += pts.points ?? 0;
+        }
+      }
+    }
+
+    // Build result
+    const result = Object.entries(supervisorMap).map(([username, data]) => {
+      const supUser = allUsers.find((u) => u.username === username);
+      const fullName = supUser ? `${supUser.first_name} ${supUser.last_name}`.trim() || username : username;
+      const studentCount = data.students.length;
+      const totalPoints = data.points;
+      const avgPoints = studentCount > 0 ? Math.round(totalPoints / studentCount) : 0;
+      return { id: supUser?.id ?? 0, username, fullName, studentCount, totalPoints, avgPoints };
+    }).sort((a, b) => b.avgPoints - a.avgPoints);
+
+    return { success: true, data: result };
+  } catch (error) {
+    console.error("Error fetching top supervisors:", error);
+    return { success: false, error: error instanceof Error ? error.message : "Unknown error" };
+  }
+}
+
+// ===============================
+// Update User (Admin only)
+// ===============================
+
+export async function updateUser(
+  userId: number,
+ data: { first_name?: string; last_name?: string; email?: string; supervisor?: string | null; referrer?: string | null },
+): Promise<FetchResult<null>> {
+  try {
+    const token = await getToken();
+    if (!token) throw new Error("No access token");
+
+    const res = await fetch(`${API_BASE}api/v1/users/${userId}/`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Accept-Language": "ar",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      let errorMsg = `فشل تحديث البيانات (${res.status})`;
+      try {
+        const errData = JSON.parse(text);
+        errorMsg = errData?.detail || errData?.email?.[0] || errData?.first_name?.[0] || errorMsg;
+      } catch {
+        // not JSON
+      }
+      return { success: false, error: errorMsg };
+    }
+
+    return { success: true, data: null };
+  } catch (error) {
+    console.error("Error updating user:", error);
+    return { success: false, error: error instanceof Error ? error.message : "Unknown error" };
+  }
+}
+
+// ===============================
 // Get Categories (cached 1h)
 // ===============================
 
