@@ -159,6 +159,8 @@ export default async function ProfilePage({
           points={points}
           activities={enrichedActivities}
           multiplierTotal={multiplierTotal}
+          supervisorName={targetUser.supervisor || undefined}
+          referrerName={targetUser.referrer || undefined}
         />
       );
     }

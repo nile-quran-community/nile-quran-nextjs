@@ -140,7 +140,7 @@ export function getVisibility(
     case "Student":
       return {
         showEmail: false,
-        showDetailedActivities: false, // sees own activities only (own profile is always full)
+        showDetailedActivities: true, // students can see other students' activities
         showSupervisor: true,
         showReferrer: false,
         showDateJoined: false,
