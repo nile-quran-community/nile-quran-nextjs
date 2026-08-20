@@ -325,6 +325,124 @@ export async function addStudentActivity(
   }
 }
 
+// ===============================
+// Update Student Activity (Moderator/Admin)
+// ===============================
+
+export async function updateStudentActivity(
+  studentId: number,
+  activityId: number,
+  multiplier: number,
+): Promise<FetchResult<null>> {
+  try {
+    const token = await getToken();
+    if (!token) throw new Error("No access token");
+
+    const res = await fetch(`${API_BASE}api/v1/users/${studentId}/activities/${activityId}/`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Accept-Language": "ar",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ multiplier }),
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      let errorMsg = `فشل تحديث النشاط (${res.status})`;
+      try {
+        const data = JSON.parse(text);
+        errorMsg = data?.detail || data?.error || errorMsg;
+      } catch {
+        // not JSON
+      }
+      return { success: false, error: errorMsg };
+    }
+
+    return { success: true, data: null };
+  } catch (error) {
+    console.error("Error updating student activity:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+// ===============================
+// Delete Student Activity (Moderator/Admin)
+// ===============================
+
+export async function deleteStudentActivity(
+  studentId: number,
+  activityId: number,
+): Promise<FetchResult<null>> {
+  try {
+    const token = await getToken();
+    if (!token) throw new Error("No access token");
+
+    const res = await fetch(`${API_BASE}api/v1/users/${studentId}/activities/${activityId}/`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Accept-Language": "ar",
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      let errorMsg = `فشل حذف النشاط (${res.status})`;
+      try {
+        const data = JSON.parse(text);
+        errorMsg = data?.detail || data?.error || errorMsg;
+      } catch {
+        // not JSON
+      }
+      return { success: false, error: errorMsg };
+    }
+
+    return { success: true, data: null };
+  } catch (error) {
+    console.error("Error deleting student activity:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+// ===============================
+// Get Student Activities (for edit/delete in moderator view)
+// ===============================
+
+export async function getStudentActivities(
+  studentId: number,
+): Promise<FetchResult<ApiActivity[]>> {
+  try {
+    const token = await getToken();
+    if (!token) throw new Error("No access token");
+
+    const data = await fetchJson<{ results: ApiActivity[] } | ApiActivity[]>(
+      `${API_BASE}api/v1/users/${studentId}/activities/`,
+      token,
+    );
+
+    if (Array.isArray(data)) {
+      return { success: true, data };
+    }
+
+    return { success: true, data: data.results || [] };
+  } catch (error) {
+    console.error("Error fetching student activities:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
 export async function getProfileCategories(): Promise<FetchResult<ApiCategory[]>> {
   try {
     const token = await getToken();
