@@ -86,6 +86,16 @@ export default async function ProfilePage({
   const targetRole = getPrimaryRole(targetUser.groups || []);
   const visibility = getVisibility(viewerRole, isOwnProfile);
 
+  // Relationship-based activity visibility:
+  // - Moderator sees activities only for students they supervise
+  // - Student sees activities only on their own profile (already handled by isOwnProfile)
+  if (viewerRole === "Supervisor" && !isOwnProfile) {
+    const isSupervisorOfTarget = targetUser.supervisor === currentUser.username;
+    if (isSupervisorOfTarget) {
+      visibility.showDetailedActivities = true;
+    }
+  }
+
   // Enrich activities with category names
   let enrichedActivities: UserActivity[] = activities;
   const categoriesResult = await getProfileCategories();
@@ -225,10 +235,10 @@ export default async function ProfilePage({
         <div className="bg-white rounded-3xl border border-[#043F2E]/10 shadow-sm p-5 md:p-6">
           <h3 className={`${lalezar.className} text-lg text-[#043F2E] mb-4`}>معلومات</h3>
           <ProfileMetaInfo
-            supervisor={targetUser.supervisor}
-            referrer={targetUser.referrer}
-            email={targetUser.email}
-            dateJoined={targetUser.date_joined}
+            supervisor={visibility.showSupervisor ? targetUser.supervisor : null}
+            referrer={visibility.showReferrer ? targetUser.referrer : null}
+            email={visibility.showEmail ? targetUser.email : ""}
+            dateJoined={visibility.showDateJoined ? targetUser.date_joined : ""}
             visibility={visibility}
           />
         </div>

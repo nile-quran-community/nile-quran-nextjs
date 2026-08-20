@@ -130,7 +130,7 @@ export function getVisibility(
     case "Supervisor":
       return {
         showEmail: false,
-        showDetailedActivities: true, // only for their students, enforced at view level
+        showDetailedActivities: false, // overridden per-relationship in page
         showSupervisor: true,
         showReferrer: false,
         showDateJoined: true,
@@ -140,7 +140,7 @@ export function getVisibility(
     case "Student":
       return {
         showEmail: false,
-        showDetailedActivities: false,
+        showDetailedActivities: false, // sees own activities only (own profile is always full)
         showSupervisor: true,
         showReferrer: false,
         showDateJoined: false,
