@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useTransition } from "react";
 import { Lalezar, Tajawal } from "next/font/google";
 import {
   Search,
@@ -11,9 +11,16 @@ import {
   BookOpen,
   Inbox,
   ExternalLink,
+  BookMarked,
+  X,
+  Plus,
+  Minus,
+  Loader2,
+  Check,
 } from "lucide-react";
 import Link from "next/link";
 import { toArabicDigits } from "@/lib/utils";
+import { addStudentActivity } from "@/actions/profile";
 import type { SupervisedStudent } from "@/lib/profile-types";
 
 const lalezar = Lalezar({ subsets: ["arabic"], weight: "400" });
@@ -24,9 +31,13 @@ interface Props {
   moderatorName: string;
 }
 
+// Category ID for "تسميع القرآن"
+const TASMEE_CATEGORY_ID = 4;
+
 export default function ModeratorProfileView({ students, moderatorName }: Props) {
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<"points" | "name">("points");
+  const [tasmiStudent, setTasmiStudent] = useState<SupervisedStudent | null>(null);
 
   const filtered = useMemo(() => {
     let result = [...students];
@@ -168,8 +179,8 @@ export default function ModeratorProfileView({ students, moderatorName }: Props)
               <div className="flex-1 text-center">
                 <span className={`${tajawal.className} text-[12px] font-bold text-[#043F2E]`}>النقاط</span>
               </div>
-              <div className="w-[120px] shrink-0 text-center">
-                <span className={`${tajawal.className} text-[12px] font-bold text-[#043F2E]`}>عرض الملف</span>
+              <div className="w-[180px] shrink-0 text-center">
+                <span className={`${tajawal.className} text-[12px] font-bold text-[#043F2E]`}>إجراءات</span>
               </div>
             </div>
 
@@ -236,14 +247,21 @@ export default function ModeratorProfileView({ students, moderatorName }: Props)
                     </span>
                   </div>
 
-                  {/* View Profile button */}
-                  <div className="w-[120px] shrink-0 flex justify-center">
+                  {/* Actions: Tasmi + View Profile */}
+                  <div className="w-[180px] shrink-0 flex items-center justify-center gap-2">
+                    <button
+                      onClick={() => setTasmiStudent(student)}
+                      className={`${tajawal.className} inline-flex items-center gap-1.5 h-9 px-3 rounded-xl bg-[#065f46] text-[#BEE663] text-xs font-bold hover:bg-[#043F2E] transition-colors`}
+                    >
+                      <BookMarked className="w-3.5 h-3.5" strokeWidth={2.4} />
+                      تسميع
+                    </button>
                     <Link
                       href={`/profile/${student.id}`}
                       className={`${tajawal.className} inline-flex items-center gap-1.5 h-9 px-3 rounded-xl bg-[#043F2E] text-white text-xs font-bold hover:bg-[#065f46] transition-colors`}
                     >
                       <ExternalLink className="w-3.5 h-3.5" strokeWidth={2.4} />
-                      عرض الملف
+                      الملف
                     </Link>
                   </div>
                 </div>
@@ -301,13 +319,23 @@ export default function ModeratorProfileView({ students, moderatorName }: Props)
                       </span>
                     </div>
 
-                    <Link
-                      href={`/profile/${student.id}`}
-                      className={`${tajawal.className} flex items-center justify-center gap-1.5 h-10 rounded-xl bg-[#043F2E] text-white text-xs font-bold hover:bg-[#065f46] transition-colors`}
-                    >
-                      <ExternalLink className="w-3.5 h-3.5" strokeWidth={2.4} />
-                      عرض الملف الشخصي
-                    </Link>
+                    {/* Actions */}
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setTasmiStudent(student)}
+                        className={`${tajawal.className} flex-1 flex items-center justify-center gap-1.5 h-10 rounded-xl bg-[#065f46] text-[#BEE663] text-xs font-bold hover:bg-[#043F2E] transition-colors`}
+                      >
+                        <BookMarked className="w-3.5 h-3.5" strokeWidth={2.4} />
+                        تسميع
+                      </button>
+                      <Link
+                        href={`/profile/${student.id}`}
+                        className={`${tajawal.className} flex-1 flex items-center justify-center gap-1.5 h-10 rounded-xl bg-[#043F2E] text-white text-xs font-bold hover:bg-[#065f46] transition-colors`}
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" strokeWidth={2.4} />
+                        الملف الشخصي
+                      </Link>
+                    </div>
                   </div>
                 );
               })}
@@ -315,10 +343,197 @@ export default function ModeratorProfileView({ students, moderatorName }: Props)
           </div>
         )}
       </div>
+
+      {/* Tasmi Modal */}
+      {tasmiStudent && (
+        <TasmiModal
+          student={tasmiStudent}
+          onClose={() => setTasmiStudent(null)}
+        />
+      )}
     </div>
   );
 }
 
+// ============================
+// Tasmi Modal
+// ============================
+function TasmiModal({
+  student,
+  onClose,
+}: {
+  student: SupervisedStudent;
+  onClose: () => void;
+}) {
+  const [pages, setPages] = useState(1);
+  const [isPending, startTransition] = useTransition();
+  const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  const fullName = `${student.first_name} ${student.last_name}`.trim() || student.username;
+  const initials = `${student.first_name?.charAt(0) || ""}${student.last_name?.charAt(0) || ""}`.trim();
+
+  const handleSubmit = () => {
+    setResult(null);
+    startTransition(async () => {
+      const res = await addStudentActivity(student.id, TASMEE_CATEGORY_ID, pages);
+      if (res.success) {
+        setResult({
+          success: true,
+          message: `تم تسجيل ${toArabicDigits(pages)} صفحة تسميع لـ ${fullName} بنجاح`,
+        });
+        setTimeout(() => {
+          onClose();
+        }, 1500);
+      } else {
+        setResult({
+          success: false,
+          message: res.error || "فشل تسجيل التسميع",
+        });
+      }
+    });
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[#043F2E]/40 p-4"
+      onClick={onClose}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="تسجيل تسميع"
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-[360px] bg-white rounded-3xl border border-[#043F2E]/10 shadow-lg p-5 flex flex-col gap-5"
+        dir="rtl"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <div className="w-9 h-9 rounded-xl bg-[#065f46] flex items-center justify-center">
+              <BookMarked className="w-4 h-4 text-[#BEE663]" strokeWidth={2.4} />
+            </div>
+            <h3 className={`${lalezar.className} text-lg text-[#043F2E]`}>تسجيل تسميع</h3>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="إغلاق"
+            disabled={isPending}
+            className="w-7 h-7 shrink-0 rounded-lg flex items-center justify-center text-[#043F2E]/60 hover:bg-[#F7FBEA] hover:text-[#043F2E] transition-colors disabled:opacity-50"
+          >
+            <X className="w-4 h-4" strokeWidth={2.2} />
+          </button>
+        </div>
+
+        {/* Student info */}
+        <div className="flex items-center gap-3 bg-[#F7FBEA] rounded-2xl border border-[#043F2E]/8 px-4 py-3">
+          <div className="w-10 h-10 shrink-0 rounded-full bg-gradient-to-br from-[#043F2E] to-[#065f46] flex items-center justify-center text-white shadow-sm">
+            <span className={`${tajawal.className} text-xs font-bold`}>
+              {initials || <User className="w-4 h-4" strokeWidth={2.2} />}
+            </span>
+          </div>
+          <div className="flex flex-col min-w-0">
+            <span className={`${tajawal.className} text-sm font-bold text-[#043F2E] truncate`}>
+              {fullName}
+            </span>
+            <span className={`${tajawal.className} text-[10px] text-[#043F2E]/50`}>
+              @{student.username}
+            </span>
+          </div>
+        </div>
+
+        {/* Pages counter */}
+        <div className="flex flex-col gap-2">
+          <label className={`${tajawal.className} text-xs font-bold text-[#043F2E]/70`}>
+            عدد صفحات التسميع
+          </label>
+          <div className="flex items-center justify-center gap-3">
+            <button
+              type="button"
+              onClick={() => setPages((p) => Math.max(1, p - 1))}
+              disabled={isPending || pages <= 1}
+              className="w-11 h-11 rounded-xl bg-[#F7FBEA] border border-[#043F2E]/15 flex items-center justify-center text-[#043F2E] hover:bg-[#BEE663] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              <Minus className="w-5 h-5" strokeWidth={2.5} />
+            </button>
+            <div className="w-20 h-11 rounded-xl bg-[#043F2E] flex items-center justify-center">
+              <span className={`${lalezar.className} text-2xl text-[#BEE663]`}>
+                {toArabicDigits(pages)}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setPages((p) => Math.min(60, p + 1))}
+              disabled={isPending || pages >= 60}
+              className="w-11 h-11 rounded-xl bg-[#F7FBEA] border border-[#043F2E]/15 flex items-center justify-center text-[#043F2E] hover:bg-[#BEE663] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              <Plus className="w-5 h-5" strokeWidth={2.5} />
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-1.5 justify-center mt-1">
+            {[1, 2, 3, 5, 10].map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => setPages(n)}
+                disabled={isPending}
+                className={`${tajawal.className} h-7 px-2.5 rounded-lg text-[11px] font-bold transition-colors ${
+                  pages === n
+                    ? "bg-[#043F2E] text-white"
+                    : "bg-[#F7FBEA] text-[#043F2E]/60 hover:bg-[#BEE663]/40"
+                } disabled:opacity-50`}
+              >
+                {toArabicDigits(n)}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Result message */}
+        {result && (
+          <div
+            className={`flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-bold ${
+              result.success
+                ? "bg-[#BEE663]/30 text-[#043F2E]"
+                : "bg-red-50 text-red-600"
+            }`}
+          >
+            {result.success ? (
+              <Check className="w-4 h-4 shrink-0" strokeWidth={2.5} />
+            ) : (
+              <X className="w-4 h-4 shrink-0" strokeWidth={2.5} />
+            )}
+            <span className={`${tajawal.className} text-xs`}>{result.message}</span>
+          </div>
+        )}
+
+        {/* Submit */}
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={isPending}
+          className={`${tajawal.className} h-12 rounded-xl bg-[#043F2E] text-white text-sm font-bold hover:bg-[#065f46] transition-colors disabled:opacity-50 flex items-center justify-center gap-2`}
+        >
+          {isPending ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2.5} />
+              جارٍ التسجيل...
+            </>
+          ) : (
+            <>
+              <BookMarked className="w-4 h-4" strokeWidth={2.4} />
+              تسجيل التسميع
+            </>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ============================
+// Stat Card
+// ============================
 function StatCard({
   label,
   value,

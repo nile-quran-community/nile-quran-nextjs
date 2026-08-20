@@ -277,6 +277,54 @@ const getCategoriesCached = unstable_cache(
   { revalidate: 3600 },
 );
 
+// ===============================
+// Add Student Activity (Moderator/Admin)
+// ===============================
+
+export async function addStudentActivity(
+  studentId: number,
+  categoryId: number,
+  multiplier: number,
+): Promise<FetchResult<{ id: number }>> {
+  try {
+    const token = await getToken();
+    if (!token) throw new Error("No access token");
+
+    const date = new Date().toISOString();
+
+    const res = await fetch(`${API_BASE}api/v1/users/${studentId}/activities/`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Accept-Language": "ar",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ category: categoryId, multiplier, date }),
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      let errorMsg = `فشل إضافة النشاط (${res.status})`;
+      try {
+        const data = JSON.parse(text);
+        errorMsg = data?.detail || data?.error || errorMsg;
+      } catch {
+        // not JSON
+      }
+      return { success: false, error: errorMsg };
+    }
+
+    const data = await res.json();
+    return { success: true, data: { id: data.id } };
+  } catch (error) {
+    console.error("Error adding student activity:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
 export async function getProfileCategories(): Promise<FetchResult<ApiCategory[]>> {
   try {
     const token = await getToken();
