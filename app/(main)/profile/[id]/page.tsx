@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { checkTokenValidity } from "@/actions/auth-actions";
-import { getUserProfile } from "@/actions/profile";
-import { getProfileCategories } from "@/actions/profile";
-import { getAllUsersWithRoles } from "@/actions/profile";
-import { getSupervisedStudents } from "@/actions/profile";
+import { getUserProfile, getUserByUsername, getProfileCategories, getAllUsersWithRoles, getSupervisedStudents } from "@/actions/profile";
 
 import { Lalezar, Tajawal } from "next/font/google";
 import { ArrowRight } from "lucide-react";
@@ -111,6 +108,19 @@ export default async function ProfilePage({
   const multiplierTotal = activities.reduce((sum, a) => sum + a.multiplier, 0);
   const fullName = `${targetUser.first_name} ${targetUser.last_name}`.trim();
 
+  // Fetch supervisor info (id + full name) for clickable link
+  let supervisorInfo: { id: number; fullName: string; username: string } | null = null;
+  if (targetUser.supervisor) {
+    const supResult = await getUserByUsername(targetUser.supervisor);
+    if (supResult.success && supResult.data) {
+      supervisorInfo = {
+        id: supResult.data.id,
+        fullName: `${supResult.data.first_name} ${supResult.data.last_name}`.trim() || supResult.data.username,
+        username: supResult.data.username,
+      };
+    }
+  }
+
   // ============================
   // Own profile — show role-specific dashboard
   // ============================
@@ -176,6 +186,7 @@ export default async function ProfilePage({
               username={targetUser.username}
               role={targetRole}
               isOwnProfile={true}
+              supervisor={supervisorInfo}
             />
           </div>
 
@@ -206,6 +217,7 @@ export default async function ProfilePage({
             username={targetUser.username}
             role={targetRole}
             isOwnProfile={false}
+            supervisor={visibility.showSupervisor ? supervisorInfo : null}
           />
         </div>
 

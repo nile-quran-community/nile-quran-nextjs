@@ -72,6 +72,36 @@ async function fetchJson<T>(url: string, token: string): Promise<T> {
 }
 
 // ===============================
+// Get User by Username (for supervisor/referrer links)
+// ===============================
+
+export async function getUserByUsername(
+  username: string,
+): Promise<FetchResult<ApiUser>> {
+  try {
+    const token = await getToken();
+    if (!token) throw new Error("No access token");
+
+    const data = await fetchJson<{ results: ApiUser[] }>(
+      `${API_BASE}api/v1/users/?username=${encodeURIComponent(username)}`,
+      token,
+    );
+
+    if (!data.results || data.results.length === 0) {
+      return { success: false, error: "User not found" };
+    }
+
+    return { success: true, data: data.results[0] };
+  } catch (error) {
+    console.error("Error fetching user by username:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+// ===============================
 // Get User Profile by ID
 // ===============================
 
