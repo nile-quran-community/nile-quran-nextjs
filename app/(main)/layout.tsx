@@ -14,6 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://nile-quran-community.com"),
   title: {
     default: "مقرأة النيل — صحبة صالحة حول القرآن",
     template: "%s | مقرأة النيل",
@@ -39,6 +40,14 @@ export const metadata: Metadata = {
     siteName: "مقرأة النيل",
     locale: "ar_EG",
     type: "website",
+    images: [
+      {
+        url: "/opengraph-image.png",
+        width: 1200,
+        height: 630,
+        alt: "مجتمع مقرأة النيل — مجتمع قرآني يجمعنا وصحبة خير ترفعنا",
+      },
+    ],
   },
 };
 

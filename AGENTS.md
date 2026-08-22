@@ -240,6 +240,7 @@ public/
   ArrowLeft.png         # control-board week navigation
   Arrowright.png        # control-board week navigation
   Mask.png / Mask2.png  # control-board decorations
+  opengraph-image.png   # static OG image (1200×630), referenced from both root layouts
 
 # Config files
 next.config.ts          # output: "standalone" (Docker deployment)
@@ -517,7 +518,8 @@ const max = items.length > 0 ? Math.max(...items.map((u) => u.points)) : 0;
 - `app/(auth)/auth/layout.tsx` is a **separate root layout** — it does NOT inherit the template, so it sets its own full title/description. `/auth` is the only public, crawlable page; keep its metadata descriptive of the platform and cause.
 - Every page exports its own `metadata` with at least a `title`. Authenticated/admin pages must keep `robots: { index: false, follow: false }` (see `/` and `/control-board`).
 - `app/robots.ts` allows all crawlers and disallows `/control-board`.
-- No `metadataBase` is set yet (production domain unknown) — add it together with OG images and a sitemap when the domain is decided.
+- Both root layouts set `metadataBase` to `https://nile-quran-community.com` so the `og:image` (and any future static assets) resolve to absolute URLs. `NEXT_PUBLIC_SITE_URL` overrides this for local/preview builds.
+- OG image lives at `public/opengraph-image.png` (1200×630, branded) and is referenced from both root layouts' `openGraph.images` (URL + width + height + alt). It serves as the fallback for all routes (every layout declares it). `metadataBase` resolves the URL to an absolute `https://nile-quran-community.com/...`.
 
 ```tsx
 import type { Metadata } from "next";

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "../../globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://nile-quran-community.com"),
   title: "تسجيل الدخول | مقرأة النيل",
   description:
     "سجّل الدخول أو أنشئ حسابك في مقرأة النيل — مجتمع قرآني لطلاب الجامعة: ورد أسبوعي للحفظ والتسميع، خواطر تدبر، وصحبة صالحة تعينك على المداومة نحو أثر باقٍ.",
@@ -21,6 +22,14 @@ export const metadata: Metadata = {
     siteName: "مقرأة النيل",
     locale: "ar_EG",
     type: "website",
+    images: [
+      {
+        url: "/opengraph-image.png",
+        width: 1200,
+        height: 630,
+        alt: "مجتمع مقرأة النيل — مجتمع قرآني يجمعنا وصحبة خير ترفعنا",
+      },
+    ],
   },
 };
 
