@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { getHijriMonth, toArabicDigits } from "@/lib/utils";
 import { Lalezar, Tajawal } from "next/font/google";
+import Link from "next/link";
 
 const lalezar = Lalezar({ subsets: ["arabic"], weight: "400" });
 const tajawal = Tajawal({ subsets: ["arabic"], weight: ["400", "500", "700"] });
@@ -454,12 +455,13 @@ function PodiumCard({
       </div>
 
       {/* Name */}
-      <p
-        className={`${tajawal.className} text-xs md:text-sm font-bold text-[#043F2E] text-center truncate w-full px-1`}
+      <Link
+        href={`/profile/${user.id}`}
+        className={`${tajawal.className} text-xs md:text-sm font-bold text-[#043F2E] text-center truncate w-full px-1 hover:underline`}
         title={user.name}
       >
         {user.name}
-      </p>
+      </Link>
 
       {/* Points pill */}
       <div
@@ -538,14 +540,15 @@ function RankRow({
         </div>
         <div className="flex-1 min-w-0 flex flex-col gap-1">
           <div className="flex items-center gap-2">
-            <p
-              className={`${tajawal.className} text-sm font-bold truncate ${
+            <Link
+              href={`/profile/${user.id}`}
+              className={`${tajawal.className} text-sm font-bold truncate hover:text-[#065f46] hover:underline ${
                 highlight ? "text-[#043F2E]" : "text-[#043F2E]"
               }`}
               title={user.name}
             >
               {user.name}
-            </p>
+            </Link>
             {highlight && (
               <span
                 className={`${tajawal.className} shrink-0 text-[10px] font-bold text-[#043F2E] bg-[#043F2E]/10 px-1.5 py-0.5 rounded`}

@@ -193,7 +193,7 @@ export default function UserRow({
       }`}
     >
       {/* Avatar */}
-      <div className="w-[44px] h-[44px] shrink-0 rounded-xl bg-gradient-to-br from-[#043F2E] to-[#065f46] flex items-center justify-center text-white shadow-sm">
+      <div className="w-[44px] h-[44px] shrink-0 rounded-full bg-gradient-to-br from-[#043F2E] to-[#065f46] flex items-center justify-center text-white shadow-sm">
         <span className={`${tajawal.className} text-sm font-bold leading-none`}>
           {initials || <User className="w-4 h-4" strokeWidth={2.2} />}
         </span>
@@ -520,7 +520,7 @@ function MobileCard({
     <div className="bg-[#F7FBEA] rounded-2xl border border-[#043F2E]/10 p-4 flex flex-col gap-4">
       {/* Header: Avatar + Name + Total */}
       <div className="flex items-center gap-3">
-        <div className="w-12 h-12 shrink-0 rounded-xl bg-gradient-to-br from-[#043F2E] to-[#065f46] flex items-center justify-center text-white shadow-sm">
+        <div className="w-12 h-12 shrink-0 rounded-full bg-gradient-to-br from-[#043F2E] to-[#065f46] flex items-center justify-center text-white shadow-sm">
           <span className={`${tajawal.className} text-base font-bold leading-none`}>
             {initials || <User className="w-5 h-5" strokeWidth={2.2} />}
           </span>
