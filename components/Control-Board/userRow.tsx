@@ -1,16 +1,8 @@
 "use client";
 
-import { useState } from "react";
-
-import {
-  addUserActivity,
-  deleteUserActivity,
-  updateUserActivity,
-  updateUserSupervisor,
-} from "@/actions/ControlBoard";
+import { useState, memo } from "react";
 
 import { Tajawal } from "next/font/google";
-import { hijriToGregorian } from "@tabby_ai/hijri-converter";
 import { Check, Minus, Plus, User, Users, X } from "lucide-react";
 
 const tajawal = Tajawal({ subsets: ["arabic"], weight: ["400", "500", "700"] });
@@ -34,26 +26,32 @@ type SupervisorOption = { username: string; first_name: string; last_name: strin
 
 type MultiplierEdit = { categoryId: number; name: string; value: number };
 
+// Sparse local override: a category key is present only once that category has been touched
+// this session. Absent = "no local edit, use the server value." supervisor follows the same
+// rule via `undefined`.
+export type DraftEntry = {
+  activities?: Record<number, number>;
+  supervisor?: string | null;
+};
+
 type Props = {
   userId: number;
-  points: UserPoints[];
+  points: UserPoints | undefined;
   firstname: string;
   lastname: string;
   supervisor: string | null;
   supervisors: SupervisorOption[];
   categories: Category[];
-  setLoading: (arg0: boolean) => void;
-  weekIndex: number;
-  fetchWeekData: (arg0: number) => void;
-  loading: boolean;
-  currentYear: number;
-  currentMonth: number;
-  currentWeek: number;
+  draft: DraftEntry | undefined;
+  isDirty: boolean;
+  disabled: boolean;
+  onCategoryDraftChange: (userId: number, categoryId: number, multiplier: number) => void;
+  onSupervisorDraftChange: (userId: number, supervisor: string | null) => void;
   variant: "desktop" | "mobile";
   isLast?: boolean;
 };
 
-export default function UserRow({
+function UserRowComponent({
   userId,
   points,
   firstname,
@@ -61,104 +59,44 @@ export default function UserRow({
   supervisor,
   supervisors,
   categories,
-  setLoading,
-  weekIndex,
-  fetchWeekData,
-  loading,
-  currentMonth,
-  currentYear,
-  currentWeek,
+  draft,
+  isDirty,
+  disabled,
+  onCategoryDraftChange,
+  onSupervisorDraftChange,
   variant,
   isLast,
 }: Props) {
-  const userData = points?.find((p) => p.user === userId);
-  const userPoints = userData?.points ?? 0;
-  const activitiesList: Activity[] = userData?.activities ?? [];
+  const userPoints = points?.points ?? 0;
+  const activitiesList: Activity[] = points?.activities ?? [];
 
   const fullName = `${firstname} ${lastname}`.trim();
   const initials = `${firstname?.charAt(0) || ""}${lastname?.charAt(0) || ""}`.trim();
 
   const [multiplierEdit, setMultiplierEdit] = useState<MultiplierEdit | null>(null);
 
-  const getActivityDate = () => {
-    if (weekIndex === currentWeek) {
-      return new Date().toISOString();
-    }
-    const day = weekIndex === 1 ? 1 : (weekIndex - 1) * 7 + 1;
-    const currentDate = hijriToGregorian({
-      year: currentYear,
-      month: currentMonth,
-      day,
-    });
-    return `${currentDate.year}-${currentDate.month}-${currentDate.day}T17:55:09.157Z`;
-  };
+  const originalMultiplier = (categoryId: number) =>
+    activitiesList.find((a) => a.category === categoryId)?.multiplier ?? 0;
+  const effectiveMultiplier = (categoryId: number) =>
+    draft?.activities?.[categoryId] ?? originalMultiplier(categoryId);
+  const effectiveSupervisor = draft?.supervisor !== undefined ? draft.supervisor : supervisor;
 
-  const runUpdate = async (update: () => Promise<void>) => {
-    if (loading) return;
+  const setCategoryDraft = (categoryId: number, multiplier: number) =>
+    onCategoryDraftChange(userId, categoryId, multiplier);
 
-    setLoading(true);
-
-    try {
-      await update();
-      await fetchWeekData(weekIndex);
-    } catch (error) {
-      console.error("Error updating activity:", error);
-      alert("حدث خطأ أثناء التحديث");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleToggle = async (
-    activityId: number | undefined,
-    categoryId: number,
-    uid: number,
-    checked: boolean,
-  ) =>
-    runUpdate(async () => {
-      if (checked) {
-        await addUserActivity(uid, categoryId, getActivityDate(), 1);
-      } else if (activityId !== undefined) {
-        await deleteUserActivity(uid, activityId);
-      }
-    });
-
-  const handleMultiplierChange = async (categoryId: number, uid: number, multiplier: number) =>
-    runUpdate(async () => {
-      const existingActivity = activitiesList.find((a) => a.category === categoryId);
-
-      if (multiplier > 0) {
-        if (existingActivity) {
-          await updateUserActivity(uid, existingActivity.id, multiplier);
-        } else {
-          await addUserActivity(uid, categoryId, getActivityDate(), multiplier);
-        }
-      } else if (existingActivity) {
-        await deleteUserActivity(uid, existingActivity.id);
-      }
-    });
-
-  const handleSupervisorChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-    if (loading) return;
-
-    setLoading(true);
-    const res = await updateUserSupervisor(userId, e.target.value || null);
-    if (!res.success && res.error) {
-      alert(res.error);
-    }
-    await fetchWeekData(weekIndex);
-    setLoading(false);
+  const handleSupervisorChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    onSupervisorDraftChange(userId, e.target.value || null);
   };
 
   const multiplierModal = multiplierEdit && (
     <MultiplierModal
       categoryName={multiplierEdit.name}
       value={multiplierEdit.value}
-      loading={loading}
+      loading={disabled}
       onClose={() => setMultiplierEdit(null)}
       onSelect={(n) => {
         setMultiplierEdit(null);
-        handleMultiplierChange(multiplierEdit.categoryId, userId, n);
+        setCategoryDraft(multiplierEdit.categoryId, n);
       }}
     />
   );
@@ -169,17 +107,17 @@ export default function UserRow({
         <MobileCard
           fullName={fullName}
           initials={initials}
-          supervisor={supervisor}
+          supervisor={effectiveSupervisor}
           supervisors={supervisors}
           onSupervisorChange={handleSupervisorChange}
           userPoints={userPoints}
           categories={categories}
-          activitiesList={activitiesList}
-          loading={loading}
-          onToggle={handleToggle}
-          onMultiplierChange={handleMultiplierChange}
+          effectiveMultiplier={effectiveMultiplier}
+          disabled={disabled}
+          isDirty={isDirty}
+          onToggle={(categoryId, checked) => setCategoryDraft(categoryId, checked ? 1 : 0)}
+          onMultiplierChange={setCategoryDraft}
           onOpenMultiplier={setMultiplierEdit}
-          userId={userId}
         />
         {multiplierModal}
       </>
@@ -189,8 +127,8 @@ export default function UserRow({
   return (
     <div
       className={`group relative flex items-center gap-3 px-4 py-3 bg-white hover:bg-[#F7FBEA]/60 transition-colors ${
-        !isLast ? "border-b border-[#043F2E]/8" : ""
-      }`}
+        isDirty ? "border-s-4 border-s-[#9ADD00] bg-[#F7FBEA]/40" : ""
+      } ${!isLast ? "border-b border-[#043F2E]/8" : ""}`}
     >
       {/* Avatar */}
       <div className="w-[44px] h-[44px] shrink-0 rounded-xl bg-gradient-to-br from-[#043F2E] to-[#065f46] flex items-center justify-center text-white shadow-sm">
@@ -213,10 +151,10 @@ export default function UserRow({
       <div className="w-[120px] shrink-0 min-w-0 flex items-center gap-1.5">
         <Users className="w-3.5 h-3.5 text-[#043F2E]/40 shrink-0" strokeWidth={2.2} />
         <select
-          value={supervisor || ""}
-          disabled={loading}
+          value={effectiveSupervisor || ""}
+          disabled={disabled}
           onChange={handleSupervisorChange}
-          title={supervisor || "بدون مشرف"}
+          title={effectiveSupervisor || "بدون مشرف"}
           className={`${tajawal.className} w-full h-8 min-w-0 bg-transparent border-none rounded-md text-xs font-medium text-[#043F2E]/70 truncate focus:outline-none focus:bg-[#F7FBEA] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer appearance-none`}
         >
           <option value="">— بدون مشرف —</option>
@@ -233,24 +171,24 @@ export default function UserRow({
         {[...(categories || [])]
           .sort((a, b) => (a.id === 5 ? 1 : b.id === 5 ? -1 : 0))
           .map((category: Category) => {
-            const categoryActivity = activitiesList.find((act) => act.category === category.id);
+            const value = effectiveMultiplier(category.id);
 
             if (category.id === 5) {
               return (
                 <div key={category.id} className="flex-1 min-w-0 flex justify-center">
                   <MultiplierStepper
-                    value={categoryActivity?.multiplier ?? 0}
+                    value={value}
                     min={0}
                     max={20}
-                    disabled={loading}
+                    disabled={disabled}
                     title={category.name}
-                    onCommit={(n) => handleMultiplierChange(category.id, userId, n)}
+                    onCommit={(n) => setCategoryDraft(category.id, n)}
                   />
                 </div>
               );
             }
 
-            const isChecked = !!categoryActivity;
+            const isChecked = value > 0;
             return (
               <div
                 key={category.id}
@@ -258,23 +196,17 @@ export default function UserRow({
               >
                 <Checkbox
                   checked={isChecked}
-                  disabled={loading}
-                  onChange={(e) =>
-                    handleToggle(categoryActivity?.id, category.id, userId, e.target.checked)
-                  }
+                  disabled={disabled}
+                  onChange={(e) => setCategoryDraft(category.id, e.target.checked ? 1 : 0)}
                   title={category.name}
                 />
-                {categoryActivity && (
+                {isChecked && (
                   <MultiplierBadge
-                    value={categoryActivity.multiplier}
-                    disabled={loading}
+                    value={value}
+                    disabled={disabled}
                     title={category.name}
                     onClick={() =>
-                      setMultiplierEdit({
-                        categoryId: category.id,
-                        name: category.name,
-                        value: categoryActivity.multiplier,
-                      })
+                      setMultiplierEdit({ categoryId: category.id, name: category.name, value })
                     }
                   />
                 )}
@@ -298,6 +230,8 @@ export default function UserRow({
     </div>
   );
 }
+
+export default memo(UserRowComponent);
 
 // ============================
 // 🟢 Custom Checkbox
@@ -490,12 +424,12 @@ function MobileCard({
   onSupervisorChange,
   userPoints,
   categories,
-  activitiesList,
-  loading,
+  effectiveMultiplier,
+  disabled,
+  isDirty,
   onToggle,
   onMultiplierChange,
   onOpenMultiplier,
-  userId,
 }: {
   fullName: string;
   initials: string;
@@ -504,20 +438,19 @@ function MobileCard({
   onSupervisorChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
   userPoints: number;
   categories: Category[];
-  activitiesList: Activity[];
-  loading: boolean;
-  onToggle: (
-    activityId: number | undefined,
-    categoryId: number,
-    uid: number,
-    checked: boolean,
-  ) => void;
-  onMultiplierChange: (categoryId: number, uid: number, multiplier: number) => void;
+  effectiveMultiplier: (categoryId: number) => number;
+  disabled: boolean;
+  isDirty: boolean;
+  onToggle: (categoryId: number, checked: boolean) => void;
+  onMultiplierChange: (categoryId: number, multiplier: number) => void;
   onOpenMultiplier: (edit: MultiplierEdit) => void;
-  userId: number;
 }) {
   return (
-    <div className="bg-[#F7FBEA] rounded-2xl border border-[#043F2E]/10 p-4 flex flex-col gap-4">
+    <div
+      className={`bg-[#F7FBEA] rounded-2xl border p-4 flex flex-col gap-4 ${
+        isDirty ? "border-[#9ADD00]" : "border-[#043F2E]/10"
+      }`}
+    >
       {/* Header: Avatar + Name + Total */}
       <div className="flex items-center gap-3">
         <div className="w-12 h-12 shrink-0 rounded-xl bg-gradient-to-br from-[#043F2E] to-[#065f46] flex items-center justify-center text-white shadow-sm">
@@ -533,7 +466,7 @@ function MobileCard({
             <Users className="w-3 h-3 text-[#043F2E]/40 shrink-0" strokeWidth={2.2} />
             <select
               value={supervisor || ""}
-              disabled={loading}
+              disabled={disabled}
               onChange={onSupervisorChange}
               className={`${tajawal.className} max-w-[150px] bg-transparent border-none text-xs font-medium text-[#043F2E]/60 truncate focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer appearance-none`}
             >
@@ -563,7 +496,7 @@ function MobileCard({
       {/* Categories grid */}
       <div className="grid grid-cols-2 gap-2">
         {categories?.map((category: Category) => {
-          const categoryActivity = activitiesList.find((act) => act.category === category.id);
+          const value = effectiveMultiplier(category.id);
 
           if (category.id === 5) {
             return (
@@ -577,27 +510,27 @@ function MobileCard({
                   {category.name}
                 </span>
                 <MultiplierStepper
-                  value={categoryActivity?.multiplier ?? 0}
+                  value={value}
                   min={0}
                   max={20}
-                  disabled={loading}
+                  disabled={disabled}
                   title={category.name}
-                  onCommit={(n) => onMultiplierChange(category.id, userId, n)}
+                  onCommit={(n) => onMultiplierChange(category.id, n)}
                 />
               </div>
             );
           }
 
-          const isChecked = !!categoryActivity;
+          const isChecked = value > 0;
           return (
             <div key={category.id} className="flex items-center gap-1.5">
               <button
                 type="button"
-                disabled={loading}
-                onClick={() => onToggle(categoryActivity?.id, category.id, userId, !isChecked)}
+                disabled={disabled}
+                onClick={() => onToggle(category.id, !isChecked)}
                 className={`flex-1 min-w-0 flex items-center gap-2.5 bg-white rounded-xl p-2.5 border transition-all text-start ${
                   isChecked ? "border-[#043F2E]/30 bg-[#BEE663]/10" : "border-[#043F2E]/8"
-                } ${loading ? "opacity-50" : "active:scale-[0.98]"}`}
+                } ${disabled ? "opacity-50" : "active:scale-[0.98]"}`}
               >
                 <div
                   className={`shrink-0 w-7 h-7 rounded-lg flex items-center justify-center transition-all ${
@@ -614,17 +547,13 @@ function MobileCard({
                   {category.name}
                 </span>
               </button>
-              {categoryActivity && (
+              {isChecked && (
                 <MultiplierBadge
-                  value={categoryActivity.multiplier}
-                  disabled={loading}
+                  value={value}
+                  disabled={disabled}
                   title={category.name}
                   onClick={() =>
-                    onOpenMultiplier({
-                      categoryId: category.id,
-                      name: category.name,
-                      value: categoryActivity.multiplier,
-                    })
+                    onOpenMultiplier({ categoryId: category.id, name: category.name, value })
                   }
                 />
               )}

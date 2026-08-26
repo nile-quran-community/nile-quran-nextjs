@@ -11,11 +11,20 @@ import {
   CheckCircle2,
   TrendingUp,
   Inbox,
+  Check,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
-import { getUsers, getCategories, getPoints } from "@/actions/ControlBoard";
-import UserRow from "./userRow";
-import { gregorianToHijri } from "@tabby_ai/hijri-converter";
+import {
+  getUsers,
+  getCategories,
+  getPoints,
+  addUserActivity,
+  updateUserActivity,
+  deleteUserActivity,
+  updateUserSupervisor,
+} from "@/actions/ControlBoard";
+import UserRow, { type DraftEntry } from "./userRow";
+import { gregorianToHijri, hijriToGregorian } from "@tabby_ai/hijri-converter";
 import { getHijriMonth, toArabicDigits } from "@/lib/utils";
 
 // 🟢 Fonts
@@ -79,6 +88,18 @@ async function fetchCategoriesCached(): Promise<Category[]> {
   return cachedCategories || [];
 }
 
+// Same date-for-a-new-activity rule the row used to compute itself — now computed once per
+// save batch instead of once per row, since every pending edit in a batch targets the same
+// currently-viewed week.
+function getActivityDateFor(weekIndex: number, currentWeek: number, year: number, month: number) {
+  if (weekIndex === currentWeek) {
+    return new Date().toISOString();
+  }
+  const day = weekIndex === 1 ? 1 : (weekIndex - 1) * 7 + 1;
+  const currentDate = hijriToGregorian({ year, month, day });
+  return `${currentDate.year}-${currentDate.month}-${currentDate.day}T17:55:09.157Z`;
+}
+
 // 🟢 Component
 export default function ControlPanelClient() {
   const date = new Date();
@@ -110,6 +131,12 @@ export default function ControlPanelClient() {
   const [weekIndex, setWeekIndex] = useState<number>(getInitialWeekIndex);
   const [searchQuery, setSearchQuery] = useState("");
   const [supervisors, setSupervisors] = useState<User[]>([]);
+
+  // Sparse per-user local edits, keyed by user id. A user only gets an entry once one of their
+  // fields is touched; absent = "no local edit, use server truth." Cleared entirely on week
+  // navigation (see the fetch effect below) since it belongs to whichever week is on screen.
+  const [drafts, setDrafts] = useState<Record<number, DraftEntry>>({});
+  const [isSavingAll, setIsSavingAll] = useState(false);
 
   const categoriesRef = useRef<Category[]>([]);
 
@@ -166,12 +193,13 @@ export default function ControlPanelClient() {
   );
 
   useEffect(() => {
+    setDrafts({}); // switching weeks discards any unsaved local edits — they belong to the old week
     setLoading(true);
     fetchWeekData(weekIndex).finally(() => setLoading(false));
   }, [weekIndex, fetchWeekData]);
 
   const handleWeekChange = (dir: "prev" | "next") => {
-    if (loading) return;
+    if (loading || isSavingAll) return;
 
     if (dir === "next") {
       if (weekIndex < 5) {
@@ -230,6 +258,152 @@ export default function ControlPanelClient() {
 
     return { totalStudents, totalPoints, activeStudents, completionRate };
   }, [data?.users, data.points]);
+
+  // Per-row slice of the points array — required for React.memo on UserRow to do anything at
+  // all. Without this, data.points.points gets a new array reference on every save and would
+  // be passed identically to every row, so memo's shallow comparison would never bail.
+  const pointsByUser = useMemo(
+    () => new Map(data.points.points.map((p) => [p.user, p])),
+    [data.points.points],
+  );
+
+  // Which users currently have an unsaved edit — drives both the bottom bar's count and each
+  // row's own dirty prop. A draft entry can exist for a user and still not be "dirty" if every
+  // touched field was edited back to its original value.
+  const dirtyUserIds = useMemo(() => {
+    const ids = new Set<number>();
+    for (const user of data.users) {
+      const draft = drafts[user.id];
+      if (!draft) continue;
+
+      const originalActivities = pointsByUser.get(user.id)?.activities ?? [];
+      const categoryDirty = data.categories.some((c) => {
+        const draftValue = draft.activities?.[c.id];
+        if (draftValue === undefined) return false;
+        const originalValue = originalActivities.find((a) => a.category === c.id)?.multiplier ?? 0;
+        return draftValue !== originalValue;
+      });
+      const supervisorDirty = draft.supervisor !== undefined && draft.supervisor !== user.supervisor;
+
+      if (categoryDirty || supervisorDirty) ids.add(user.id);
+    }
+    return ids;
+  }, [drafts, pointsByUser, data.users, data.categories]);
+
+  // Stable (deps []) — only ever touches the one user's key via functional setState, so
+  // editing one row never changes another row's draft prop reference.
+  const handleCategoryDraftChange = useCallback(
+    (userId: number, categoryId: number, multiplier: number) => {
+      setDrafts((prev) => ({
+        ...prev,
+        [userId]: {
+          ...prev[userId],
+          activities: { ...prev[userId]?.activities, [categoryId]: multiplier },
+        },
+      }));
+    },
+    [],
+  );
+
+  const handleSupervisorDraftChange = useCallback((userId: number, supervisor: string | null) => {
+    setDrafts((prev) => ({ ...prev, [userId]: { ...prev[userId], supervisor } }));
+  }, []);
+
+  const handleDiscardAll = () => {
+    if (isSavingAll) return;
+    setDrafts({});
+  };
+
+  // Batches every dirty user's pending edits into the minimal set of add/update/delete calls
+  // (diffed per category against server truth, exactly as a single row used to do — just fired
+  // across every dirty user at once), then a single getPoints call reconciles totals for
+  // everyone. A user whose write fails keeps their draft (and stays in dirtyUserIds, so they
+  // reappear in the bar for a retry) because dirtiness is always recomputed live against
+  // data.points/data.users — nothing here needs to explicitly "clear" a draft on success.
+  const handleSaveAll = async () => {
+    if (isSavingAll || dirtyUserIds.size === 0) return;
+    setIsSavingAll(true);
+
+    const activityDate = getActivityDateFor(weekIndex, currentWeek, year, month);
+    const categoryOps: Array<() => Promise<{ success: boolean; error?: string }>> = [];
+    const supervisorOps: Array<{
+      userId: number;
+      supervisor: string | null;
+      run: () => Promise<{ success: boolean; error?: string }>;
+    }> = [];
+
+    for (const userId of dirtyUserIds) {
+      const user = data.users.find((u) => u.id === userId);
+      if (!user) continue;
+      const draft = drafts[userId];
+      const originalActivities = pointsByUser.get(userId)?.activities ?? [];
+
+      for (const category of data.categories) {
+        const draftMultiplier = draft?.activities?.[category.id];
+        if (draftMultiplier === undefined) continue;
+        const original = originalActivities.find((a) => a.category === category.id);
+        const originalMultiplier = original?.multiplier ?? 0;
+        if (draftMultiplier === originalMultiplier) continue;
+        if (draftMultiplier > 0 && originalMultiplier === 0) {
+          categoryOps.push(() => addUserActivity(userId, category.id, activityDate, draftMultiplier));
+        } else if (draftMultiplier > 0) {
+          categoryOps.push(() => updateUserActivity(userId, original!.id, draftMultiplier));
+        } else {
+          categoryOps.push(() => deleteUserActivity(userId, original!.id));
+        }
+      }
+
+      if (draft?.supervisor !== undefined && draft.supervisor !== user.supervisor) {
+        supervisorOps.push({
+          userId,
+          supervisor: draft.supervisor,
+          run: () => updateUserSupervisor(userId, draft.supervisor ?? null),
+        });
+      }
+    }
+
+    // allSettled (not all) — a rejection must not stop us from learning which of the other
+    // users' ops landed, otherwise a retry would re-diff against stale data and double-submit
+    // whatever already succeeded.
+    const [categoryResults, supervisorResults] = await Promise.all([
+      Promise.allSettled(categoryOps.map((op) => op())),
+      Promise.allSettled(supervisorOps.map((s) => s.run())),
+    ]);
+
+    const succeededSupervisors = new Map<number, string | null>();
+    supervisorResults.forEach((r, i) => {
+      if (r.status === "fulfilled" && r.value.success) {
+        succeededSupervisors.set(supervisorOps[i].userId, supervisorOps[i].supervisor);
+      }
+    });
+
+    const anyFailed =
+      categoryResults.some((r) => r.status === "rejected" || !r.value.success) ||
+      supervisorResults.some((r) => r.status === "rejected" || !r.value.success);
+
+    try {
+      // Single authoritative call for the whole batch — getPoints already returns a flat
+      // UserPoints[] (unwrapped server-side) covering every user, so one call reconciles
+      // totals for everyone who was just edited. Never recompute points client-side.
+      const pointsRes = await getPoints(year, month, weekIndex);
+      if (pointsRes.success) {
+        setData((prev) => ({
+          ...prev,
+          points: { points: pointsRes.points },
+          users: prev.users.map((u) =>
+            succeededSupervisors.has(u.id)
+              ? { ...u, supervisor: succeededSupervisors.get(u.id)! }
+              : u,
+          ),
+        }));
+      }
+    } catch (error) {
+      console.error("Error refreshing points after save:", error);
+    }
+
+    setIsSavingAll(false);
+    if (anyFailed) alert("حدث خطأ أثناء حفظ بعض التغييرات");
+  };
 
   return (
     <div className="relative flex flex-col min-h-screen bg-[#EBF0EB]" dir="rtl">
@@ -379,7 +553,7 @@ export default function ControlPanelClient() {
             <div className="flex justify-between items-center gap-2 bg-[#F7FBEA] border border-[#043F2E]/15 rounded-2xl p-1.5">
               <button
                 onClick={() => handleWeekChange("prev")}
-                disabled={loading}
+                disabled={loading || isSavingAll}
                 aria-label="الأسبوع السابق"
                 className="w-10 h-10 rounded-xl bg-white hover:bg-[#BEE663] text-[#043F2E] flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm cursor-pointer"
               >
@@ -394,7 +568,7 @@ export default function ControlPanelClient() {
 
               <button
                 onClick={() => handleWeekChange("next")}
-                disabled={loading}
+                disabled={loading || isSavingAll}
                 aria-label="الأسبوع التالي"
                 className="w-10 h-10 rounded-xl bg-white hover:bg-[#BEE663] text-[#043F2E] flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm cursor-pointer"
               >
@@ -444,19 +618,17 @@ export default function ControlPanelClient() {
                   variant="desktop"
                   isLast={index === filteredUsers.length - 1}
                   userId={user.id}
-                  points={data.points.points}
+                  points={pointsByUser.get(user.id)}
                   firstname={user.first_name}
                   lastname={user.last_name}
                   supervisor={user.supervisor}
                   supervisors={supervisors}
                   categories={data.categories}
-                  setLoading={setLoading}
-                  weekIndex={weekIndex}
-                  fetchWeekData={fetchWeekData}
-                  loading={loading}
-                  currentYear={year}
-                  currentMonth={month}
-                  currentWeek={currentWeek}
+                  draft={drafts[user.id]}
+                  isDirty={dirtyUserIds.has(user.id)}
+                  disabled={isSavingAll}
+                  onCategoryDraftChange={handleCategoryDraftChange}
+                  onSupervisorDraftChange={handleSupervisorDraftChange}
                 />
               ))}
             </div>
@@ -470,25 +642,30 @@ export default function ControlPanelClient() {
                   key={user.id}
                   variant="mobile"
                   userId={user.id}
-                  points={data.points.points}
+                  points={pointsByUser.get(user.id)}
                   firstname={user.first_name}
                   lastname={user.last_name}
                   supervisor={user.supervisor}
                   supervisors={supervisors}
                   categories={data.categories}
-                  setLoading={setLoading}
-                  weekIndex={weekIndex}
-                  fetchWeekData={fetchWeekData}
-                  loading={loading}
-                  currentYear={year}
-                  currentMonth={month}
-                  currentWeek={currentWeek}
+                  draft={drafts[user.id]}
+                  isDirty={dirtyUserIds.has(user.id)}
+                  disabled={isSavingAll}
+                  onCategoryDraftChange={handleCategoryDraftChange}
+                  onSupervisorDraftChange={handleSupervisorDraftChange}
                 />
               ))}
             </div>
           )}
         </div>
       </div>
+
+      <UnsavedChangesBar
+        count={dirtyUserIds.size}
+        isSaving={isSavingAll}
+        onSaveAll={handleSaveAll}
+        onDiscardAll={handleDiscardAll}
+      />
     </div>
   );
 }
@@ -600,5 +777,51 @@ function HeaderLabel({ children }: { children: React.ReactNode }) {
     <span className={`${tajawal.className} text-[12px] font-bold text-[#043F2E] block truncate`}>
       {children}
     </span>
+  );
+}
+
+// ============================
+// 🟢 Unsaved changes bar (bottom-floating global save)
+// ============================
+function UnsavedChangesBar({
+  count,
+  isSaving,
+  onSaveAll,
+  onDiscardAll,
+}: {
+  count: number;
+  isSaving: boolean;
+  onSaveAll: () => void;
+  onDiscardAll: () => void;
+}) {
+  if (count === 0) return null;
+
+  return (
+    <div className="fixed bottom-4 inset-x-0 z-40 flex justify-center px-4" dir="rtl">
+      <div className="flex items-center gap-4 bg-[#043F2E] text-white rounded-2xl shadow-lg px-5 py-3.5">
+        <span className={`${tajawal.className} text-sm font-bold`}>
+          لديك {toArabicDigits(count)} {count === 1 ? "تغيير غير محفوظ" : "تغييرات غير محفوظة"}
+        </span>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            disabled={isSaving}
+            onClick={onDiscardAll}
+            className={`${tajawal.className} px-4 h-10 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-colors`}
+          >
+            إلغاء
+          </button>
+          <button
+            type="button"
+            disabled={isSaving}
+            onClick={onSaveAll}
+            className={`${tajawal.className} flex items-center gap-1.5 px-4 h-10 rounded-xl bg-[#BEE663] hover:bg-[#9ADD00] text-[#043F2E] text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-colors`}
+          >
+            <Check className="w-4 h-4" strokeWidth={2.5} />
+            {isSaving ? "جارٍ الحفظ..." : "حفظ"}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
