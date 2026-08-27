@@ -48,7 +48,12 @@ export async function getGoalOfTheMonth(year: number, month: number): Promise<Go
       2,
       "0",
     )}-${String(endDate.day).padStart(2, "0")}`;
-    const query = `?date_after=${start}&date_before=${end}`;
+    // GoalFilterSet filters on created_at, so the params are created_at_after /
+    // created_at_before. date_after/date_before are not filters the goals endpoint
+    // knows, and unknown params are ignored — which returned every goal ever, and
+    // with Goal.Meta.ordering = ["created_at"] the [0] below was the oldest one,
+    // whatever month the reader had selected.
+    const query = `?scope=monthly&created_at_after=${start}&created_at_before=${end}`;
     const response = await fetch(`${API_BASE}api/v1/goals/${query}`, {
       method: "GET",
       headers: {

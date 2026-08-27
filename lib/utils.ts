@@ -59,3 +59,28 @@ export function getHijriMonthDays(year: number, month: number) {
 export const toArabicDigits = (num: number | string) => {
   return num.toString().replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[parseInt(d)]);
 };
+
+const gregorianMonthsArabic = [
+  "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
+  "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر",
+];
+
+// "٢٢ أغسطس ٢٠٢٦" — returns the raw string when the date cannot be parsed
+export function formatArabicDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return dateStr;
+  return `${toArabicDigits(d.getDate())} ${gregorianMonthsArabic[d.getMonth()]} ${toArabicDigits(d.getFullYear())}`;
+}
+
+// "٩ ربيع الأول ١٤٤٨ هـ" — the maqra'a counts its months in Hijri, so dates that
+// belong to the community's own calendar are written in it
+export function formatHijriDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return dateStr;
+  const hijri = gregorianToHijri({
+    year: d.getFullYear(),
+    month: d.getMonth() + 1,
+    day: d.getDate(),
+  });
+  return `${toArabicDigits(hijri.day)} ${getHijriMonth(hijri.month - 1)} ${toArabicDigits(hijri.year)} هـ`;
+}

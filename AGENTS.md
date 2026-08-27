@@ -55,15 +55,21 @@ Activities should make clear **what happened, when it happened, whether it was c
 
 Points are used as a lightweight mechanism to encourage consistency through a monthly competition.
 
-| Action                               | Points |
-| ------------------------------------ | -----: |
-| Memorized + recited weekly portion   |     +2 |
-| Recited without memorization         |     +1 |
-| Attended weekly reflection (`خاطرة`) |     +1 |
-| Prepared + delivered a reflection    |     +2 |
-| Invited a university student to join |     +1 |
+| Category id | Action                               | Points |
+| ----------: | ------------------------------------ | -----: |
+|           4 | Memorized + recited weekly portion   |     +2 |
+|           3 | Recited without memorization         |     +1 |
+|           1 | Attended weekly reflection (`خاطرة`) |     +1 |
+|           2 | Prepared + delivered a reflection    |     +2 |
+|           5 | Invited a university student to join |     +1 |
+|           6 | Attended the team meeting            |     +1 |
 
 These are **domain rules**. Do not change point values, activity meanings, or labels in frontend code.
+
+The category ids are the API's own (`/api/v1/users/points/categories/`) and are what the
+frontend keys on — a supervisor's recitation/reading scope, for instance, is ids 4 and 3.
+Read the labels and values from that endpoint rather than hard-coding them; the table above
+is the contract, not a substitute for the response.
 
 When displaying points, provide context:
 
