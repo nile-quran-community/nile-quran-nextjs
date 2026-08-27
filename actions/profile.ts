@@ -124,9 +124,7 @@ async function fetchJson<T>(url: string, token: string): Promise<T> {
 // Get User by Username (for supervisor/referrer links)
 // ===============================
 
-export async function getUserByUsername(
-  username: string,
-): Promise<FetchResult<ApiUser>> {
+export async function getUserByUsername(username: string): Promise<FetchResult<ApiUser>> {
   try {
     const token = await getToken();
     if (!token) throw new Error("No access token");
@@ -213,9 +211,7 @@ export async function getUserPointsForMonth(
 
     const monthDays = getHijriMonthDays(hijriYear, hijriMonth);
     const start = toIsoDate(hijriToGregorian({ year: hijriYear, month: hijriMonth, day: 1 }));
-    const end = toIsoDate(
-      hijriToGregorian({ year: hijriYear, month: hijriMonth, day: monthDays }),
-    );
+    const end = toIsoDate(hijriToGregorian({ year: hijriYear, month: hijriMonth, day: monthDays }));
 
     const data = await fetchJson<ApiPoints>(
       `${API_BASE}api/v1/users/${userId}/points/?date_after=${start}&date_before=${end}`,
@@ -376,24 +372,24 @@ export async function getQuietMembers(): Promise<FetchResult<QuietMember[]>> {
     const members: QuietMember[] = everyone
       .filter((u) => (u.groups || []).includes("Student"))
       .map((u) => {
-      const record = points.find((p) => p.user === u.id);
-      const lastActivityAt = latestActivityDate(record?.activities);
-      const since = lastActivityAt ?? u.date_joined;
-      const last = new Date(since);
-      const weeks = Number.isNaN(last.getTime())
-        ? null
-        : Math.floor((Date.now() - last.getTime()) / 86_400_000 / 7);
+        const record = points.find((p) => p.user === u.id);
+        const lastActivityAt = latestActivityDate(record?.activities);
+        const since = lastActivityAt ?? u.date_joined;
+        const last = new Date(since);
+        const weeks = Number.isNaN(last.getTime())
+          ? null
+          : Math.floor((Date.now() - last.getTime()) / 86_400_000 / 7);
 
-      return {
-        id: u.id,
-        username: u.username,
-        fullName: `${u.first_name} ${u.last_name}`.trim() || u.username,
-        supervisorName: u.supervisor ? (nameOf.get(u.supervisor) ?? u.supervisor) : null,
-        dateJoined: u.date_joined,
-        lastActivityAt,
-        weeksSilent: weeks,
-      };
-    });
+        return {
+          id: u.id,
+          username: u.username,
+          fullName: `${u.first_name} ${u.last_name}`.trim() || u.username,
+          supervisorName: u.supervisor ? (nameOf.get(u.supervisor) ?? u.supervisor) : null,
+          dateJoined: u.date_joined,
+          lastActivityAt,
+          weeksSilent: weeks,
+        };
+      });
 
     // Longest silence first — the members furthest from the maqra'a lead the list
     members.sort((a, b) => (b.weeksSilent ?? 0) - (a.weeksSilent ?? 0));
@@ -409,9 +405,7 @@ export async function getQuietMembers(): Promise<FetchResult<QuietMember[]>> {
 // Get Supervised Students (Moderator only)
 // ===============================
 
-export async function getSupervisedStudents(
-  supervisorUsername: string,
-): Promise<
+export async function getSupervisedStudents(supervisorUsername: string): Promise<
   FetchResult<
     Array<{
       id: number;
@@ -442,10 +436,7 @@ export async function getSupervisedStudents(
         `${API_BASE}api/v1/users/?supervisor=${encodeURIComponent(supervisorUsername)}&group=Student`,
         token,
       ),
-      fetchJson<{ results: ApiPoints[] } | ApiPoints[]>(
-        `${API_BASE}api/v1/users/points/`,
-        token,
-      ),
+      fetchJson<{ results: ApiPoints[] } | ApiPoints[]>(`${API_BASE}api/v1/users/points/`, token),
       fetchJson<{ results: ApiPoints[] } | ApiPoints[]>(
         `${API_BASE}api/v1/users/points/?date_after=${start}&date_before=${end}`,
         token,
@@ -503,7 +494,15 @@ export async function getSupervisedStudents(
 
 export async function updateUser(
   userId: number,
- data: { first_name?: string; last_name?: string; email?: string; supervisor?: string | null; referrer?: string | null; groups?: string[] },
+  data: {
+    first_name?: string;
+    last_name?: string;
+    email?: string;
+    supervisor?: string | null;
+    referrer?: string | null;
+    groups?: string[];
+    password?: string;
+  },
 ): Promise<FetchResult<null>> {
   try {
     const token = await getToken();
@@ -524,7 +523,16 @@ export async function updateUser(
       let errorMsg = `تعذّر تحديث البيانات (${res.status})`;
       try {
         const errData = JSON.parse(text);
-        errorMsg = errData?.detail || errData?.email?.[0] || errData?.first_name?.[0] || errorMsg;
+        // DRF keys field errors by field name; permissions land in `detail`
+        errorMsg =
+          errData?.detail ||
+          errData?.email?.[0] ||
+          errData?.first_name?.[0] ||
+          errData?.last_name?.[0] ||
+          errData?.password?.[0] ||
+          errData?.referrer?.[0] ||
+          errData?.non_field_errors?.[0] ||
+          errorMsg;
       } catch {
         // not JSON
       }
@@ -542,9 +550,7 @@ export async function updateUser(
 // Get Student Activities (Moderator/Admin)
 // ===============================
 
-export async function getStudentActivities(
-  studentId: number,
-): Promise<FetchResult<ApiActivity[]>> {
+export async function getStudentActivities(studentId: number): Promise<FetchResult<ApiActivity[]>> {
   try {
     const token = await getToken();
     if (!token) throw new Error("No access token");
@@ -556,8 +562,10 @@ export async function getStudentActivities(
     let guard = 0;
 
     while (url && guard < 20) {
-      const page: { results: ApiActivity[]; next: string | null } | ApiActivity[] =
-        await fetchJson(url, token);
+      const page: { results: ApiActivity[]; next: string | null } | ApiActivity[] = await fetchJson(
+        url,
+        token,
+      );
 
       if (Array.isArray(page)) {
         activities.push(...page);
@@ -607,19 +615,16 @@ export async function updateStudentActivityCategory(
       return { success: true, data: null };
     }
 
-    const res = await fetch(
-      `${API_BASE}api/v1/users/${studentId}/activities/${activityId}/`,
-      {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Accept-Language": "ar",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ category: categoryId }),
-        cache: "no-store",
+    const res = await fetch(`${API_BASE}api/v1/users/${studentId}/activities/${activityId}/`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Accept-Language": "ar",
+        "Content-Type": "application/json",
       },
-    );
+      body: JSON.stringify({ category: categoryId }),
+      cache: "no-store",
+    });
 
     if (!res.ok) {
       const text = await res.text();
@@ -636,6 +641,70 @@ export async function updateStudentActivityCategory(
     return { success: true, data: null };
   } catch (error) {
     console.error("Error updating student activity category:", error);
+    return { success: false, error: "تعذّر تعديل النشاط" };
+  }
+}
+
+// ===============================
+// Change a Student Activity's Multiplier (Moderator/Admin)
+// ===============================
+// Spectacular performance is recorded as a multiplier on the activity, and the
+// API counts points as multiplier × category value. A performance recorded at
+// ×1 that deserved more should be correctable without deleting and re-recording.
+// Same supervisor scope as the category path, enforced here and not only in the
+// browser.
+
+export async function updateStudentActivityMultiplier(
+  studentId: number,
+  activityId: number,
+  multiplier: number,
+): Promise<FetchResult<null>> {
+  try {
+    const token = await getToken();
+    if (!token) throw new Error("No access token");
+
+    // The API itself only demands an integer ≥ 1; nothing else is a rule
+    if (!Number.isInteger(multiplier) || multiplier < 1) {
+      return { success: false, error: "قيمة المضاعف غير صالحة" };
+    }
+
+    const activity = await fetchJson<ApiActivity>(
+      `${API_BASE}api/v1/users/${studentId}/activities/${activityId}/`,
+      token,
+    );
+    if (!SUPERVISOR_MANAGED_CATEGORY_IDS.includes(activity.category)) {
+      return { success: false, error: "هذا النوع من الأنشطة يسجّله المدراء" };
+    }
+    if (activity.multiplier === multiplier) {
+      return { success: true, data: null };
+    }
+
+    const res = await fetch(`${API_BASE}api/v1/users/${studentId}/activities/${activityId}/`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Accept-Language": "ar",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ multiplier }),
+      cache: "no-store",
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      let errorMsg = `تعذّر تعديل النشاط (${res.status})`;
+      try {
+        const data = JSON.parse(text);
+        errorMsg = data?.detail || data?.multiplier?.[0] || data?.error || errorMsg;
+      } catch {
+        // not JSON
+      }
+      return { success: false, error: errorMsg };
+    }
+
+    return { success: true, data: null };
+  } catch (error) {
+    console.error("Error updating student activity multiplier:", error);
     return { success: false, error: "تعذّر تعديل النشاط" };
   }
 }
@@ -663,18 +732,15 @@ export async function deleteStudentActivity(
       return { success: false, error: "هذا النوع من الأنشطة يسجّله المدراء" };
     }
 
-    const res = await fetch(
-      `${API_BASE}api/v1/users/${studentId}/activities/${activityId}/`,
-      {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Accept-Language": "ar",
-          "Content-Type": "application/json",
-        },
-        cache: "no-store",
+    const res = await fetch(`${API_BASE}api/v1/users/${studentId}/activities/${activityId}/`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Accept-Language": "ar",
+        "Content-Type": "application/json",
       },
-    );
+      cache: "no-store",
+    });
 
     if (!res.ok) {
       const text = await res.text();

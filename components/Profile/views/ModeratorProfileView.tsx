@@ -33,6 +33,7 @@ import {
   getStudentActivities,
   deleteStudentActivity,
   updateStudentActivityCategory,
+  updateStudentActivityMultiplier,
 } from "@/actions/profile";
 import {
   SUPERVISOR_MANAGED_CATEGORY_IDS,
@@ -65,6 +66,20 @@ interface Props {
 }
 
 const CAT_TASMEE = 4;
+
+// Spectacular performance is recorded as a multiplier on the activity, and the
+// API counts points as multiplier × category value. The API accepts any integer
+// ≥ 1; the pills stop at ×5 as a guardrail — a slip of the hand should not be
+// what decides the month's competition.
+const MULTIPLIER_OPTIONS = [1, 2, 3, 4, 5];
+
+// The pills cover the common range; an activity recorded elsewhere with a
+// bigger multiplier still shows its real value, selected, beside them
+function multiplierOptionsFor(current: number): number[] {
+  return MULTIPLIER_OPTIONS.includes(current)
+    ? MULTIPLIER_OPTIONS
+    : [...MULTIPLIER_OPTIONS, current];
+}
 
 type ActivityItem = {
   id: number;
@@ -152,9 +167,7 @@ export default function ModeratorProfileView({
 
   const sortTabClass = (active: boolean) =>
     `${tajawal.className} h-10 px-3.5 rounded-xl text-sm font-bold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#043F2E] focus-visible:ring-offset-2 ${
-      active
-        ? "bg-[#043F2E] text-white"
-        : "text-[#043F2E]/70 hover:bg-white hover:text-[#043F2E]"
+      active ? "bg-[#043F2E] text-white" : "text-[#043F2E]/70 hover:bg-white hover:text-[#043F2E]"
     }`;
 
   return (
@@ -304,7 +317,8 @@ export default function ModeratorProfileView({
                 {filtered.map((student, idx) => {
                   const fullName = `${student.first_name} ${student.last_name}`.trim();
                   const displayName = fullName || student.username;
-                  const initials = `${student.first_name?.charAt(0) || ""}${student.last_name?.charAt(0) || ""}`.trim();
+                  const initials =
+                    `${student.first_name?.charAt(0) || ""}${student.last_name?.charAt(0) || ""}`.trim();
                   const isLast = idx === filtered.length - 1;
 
                   return (
@@ -337,14 +351,18 @@ export default function ModeratorProfileView({
                         </span>
                         {/* The reason, in words, where the row already had a
                             second line. The handle earns that line far less. */}
-                        <p className={`${tajawal.className} text-[11px] text-[#043F2E]/60 truncate`}>
+                        <p
+                          className={`${tajawal.className} text-[11px] text-[#043F2E]/60 truncate`}
+                        >
                           {followUpDetail(student) ?? `@${student.username}`}
                         </p>
                       </div>
 
                       {/* Activities count */}
                       <div className={`${COL_ACTIVITIES} text-center`}>
-                        <span className={`${lalezar.className} text-base text-[#043F2E]/70 leading-none`}>
+                        <span
+                          className={`${lalezar.className} text-base text-[#043F2E]/70 leading-none`}
+                        >
                           {toArabicDigits(student.activities_count)}
                         </span>
                       </div>
@@ -383,7 +401,8 @@ export default function ModeratorProfileView({
               {filtered.map((student) => {
                 const fullName = `${student.first_name} ${student.last_name}`.trim();
                 const displayName = fullName || student.username;
-                const initials = `${student.first_name?.charAt(0) || ""}${student.last_name?.charAt(0) || ""}`.trim();
+                const initials =
+                  `${student.first_name?.charAt(0) || ""}${student.last_name?.charAt(0) || ""}`.trim();
 
                 return (
                   <div
@@ -412,13 +431,17 @@ export default function ModeratorProfileView({
                         </span>
                         {/* The reason, in words, where the row already had a
                             second line. The handle earns that line far less. */}
-                        <p className={`${tajawal.className} text-[11px] text-[#043F2E]/60 truncate`}>
+                        <p
+                          className={`${tajawal.className} text-[11px] text-[#043F2E]/60 truncate`}
+                        >
                           {followUpDetail(student) ?? `@${student.username}`}
                         </p>
                       </div>
 
                       <div className="shrink-0 flex flex-col items-center gap-0.5">
-                        <span className={`${tajawal.className} text-[11px] text-[#043F2E]/60 leading-none`}>
+                        <span
+                          className={`${tajawal.className} text-[11px] text-[#043F2E]/60 leading-none`}
+                        >
                           النقاط
                         </span>
                         <span
@@ -432,7 +455,9 @@ export default function ModeratorProfileView({
                     </div>
 
                     <div className="flex items-center gap-3 pt-1 border-t border-[#043F2E]/8">
-                      <span className={`${tajawal.className} text-[11px] text-[#043F2E]/60 shrink-0`}>
+                      <span
+                        className={`${tajawal.className} text-[11px] text-[#043F2E]/60 shrink-0`}
+                      >
                         الأنشطة{" "}
                         <span className={`${lalezar.className} text-sm text-[#043F2E]/70`}>
                           {toArabicDigits(student.activities_count)}
@@ -498,17 +523,17 @@ function ActivitySheet({
   const busyRef = useRef(false);
 
   const fullName = `${student.first_name} ${student.last_name}`.trim() || student.username;
-  const initials = `${student.first_name?.charAt(0) || ""}${student.last_name?.charAt(0) || ""}`.trim();
+  const initials =
+    `${student.first_name?.charAt(0) || ""}${student.last_name?.charAt(0) || ""}`.trim();
 
   // The two categories a supervisor may touch, with names and values from the API
   const availableCategories = SUPERVISOR_MANAGED_CATEGORY_IDS.map((id) =>
     categories.find((c) => c.id === id),
   ).filter((c): c is ActivityCategory => Boolean(c));
 
-  const [categoryId, setCategoryId] = useState<number>(
-    availableCategories[0]?.id ?? CAT_TASMEE,
-  );
+  const [categoryId, setCategoryId] = useState<number>(availableCategories[0]?.id ?? CAT_TASMEE);
   const selectedCategory = availableCategories.find((c) => c.id === categoryId);
+  const [multiplier, setMultiplier] = useState(1);
 
   const isBusy = busyId !== null || isPending;
   busyRef.current = isBusy;
@@ -557,9 +582,11 @@ function ActivitySheet({
     setError(null);
     setNotice(null);
     startTransition(async () => {
-      const res = await addStudentActivity(student.id, categoryId, 1);
+      const res = await addStudentActivity(student.id, categoryId, multiplier);
       if (res.success) {
         setNotice(`تم تسجيل ${selectedCategory?.name ?? "النشاط"} باسم ${fullName}`);
+        // The next recitation is an ordinary one until said otherwise
+        setMultiplier(1);
         setActivities(null);
         router.refresh();
       } else {
@@ -577,6 +604,27 @@ function ActivitySheet({
       if (res.success) {
         setActivities((prev) =>
           (prev ?? []).map((a) => (a.id === activityId ? { ...a, category: nextCategoryId } : a)),
+        );
+        router.refresh();
+      } else {
+        setError(res.error || "تعذّر تعديل النشاط");
+      }
+    } catch {
+      setError("تعذّر الاتصال، حاول مرة أخرى");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const handleChangeMultiplier = async (activityId: number, nextMultiplier: number) => {
+    setError(null);
+    setNotice(null);
+    setBusyId(activityId);
+    try {
+      const res = await updateStudentActivityMultiplier(student.id, activityId, nextMultiplier);
+      if (res.success) {
+        setActivities((prev) =>
+          (prev ?? []).map((a) => (a.id === activityId ? { ...a, multiplier: nextMultiplier } : a)),
         );
         router.refresh();
       } else {
@@ -631,7 +679,11 @@ function ActivitySheet({
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 shrink-0 rounded-lg bg-[#F7FBEA] flex items-center justify-center">
-              <ClipboardList className="w-4 h-4 text-[#043F2E]" strokeWidth={2.2} aria-hidden="true" />
+              <ClipboardList
+                className="w-4 h-4 text-[#043F2E]"
+                strokeWidth={2.2}
+                aria-hidden="true"
+              />
             </div>
             <h3 className={`${lalezar.className} text-lg text-[#043F2E] leading-tight`}>الأنشطة</h3>
           </div>
@@ -705,7 +757,11 @@ function ActivitySheet({
             role="alert"
             className="flex items-center gap-2 rounded-xl bg-[#F4E0D6] border border-[#9B3D2E]/30 px-3 py-2.5"
           >
-            <AlertCircle className="w-4 h-4 text-[#9B3D2E] shrink-0" strokeWidth={2.2} aria-hidden="true" />
+            <AlertCircle
+              className="w-4 h-4 text-[#9B3D2E] shrink-0"
+              strokeWidth={2.2}
+              aria-hidden="true"
+            />
             <span className={`${tajawal.className} text-xs text-[#9B3D2E]`}>{error}</span>
           </div>
         )}
@@ -715,7 +771,11 @@ function ActivitySheet({
             role="status"
             className="flex items-center gap-2 rounded-xl bg-[#DEFF90] border border-[#9ADD00]/40 px-3 py-2.5"
           >
-            <Check className="w-4 h-4 text-[#043F2E] shrink-0" strokeWidth={2.5} aria-hidden="true" />
+            <Check
+              className="w-4 h-4 text-[#043F2E] shrink-0"
+              strokeWidth={2.5}
+              aria-hidden="true"
+            />
             <span className={`${tajawal.className} text-xs text-[#043F2E]`}>{notice}</span>
           </div>
         )}
@@ -756,6 +816,36 @@ function ActivitySheet({
                   </button>
                 ))}
               </div>
+            </div>
+
+            {/* Spectacular performance multiplies the activity's points */}
+            <div className="flex flex-col gap-2">
+              <label className={`${tajawal.className} text-xs font-bold text-[#043F2E]/70`}>
+                الأداء
+              </label>
+              <div className="grid grid-cols-5 gap-2">
+                {MULTIPLIER_OPTIONS.map((m) => (
+                  <button
+                    type="button"
+                    key={m}
+                    onClick={() => setMultiplier(m)}
+                    disabled={isPending}
+                    aria-pressed={multiplier === m}
+                    aria-label={`المضاعف ×${toArabicDigits(m)}`}
+                    className={`${tajawal.className} h-10 rounded-xl border text-sm font-bold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#043F2E] focus-visible:ring-offset-2 ${
+                      multiplier === m
+                        ? "border-[#043F2E] bg-[#043F2E] text-white"
+                        : "border-[#043F2E]/15 bg-[#F7FBEA] text-[#043F2E] hover:border-[#043F2E]/40"
+                    } disabled:opacity-50`}
+                  >
+                    ×{toArabicDigits(m)}
+                  </button>
+                ))}
+              </div>
+              <p className={`${tajawal.className} text-[11px] text-[#043F2E]/60`}>
+                {multiplier > 1 ? "أداء متميز — " : ""}
+                النقاط المحتسبة: +{toArabicDigits((selectedCategory?.value ?? 0) * multiplier)}
+              </p>
             </div>
 
             <button
@@ -808,13 +898,19 @@ function ActivitySheet({
                 >
                   <div className="flex items-center gap-3">
                     <div className="flex-1 min-w-0">
-                      <p className={`${tajawal.className} text-sm font-bold text-[#043F2E] truncate`}>
+                      <p
+                        className={`${tajawal.className} text-sm font-bold text-[#043F2E] truncate`}
+                      >
                         {activityName}
                       </p>
                       <p
                         className={`${tajawal.className} text-[11px] text-[#043F2E]/60 flex items-center gap-1`}
                       >
-                        <Calendar className="w-3 h-3 shrink-0" strokeWidth={2.2} aria-hidden="true" />
+                        <Calendar
+                          className="w-3 h-3 shrink-0"
+                          strokeWidth={2.2}
+                          aria-hidden="true"
+                        />
                         {activityDate}
                       </p>
                     </div>
@@ -837,7 +933,11 @@ function ActivitySheet({
                           className={`${tajawal.className} h-9 px-2.5 rounded-lg bg-[#9B3D2E] text-white text-[11px] font-bold hover:bg-[#9B3D2E]/90 transition-colors disabled:opacity-50 flex items-center gap-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9B3D2E] focus-visible:ring-offset-2`}
                         >
                           {isRowBusy ? (
-                            <Loader2 className="w-3 h-3 animate-spin" strokeWidth={2.5} aria-hidden="true" />
+                            <Loader2
+                              className="w-3 h-3 animate-spin"
+                              strokeWidth={2.5}
+                              aria-hidden="true"
+                            />
                           ) : (
                             <Check className="w-3 h-3" strokeWidth={2.5} aria-hidden="true" />
                           )}
@@ -867,7 +967,8 @@ function ActivitySheet({
                     )}
                   </div>
 
-                  {/* Correcting the type is the whole of "edit" — there is nothing else to change */}
+                  {/* Correcting a record is two acts: what the activity was, and
+                      how strongly it was performed (the multiplier) */}
                   {!isConfirming && availableCategories.length > 1 && (
                     <div className="flex items-center gap-2">
                       {availableCategories.map((option) => {
@@ -886,9 +987,43 @@ function ActivitySheet({
                             } disabled:cursor-default`}
                           >
                             {isRowBusy && !active ? (
-                              <Loader2 className="w-3 h-3 animate-spin" strokeWidth={2.5} aria-hidden="true" />
+                              <Loader2
+                                className="w-3 h-3 animate-spin"
+                                strokeWidth={2.5}
+                                aria-hidden="true"
+                              />
                             ) : null}
                             {option.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {!isConfirming && (
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`${tajawal.className} text-[11px] font-bold text-[#043F2E]/60 shrink-0`}
+                      >
+                        الأداء
+                      </span>
+                      {multiplierOptionsFor(act.multiplier).map((m) => {
+                        const active = m === act.multiplier;
+                        return (
+                          <button
+                            type="button"
+                            key={m}
+                            onClick={() => !active && handleChangeMultiplier(act.id, m)}
+                            disabled={isBusy || active}
+                            aria-pressed={active}
+                            aria-label={`المضاعف ×${toArabicDigits(m)}`}
+                            className={`${tajawal.className} flex-1 h-8 rounded-lg text-[11px] font-bold transition-colors inline-flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[#043F2E] focus-visible:ring-offset-2 ${
+                              active
+                                ? "bg-[#043F2E] text-white"
+                                : "bg-white border border-[#043F2E]/15 text-[#043F2E]/70 hover:bg-[#BEE663]/30 hover:text-[#043F2E]"
+                            } disabled:cursor-default`}
+                          >
+                            ×{toArabicDigits(m)}
                           </button>
                         );
                       })}

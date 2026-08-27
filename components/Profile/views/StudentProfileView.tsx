@@ -22,11 +22,7 @@ import StatTile from "../StatTile";
 import { cn, toArabicDigits, getHijriMonth } from "@/lib/utils";
 import { gregorianToHijri } from "@tabby_ai/hijri-converter";
 import type { UserActivity } from "@/lib/profile-types";
-import {
-  getUserPointsForMonth,
-  getStudentRank,
-  type CirclePeer,
-} from "@/actions/profile";
+import { getUserPointsForMonth, getStudentRank, type CirclePeer } from "@/actions/profile";
 import Link from "next/link";
 
 const lalezar = Lalezar({ subsets: ["arabic"], weight: "400" });
@@ -135,8 +131,7 @@ export default function StudentProfileView({
     [userId, categories, initialYear, initialMonth, initialPoints, initialActivities, initialRank],
   );
 
-  const goPrev = () =>
-    month === 1 ? goToMonth(year - 1, 12) : goToMonth(year, month - 1);
+  const goPrev = () => (month === 1 ? goToMonth(year - 1, 12) : goToMonth(year, month - 1));
   const goNext = () => {
     if (isCurrentMonth) return;
     month === 12 ? goToMonth(year + 1, 1) : goToMonth(year, month + 1);
@@ -146,12 +141,27 @@ export default function StudentProfileView({
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 8);
 
-  // Group activities by category
-  const categoryMap = new Map<number, { count: number; points: number; name?: string }>();
+  // Group activities by category. Points already carry each activity's
+  // multiplier (value × multiplier); the bonus is the part of those points a
+  // spectacular performance added above the plain ×1 value, so the chart can
+  // say not just where points came from but how much the multiplier added.
+  const categoryMap = new Map<
+    number,
+    { count: number; points: number; bonus: number; name?: string }
+  >();
   for (const a of activities) {
-    const existing = categoryMap.get(a.category) || { count: 0, points: 0, name: a.category_name };
+    const existing = categoryMap.get(a.category) || {
+      count: 0,
+      points: 0,
+      bonus: 0,
+      name: a.category_name,
+    };
     existing.count++;
     existing.points += a.points || 0;
+    const mult = a.multiplier ?? 1;
+    if (mult > 1 && a.points) {
+      existing.bonus += a.points - Math.round(a.points / mult);
+    }
     categoryMap.set(a.category, existing);
   }
 
@@ -160,9 +170,9 @@ export default function StudentProfileView({
     name: info.name || "نشاط",
     count: info.count,
     points: info.points,
+    bonusPoints: info.bonus,
     color: PIE_COLORS[i % PIE_COLORS.length],
   }));
-
 
   return (
     <div className="flex flex-col gap-5 md:gap-6" dir="rtl">
@@ -174,10 +184,7 @@ export default function StudentProfileView({
           breakdown of those same points. The navigator used to be its own
           card sitting directly above a card whose header repeated the month.
           ───────────────────────────────────────────────────────────────── */}
-      <section
-        aria-labelledby="student-month-heading"
-        className={cn(CARD, "flex flex-col gap-5")}
-      >
+      <section aria-labelledby="student-month-heading" className={cn(CARD, "flex flex-col gap-5")}>
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
             <span
@@ -224,7 +231,11 @@ export default function StudentProfileView({
             role="alert"
             className="flex items-center gap-2 rounded-2xl bg-[#F4E0D6] border border-[#9B3D2E]/30 px-4 py-3"
           >
-            <AlertCircle className="w-4 h-4 text-[#9B3D2E] shrink-0" strokeWidth={2.2} aria-hidden="true" />
+            <AlertCircle
+              className="w-4 h-4 text-[#9B3D2E] shrink-0"
+              strokeWidth={2.2}
+              aria-hidden="true"
+            />
             <span className={`${tajawal.className} text-xs text-[#9B3D2E]`}>{loadError}</span>
           </div>
         )}
@@ -264,15 +275,25 @@ export default function StudentProfileView({
         {/* Where those points came from — same month, same card, no second header */}
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-2">
-            <PieChart className="w-4 h-4 text-[#043F2E]/60 shrink-0" strokeWidth={2.2} aria-hidden="true" />
-            <h4 className={`${tajawal.className} text-sm font-bold text-[#043F2E]`}>توزيع النقاط</h4>
+            <PieChart
+              className="w-4 h-4 text-[#043F2E]/60 shrink-0"
+              strokeWidth={2.2}
+              aria-hidden="true"
+            />
+            <h4 className={`${tajawal.className} text-sm font-bold text-[#043F2E]`}>
+              توزيع النقاط
+            </h4>
           </div>
           {pieSlices.length > 0 ? (
             <PointsPieChart slices={pieSlices} totalPoints={points} />
           ) : (
             <div className="flex flex-col items-center justify-center text-center py-6 gap-2">
               <div className="w-12 h-12 rounded-2xl bg-[#F7FBEA] flex items-center justify-center">
-                <PieChart className="w-5 h-5 text-[#043F2E]/60" strokeWidth={1.8} aria-hidden="true" />
+                <PieChart
+                  className="w-5 h-5 text-[#043F2E]/60"
+                  strokeWidth={1.8}
+                  aria-hidden="true"
+                />
               </div>
               <p className={`${tajawal.className} text-xs text-[#043F2E]/60`}>
                 {isCurrentMonth
@@ -286,7 +307,10 @@ export default function StudentProfileView({
 
       {/* Recent activities — still the selected month's, so it sits directly
           under the card that names it */}
-      <section aria-labelledby="student-activities-heading" className={cn(CARD, "flex flex-col gap-4")}>
+      <section
+        aria-labelledby="student-activities-heading"
+        className={cn(CARD, "flex flex-col gap-4")}
+      >
         <SectionHeading
           id="student-activities-heading"
           icon={<Sparkles className="w-4 h-4" strokeWidth={2.2} />}
@@ -308,7 +332,10 @@ export default function StudentProfileView({
       {/* Circle peers — the people you memorise alongside. Names only, on purpose:
           a number beside each name would turn this into a small leaderboard. */}
       {supervisorName && (
-        <section aria-labelledby="student-peers-heading" className={cn(CARD, "flex flex-col gap-4")}>
+        <section
+          aria-labelledby="student-peers-heading"
+          className={cn(CARD, "flex flex-col gap-4")}
+        >
           <SectionHeading
             id="student-peers-heading"
             icon={<Users className="w-4 h-4" strokeWidth={2.2} />}
@@ -341,7 +368,6 @@ export default function StudentProfileView({
           )}
         </section>
       )}
-
     </div>
   );
 }
@@ -387,6 +413,8 @@ interface PieSlice {
   name: string;
   count: number;
   points: number;
+  /** Points above the plain ×1 value, earned through activity multipliers */
+  bonusPoints: number;
   color: string;
 }
 
@@ -489,7 +517,8 @@ function PointsPieChart({ slices, totalPoints }: { slices: PieSlice[]; totalPoin
     if (selectedId === null) return;
     const onPointerDown = (e: PointerEvent) => {
       const target = e.target as Element | null;
-      if (target && typeof target.closest === "function" && target.closest("[data-pie-item]")) return;
+      if (target && typeof target.closest === "function" && target.closest("[data-pie-item]"))
+        return;
       clear();
     };
     const onKeyDown = (e: KeyboardEvent) => {
@@ -524,7 +553,8 @@ function PointsPieChart({ slices, totalPoints }: { slices: PieSlice[]; totalPoin
 
   const percentOf = (p: number) => Math.round((p / total) * 100);
   const highlightId = selectedId ?? previewId;
-  const highlighted = highlightId !== null ? slices.find((s) => s.id === highlightId) ?? null : null;
+  const highlighted =
+    highlightId !== null ? (slices.find((s) => s.id === highlightId) ?? null) : null;
 
   const previewOnly = (id: number) => setPreviewId(id);
   const previewOff = (id: number) => setPreviewId((prev) => (prev === id ? null : prev));
@@ -578,7 +608,7 @@ function PointsPieChart({ slices, totalPoints }: { slices: PieSlice[]; totalPoin
                     role="button"
                     tabIndex={0}
                     aria-pressed={selectedId === slice.id}
-                    aria-label={`${slice.name}: النقاط ${toArabicDigits(slice.points)}، النسبة ${toArabicDigits(percent)} بالمئة من إجمالي النقاط`}
+                    aria-label={`${slice.name}: النقاط ${toArabicDigits(slice.points)}، النسبة ${toArabicDigits(percent)} بالمئة من إجمالي النقاط${slice.bonusPoints > 0 ? `، منها ${toArabicDigits(slice.bonusPoints)} بأداء متميز` : ""}`}
                     data-pie-item=""
                     className="peer cursor-pointer outline-none"
                     style={style}
@@ -670,12 +700,19 @@ function PointsPieChart({ slices, totalPoints }: { slices: PieSlice[]; totalPoin
                   >
                     {highlighted.name}
                   </span>
-                  <span className={`${lalezar.className} text-2xl text-[#043F2E] leading-none mt-1`}>
+                  <span
+                    className={`${lalezar.className} text-2xl text-[#043F2E] leading-none mt-1`}
+                  >
                     +{toArabicDigits(highlighted.points)}
                   </span>
                   <span className={`${tajawal.className} text-[11px] text-[#043F2E]/60 mt-1`}>
                     نقطة · {toArabicDigits(percentOf(highlighted.points))}٪
                   </span>
+                  {highlighted.bonusPoints > 0 && (
+                    <span className={`${tajawal.className} text-[10px] text-[#043F2E]/55 mt-0.5`}>
+                      منها +{toArabicDigits(highlighted.bonusPoints)} بأداء متميز
+                    </span>
+                  )}
                 </>
               ) : (
                 <>
@@ -702,24 +739,36 @@ function PointsPieChart({ slices, totalPoints }: { slices: PieSlice[]; totalPoin
 
             const body = (
               <>
-                <span className="flex items-center gap-2 min-w-0">
-                  <span
-                    className={cn(
-                      "rounded-full shrink-0",
-                      reduceMotion ? "" : "transition-all duration-200",
-                      isHighlighted ? "w-3.5 h-3.5" : "w-3 h-3",
-                    )}
-                    style={{ backgroundColor: s.color }}
-                  />
-                  <span
-                    className={cn(
-                      tajawal.className,
-                      "text-xs truncate",
-                      isHighlighted ? "font-bold text-[#043F2E]" : "font-medium text-[#043F2E]/70",
-                    )}
-                  >
-                    {s.name}
+                <span className="flex flex-col gap-0.5 min-w-0">
+                  <span className="flex items-center gap-2 min-w-0">
+                    <span
+                      className={cn(
+                        "rounded-full shrink-0",
+                        reduceMotion ? "" : "transition-all duration-200",
+                        isHighlighted ? "w-3.5 h-3.5" : "w-3 h-3",
+                      )}
+                      style={{ backgroundColor: s.color }}
+                    />
+                    <span
+                      className={cn(
+                        tajawal.className,
+                        "text-xs truncate",
+                        isHighlighted
+                          ? "font-bold text-[#043F2E]"
+                          : "font-medium text-[#043F2E]/70",
+                      )}
+                    >
+                      {s.name}
+                    </span>
                   </span>
+                  {/* The multiplier's own share of this category's points */}
+                  {s.bonusPoints > 0 && (
+                    <span
+                      className={`${tajawal.className} text-[10px] text-[#043F2E]/55 truncate ps-5`}
+                    >
+                      منها +{toArabicDigits(s.bonusPoints)} بأداء متميز
+                    </span>
+                  )}
                 </span>
                 <span className="flex items-baseline gap-2 shrink-0">
                   <span className={`${tajawal.className} text-[11px] text-[#043F2E]/60`}>
@@ -742,10 +791,7 @@ function PointsPieChart({ slices, totalPoints }: { slices: PieSlice[]; totalPoin
               // row visible but inert. Muted by colour rather than opacity so
               // the label stays readable.
               return (
-                <div
-                  key={s.id}
-                  className={cn(base, "bg-[#F7FBEA] border-[#043F2E]/8")}
-                >
+                <div key={s.id} className={cn(base, "bg-[#F7FBEA] border-[#043F2E]/8")}>
                   {body}
                 </div>
               );
@@ -757,7 +803,7 @@ function PointsPieChart({ slices, totalPoints }: { slices: PieSlice[]; totalPoin
                 type="button"
                 data-pie-item=""
                 aria-pressed={isSelected}
-                aria-label={`${s.name}: النقاط ${toArabicDigits(s.points)}، النسبة ${toArabicDigits(percent)} بالمئة من إجمالي النقاط`}
+                aria-label={`${s.name}: النقاط ${toArabicDigits(s.points)}، النسبة ${toArabicDigits(percent)} بالمئة من إجمالي النقاط${s.bonusPoints > 0 ? `، منها ${toArabicDigits(s.bonusPoints)} بأداء متميز` : ""}`}
                 onClick={() => toggle(s.id)}
                 onPointerEnter={() => previewOnly(s.id)}
                 onPointerLeave={() => previewOff(s.id)}
@@ -794,4 +840,3 @@ function PointsPieChart({ slices, totalPoints }: { slices: PieSlice[]; totalPoin
     </div>
   );
 }
-
