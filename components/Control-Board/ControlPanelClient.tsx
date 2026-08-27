@@ -261,28 +261,41 @@ export default function ControlPanelClient() {
     [data.categories],
   );
 
-  // Which users currently have an unsaved edit — drives both the bottom bar's count and each
-  // row's own dirty prop. A draft entry can exist for a user and still not be "dirty" if every
-  // touched field was edited back to its original value.
-  const dirtyUserIds = useMemo(() => {
+  // Which users currently have an unsaved edit (drives each row's own dirty prop), and how
+  // many individual field-level edits are pending in total (drives the bottom bar's count —
+  // one per checkbox/stepper/supervisor change, matching how many ops Save will actually send,
+  // not how many rows they land on). A draft entry can exist for a user and still not be
+  // "dirty" if every touched field was edited back to its original value.
+  const { dirtyUserIds, pendingChangesCount } = useMemo(() => {
     const ids = new Set<number>();
+    let changeCount = 0;
+
     for (const user of data.users) {
       const draft = drafts[user.id];
       if (!draft) continue;
 
       const originalActivities = pointsByUser.get(user.id)?.activities ?? [];
-      const categoryDirty = data.categories.some((c) => {
-        const draftValue = draft.activities?.[c.id];
-        if (draftValue === undefined) return false;
-        const originalValue = originalActivities.find((a) => a.category === c.id)?.multiplier ?? 0;
-        return draftValue !== originalValue;
-      });
-      const supervisorDirty =
-        draft.supervisor !== undefined && draft.supervisor !== user.supervisor;
+      let userDirty = false;
 
-      if (categoryDirty || supervisorDirty) ids.add(user.id);
+      for (const c of data.categories) {
+        const draftValue = draft.activities?.[c.id];
+        if (draftValue === undefined) continue;
+        const originalValue = originalActivities.find((a) => a.category === c.id)?.multiplier ?? 0;
+        if (draftValue !== originalValue) {
+          userDirty = true;
+          changeCount++;
+        }
+      }
+
+      if (draft.supervisor !== undefined && draft.supervisor !== user.supervisor) {
+        userDirty = true;
+        changeCount++;
+      }
+
+      if (userDirty) ids.add(user.id);
     }
-    return ids;
+
+    return { dirtyUserIds: ids, pendingChangesCount: changeCount };
   }, [drafts, pointsByUser, data.users, data.categories]);
 
   // Stable (deps []) — only ever touches the one user's key via functional setState, so
@@ -658,7 +671,7 @@ export default function ControlPanelClient() {
       </div>
 
       <UnsavedChangesBar
-        count={dirtyUserIds.size}
+        count={pendingChangesCount}
         isSaving={isSavingAll}
         onSaveAll={handleSaveAll}
         onDiscardAll={handleDiscardAll}
