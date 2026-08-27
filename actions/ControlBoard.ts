@@ -1,24 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { unstable_cache } from "next/cache";
 import { getHijriMonthDays } from "@/lib/utils";
 import { cookies } from "next/headers";
 import { hijriToGregorian } from "@tabby_ai/hijri-converter";
+import { getCachedPointsCategories } from "./categories";
 
 const API_BASE = process.env.BASE_URL;
-type Activity = {
-  id: number;
-  category: number;
-  date: string;
-  multiplier: number;
-  points?: number;
-};
-type UserSummary = {
-  user: number;
-  points: number;
-  activities: Activity[];
-};
 
 // ===============================
 // ADD USER ACTIVITY
@@ -173,94 +161,6 @@ export async function updateUserSupervisor(uid: number, supervisorUsername: stri
   }
 }
 
-// ===============================
-// GET USERS WITH DETAILS (WITH DATES)
-// ===============================
-export async function getUsersWithDetails(start?: string, end?: string) {
-  try {
-    const cookieStore = await cookies();
-    const access = cookieStore.get("access")?.value;
-
-    if (!access) throw new Error("No access token found in cookies");
-
-    const query = start && end ? `?date_after=${start}&date_before=${end}` : "";
-
-    const summaryRes = await fetch(`${API_BASE}api/v1/users/points/${query}`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${access}`,
-        "Accept-Language": "ar",
-        "Content-Type": "application/json",
-      },
-      cache: "no-store",
-    });
-
-    const summaryData = await summaryRes.json();
-
-    if (!summaryRes.ok) {
-      throw new Error("Failed to fetch user activities");
-    }
-    if (!summaryData.results) {
-      throw new Error("No users found");
-    }
-
-    const users = await Promise.all(
-      summaryData.results.map(async (item: UserSummary) => {
-        try {
-          const userRes = await fetch(`${API_BASE}api/v1/users/${item.user}`);
-          const userData = await userRes.json();
-
-          return {
-            id: item.user,
-            ...userData,
-            points: item.points,
-            activities: item.activities,
-          };
-        } catch (err) {
-          console.error(`Error fetching user ${item.user}:`, err);
-          return null;
-        }
-      }),
-    );
-
-    const validUsers = users.filter(Boolean);
-    return { success: true, users: validUsers };
-  } catch (error) {
-    console.error("Error in getUsersWithDetails:", error);
-    return { success: false, error: "فشل في جلب بيانات المستخدمين" };
-  }
-}
-
-// ===============================
-// GET WEEK DATA
-// ===============================
-export async function getWeekData(start: string, end: string) {
-  try {
-    const [users, categories] = await Promise.all([
-      getUsersWithDetails(start, end),
-      getCategories(),
-    ]);
-
-    const activitiesMap: Record<string, Activity[]> = {};
-
-    return {
-      success: true,
-      users: users || [],
-      activities: activitiesMap,
-      categories: categories || [],
-    };
-  } catch (error) {
-    console.error("Error fetching week data:", error);
-    return {
-      success: false,
-      users: [],
-      activities: {},
-      categories: [],
-      error: error instanceof Error ? error.message : "Unknown error",
-    };
-  }
-}
-
 export async function getUsers(year: number, month: number, weekIndex: number, group?: string) {
   try {
     const cookieStore = await cookies();
@@ -310,33 +210,8 @@ export async function getUsers(year: number, month: number, weekIndex: number, g
 }
 
 // ===============================
-// GET CATEGORIES — cached per access token for 1 hour
+// GET CATEGORIES — shared 1-hour cache with the profile page (see actions/categories.ts)
 // ===============================
-// ✅ unstable_cache works even with Authorization headers
-// because we pass the token as a cache key argument
-const getCategoriesCached = unstable_cache(
-  async (access: string) => {
-    const response = await fetch(`${API_BASE}api/v1/users/points/categories/`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${access}`,
-        "Accept-Language": "ar",
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Failed to fetch categories: ${response.status} - ${errorText}`);
-    }
-
-    const data = await response.json();
-    return data.results;
-  },
-  ["categories"], // cache key prefix
-  { revalidate: 3600 }, // 1 hour
-);
-
 export async function getCategories() {
   try {
     const cookieStore = await cookies();
@@ -344,13 +219,12 @@ export async function getCategories() {
 
     if (!access) throw new Error("No access token found in cookies");
 
-    // ✅ Pass access token as argument so it's part of the cache key
-    const categories = await getCategoriesCached(access);
+    const categories = await getCachedPointsCategories(access);
 
-    return { success: true, categories };
+    return { success: true as const, categories };
   } catch (error) {
     console.error("Error fetching categories:", error);
-    return { success: false, error: error };
+    return { success: false as const, error: error };
   }
 }
 
