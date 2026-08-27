@@ -82,10 +82,7 @@ export function weeksSinceActivity(lastActivityAt: string | null): number | null
 
 // A member who never recorded anything is measured from the day they joined, not
 // from the beginning of time — someone who signed up last week has not lapsed.
-export function isLongInactive(
-  lastActivityAt: string | null,
-  dateJoined?: string | null,
-): boolean {
+export function isLongInactive(lastActivityAt: string | null, dateJoined?: string | null): boolean {
   if (!lastActivityAt) {
     const weeksAsMember = weeksSinceActivity(dateJoined ?? null);
     // No join date to go on: say nothing rather than accuse a new member
@@ -99,6 +96,11 @@ export function isLongInactive(
 export const CAT_RECITATION = 4; // تسميع القرآن
 export const CAT_QURAN_READING = 3; // قراءة القرآن
 export const SUPERVISOR_MANAGED_CATEGORY_IDS = [CAT_RECITATION, CAT_QURAN_READING];
+
+// دعوة طالب جامعي — here the multiplier counts how many people were invited,
+// not a spectacular-performance bonus, so UI that explains the multiplier as
+// "bonus points" must skip this category.
+export const CAT_INVITE = 5;
 
 // ===============================
 // Role Helpers
@@ -156,10 +158,7 @@ export interface ProfileVisibility {
   showPoints: boolean;
 }
 
-export function getVisibility(
-  viewerRole: RoleType,
-  isOwnProfile: boolean,
-): ProfileVisibility {
+export function getVisibility(viewerRole: RoleType, isOwnProfile: boolean): ProfileVisibility {
   // Always full access to own profile
   if (isOwnProfile) {
     return {

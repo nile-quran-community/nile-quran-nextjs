@@ -427,35 +427,45 @@ export async function getSupervisedStudents(supervisorUsername: string): Promise
     if (!token) throw new Error("No access token");
 
     const { start, end } = getLastSevenDays();
+    const { start: monthStart, end: monthEnd } = getCurrentHijriMonthRange();
 
-    // Students supervised by this moderator, their all-time points, this week's
-    // activity, and this week's recitation on its own — the last one answers
-    // "who has not recited yet", which is the supervisor's actual job.
-    const [data, pointsData, weekPointsData, weekScopedData] = await Promise.all([
-      fetchJson<{ results: ApiUser[] }>(
-        `${API_BASE}api/v1/users/?supervisor=${encodeURIComponent(supervisorUsername)}&group=Student`,
-        token,
-      ),
-      fetchJson<{ results: ApiPoints[] } | ApiPoints[]>(`${API_BASE}api/v1/users/points/`, token),
-      fetchJson<{ results: ApiPoints[] } | ApiPoints[]>(
-        `${API_BASE}api/v1/users/points/?date_after=${start}&date_before=${end}`,
-        token,
-      ),
-      fetchJson<{ results: ApiPoints[] } | ApiPoints[]>(
-        `${API_BASE}api/v1/users/points/?date_after=${start}&date_before=${end}`,
-        token,
-      ),
-    ]);
+    // Students supervised by this moderator; their points and activity count for
+    // the current Hijri month (same period as the rest of the app); their
+    // all-time activity, used only to tell whether they have gone quiet; and
+    // this week's recitation on its own — the last one answers "who has not
+    // recited yet", which is the supervisor's actual job.
+    const [data, monthPointsData, allPointsData, weekPointsData, weekScopedData] =
+      await Promise.all([
+        fetchJson<{ results: ApiUser[] }>(
+          `${API_BASE}api/v1/users/?supervisor=${encodeURIComponent(supervisorUsername)}&group=Student`,
+          token,
+        ),
+        fetchJson<{ results: ApiPoints[] } | ApiPoints[]>(
+          `${API_BASE}api/v1/users/points/?date_after=${monthStart}&date_before=${monthEnd}`,
+          token,
+        ),
+        fetchJson<{ results: ApiPoints[] } | ApiPoints[]>(`${API_BASE}api/v1/users/points/`, token),
+        fetchJson<{ results: ApiPoints[] } | ApiPoints[]>(
+          `${API_BASE}api/v1/users/points/?date_after=${start}&date_before=${end}`,
+          token,
+        ),
+        fetchJson<{ results: ApiPoints[] } | ApiPoints[]>(
+          `${API_BASE}api/v1/users/points/?date_after=${start}&date_before=${end}`,
+          token,
+        ),
+      ]);
 
     const normalize = (d: { results: ApiPoints[] } | ApiPoints[]): ApiPoints[] =>
       Array.isArray(d) ? d : (d.results ?? []);
 
-    const allPoints = normalize(pointsData);
+    const monthPoints = normalize(monthPointsData);
+    const allPoints = normalize(allPointsData);
     const weekPoints = normalize(weekPointsData);
     const weekScoped = normalize(weekScopedData);
 
     const students = data.results.map((student) => {
-      const pointsInfo = allPoints.find((p) => p.user === student.id);
+      const monthInfo = monthPoints.find((p) => p.user === student.id);
+      const allInfo = allPoints.find((p) => p.user === student.id);
       const weekInfo = weekPoints.find((p) => p.user === student.id);
       const scopedInfo = weekScoped.find((p) => p.user === student.id);
       return {
@@ -464,14 +474,14 @@ export async function getSupervisedStudents(supervisorUsername: string): Promise
         first_name: student.first_name,
         last_name: student.last_name,
         groups: student.groups,
-        points: pointsInfo?.points ?? 0,
-        activities_count: pointsInfo?.activities?.length ?? 0,
+        points: monthInfo?.points ?? 0,
+        activities_count: monthInfo?.activities?.length ?? 0,
         weekly_activities_count: weekInfo?.activities?.length ?? 0,
         date_joined: student.date_joined,
         recited_this_week: (scopedInfo?.activities ?? []).some((a) =>
           SUPERVISOR_MANAGED_CATEGORY_IDS.includes(a.category),
         ),
-        last_activity_at: latestActivityDate(pointsInfo?.activities),
+        last_activity_at: latestActivityDate(allInfo?.activities),
       };
     });
 

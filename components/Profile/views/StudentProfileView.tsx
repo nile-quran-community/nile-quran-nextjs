@@ -21,7 +21,7 @@ import SectionHeading from "../SectionHeading";
 import StatTile from "../StatTile";
 import { cn, toArabicDigits, getHijriMonth } from "@/lib/utils";
 import { gregorianToHijri } from "@tabby_ai/hijri-converter";
-import type { UserActivity } from "@/lib/profile-types";
+import { CAT_INVITE, type UserActivity } from "@/lib/profile-types";
 import { getUserPointsForMonth, getStudentRank, type CirclePeer } from "@/actions/profile";
 import Link from "next/link";
 
@@ -159,7 +159,9 @@ export default function StudentProfileView({
     existing.count++;
     existing.points += a.points || 0;
     const mult = a.multiplier ?? 1;
-    if (mult > 1 && a.points) {
+    // Invites use the multiplier to count people invited, not a performance
+    // bonus, so this category never shows a "bonus points" line.
+    if (mult > 1 && a.points && a.category !== CAT_INVITE) {
       existing.bonus += a.points - Math.round(a.points / mult);
     }
     categoryMap.set(a.category, existing);
