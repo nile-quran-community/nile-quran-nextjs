@@ -13,7 +13,7 @@ interface Props {
 
 export default function AuthForm({ mode }: Props) {
   return (
-    <div className="w-[630px] flex z-30 flex-col items-center justify-center h-full max-sm:w-full">
+    <div className="w-full max-w-[630px] flex z-30 flex-col items-center justify-center h-full">
       <p className={`text-[54px] text-[#043F2E] max-sm:text-[38px] ${lalezar.className}`}>
         مقرأة النيل
       </p>

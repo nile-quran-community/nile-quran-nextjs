@@ -78,14 +78,16 @@ export async function getLeaderboardData(year: number, month: number) {
       "0",
     )}-${String(endDate.day).padStart(2, "0")}`;
 
+    const headers = {
+      Authorization: `Bearer ${accessToken.value}`,
+      "Accept-Language": "ar",
+      "Content-Type": "application/json",
+    };
+
     const query = `?date_after=${start}&date_before=${end}&ordering=-points`;
     const result = await fetch(`${API_BASE}api/v1/users/points/${query}`, {
       method: "GET",
-      headers: {
-        Authorization: `Bearer ${accessToken.value}`,
-        "Accept-Language": "ar",
-        "Content-Type": "application/json",
-      },
+      headers,
       cache: "no-store",
     });
     if (!result.ok) {
@@ -115,32 +117,41 @@ export async function getLeaderboardData(year: number, month: number) {
 
     // Results are already ordered by points descending (ordering=-points)
 
-    // Fetch user details for each user ID
-    const mappedData: MappedLeaderboardUser[] = await Promise.all(
-      results.map(async (item) => {
-        const userId = item.user;
+    // One bulk fetch for every user, instead of one round trip per leaderboard
+    // row — the previous per-row `getUserDetails` call turned every home page
+    // load into 1+N requests to the backend.
+    const usersResponse = await fetch(`${API_BASE}api/v1/users/`, {
+      headers,
+      cache: "no-store",
+    });
+    if (!usersResponse.ok) {
+      throw new Error(`Failed to fetch users: ${usersResponse.status}`);
+    }
+    const usersData: { results?: User[] } | User[] = await usersResponse.json();
+    const usersList: User[] = Array.isArray(usersData) ? usersData : (usersData.results ?? []);
+    const usersById = new Map(usersList.map((u) => [u.id, u]));
 
-        const userDetailsResponse = await getUserDetails(userId);
+    const mappedData: MappedLeaderboardUser[] = results.map((item) => {
+      const user = usersById.get(item.user);
 
-        if (userDetailsResponse.success && userDetailsResponse.user) {
-          return {
-            id: userDetailsResponse.user.id,
-            name: userDetailsResponse.user.name,
-            username: userDetailsResponse.user.username,
-            points: item.points || 0,
-            groups: userDetailsResponse.user.groups || [],
-          };
-        }
-
+      if (user) {
         return {
-          id: userId,
-          name: "مستخدم",
-          username: "",
+          id: user.id,
+          name: `${user.first_name} ${user.last_name}`,
+          username: user.username,
           points: item.points || 0,
-          groups: [],
+          groups: user.groups || [],
         };
-      }),
-    );
+      }
+
+      return {
+        id: item.user,
+        name: "مستخدم",
+        username: "",
+        points: item.points || 0,
+        groups: [],
+      };
+    });
 
     return {
       success: true,

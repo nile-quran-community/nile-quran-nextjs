@@ -4,6 +4,7 @@ import { getUserRole, Login } from "@/lib/user";
 import createUser from "@/lib/user";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
+import { cache } from "react";
 import { jwtDecode, JwtPayload } from "jwt-decode";
 import type { SignupErrors, SignupFormState } from "@/lib/types";
 
@@ -91,7 +92,11 @@ async function refreshAccessToken() {
   return data.access;
 }
 
-export async function checkTokenValidity() {
+// NavBar and every page under (main) each call checkTokenValidity() on their own
+// during the same request/render pass. cache() dedupes those into a single
+// cookie read, token-role lookup, and (if needed) refresh call per request,
+// instead of repeating all of that once per caller.
+const checkTokenValidityCached = cache(async function checkTokenValidityInternal() {
   const cookieStore = await cookies();
   const access = cookieStore.get("access");
   const refresh = cookieStore.get("refresh");
@@ -125,6 +130,10 @@ export async function checkTokenValidity() {
       user: user,
     };
   }
+});
+
+export async function checkTokenValidity() {
+  return checkTokenValidityCached();
 }
 
 export async function signup(prevState: SignupFormState, formData: FormData) {
@@ -212,7 +221,6 @@ export async function signup(prevState: SignupFormState, formData: FormData) {
       referrer: referrer.toLowerCase(),
       username: username.trim(),
     });
-    console.log(result);
     if (result?.errors) {
       return {
         values,

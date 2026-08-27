@@ -1,5 +1,3 @@
-"use client";
-
 import { Lalezar, Tajawal } from "next/font/google";
 import { Calendar, Inbox } from "lucide-react";
 import { toArabicDigits, formatHijriDate } from "@/lib/utils";
@@ -46,7 +44,11 @@ export default function ProfileActivityList({ activities, emptyMessage }: Props)
                 {activity.category_name || "نشاط"}
               </p>
               <div className="flex items-center gap-1.5">
-                <Calendar className="w-3 h-3 text-[#043F2E]/60" strokeWidth={2.2} aria-hidden="true" />
+                <Calendar
+                  className="w-3 h-3 text-[#043F2E]/60"
+                  strokeWidth={2.2}
+                  aria-hidden="true"
+                />
                 <span className={`${tajawal.className} text-[11px] text-[#043F2E]/60`}>
                   {formatHijriDate(activity.date)}
                   {activity.multiplier > 1 && ` · ${toArabicDigits(activity.multiplier)} مرات`}

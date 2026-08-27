@@ -1,10 +1,10 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { unstable_cache } from "next/cache";
 import { gregorianToHijri, hijriToGregorian } from "@tabby_ai/hijri-converter";
 import { getHijriMonthDays } from "@/lib/utils";
 import { SUPERVISOR_MANAGED_CATEGORY_IDS } from "@/lib/profile-types";
+import { getCachedPointsCategories } from "./categories";
 
 const API_BASE = process.env.BASE_URL;
 
@@ -21,23 +21,6 @@ function getLastSevenDays(): { start: string; end: string } {
   const iso = (d: Date) =>
     `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   return { start: iso(weekAgo), end: iso(today) };
-}
-
-// Kept for the parts of the profile that mirror the control board's own weeks
-function getCurrentHijriWeekRange(): { start: string; end: string } {
-  const now = new Date();
-  const hijri = gregorianToHijri({
-    year: now.getFullYear(),
-    month: now.getMonth() + 1,
-    day: now.getDate(),
-  });
-  const week = hijri.day <= 28 ? Math.ceil(hijri.day / 7) : 5;
-  const monthDays = getHijriMonthDays(hijri.year, hijri.month);
-  const startHijriDay = (week - 1) * 7 + 1;
-  const endHijriDay = week < 5 ? week * 7 : monthDays;
-  const start = hijriToGregorian({ year: hijri.year, month: hijri.month, day: startHijriDay });
-  const end = hijriToGregorian({ year: hijri.year, month: hijri.month, day: endHijriDay });
-  return { start: toIsoDate(start), end: toIsoDate(end) };
 }
 
 // Current Hijri month range (same as the home leaderboard)
@@ -775,27 +758,6 @@ export async function deleteStudentActivity(
 }
 
 // ===============================
-// Get Categories (cached 1h)
-// ===============================
-
-const getCategoriesCached = unstable_cache(
-  async (token: string) => {
-    const res = await fetch(`${API_BASE}api/v1/users/points/categories/`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Accept-Language": "ar",
-        "Content-Type": "application/json",
-      },
-    });
-    if (!res.ok) throw new Error(`Failed to fetch categories: ${res.status}`);
-    const data = await res.json();
-    return data.results as ApiCategory[];
-  },
-  ["profile-categories"],
-  { revalidate: 3600 },
-);
-
-// ===============================
 // Add Student Activity (Moderator/Admin)
 // ===============================
 
@@ -852,7 +814,7 @@ export async function getProfileCategories(): Promise<FetchResult<ApiCategory[]>
   try {
     const token = await getToken();
     if (!token) throw new Error("No access token");
-    const categories = await getCategoriesCached(token);
+    const categories = await getCachedPointsCategories(token);
     return { success: true, data: categories };
   } catch (error) {
     console.error("Error fetching categories:", error);

@@ -7,11 +7,9 @@ import {
   Trophy,
   Activity,
   Award,
-  UserCheck,
   CalendarRange,
   ChevronLeft,
   ChevronRight,
-  Info,
   PieChart,
   Users,
   AlertCircle,
@@ -134,47 +132,57 @@ export default function StudentProfileView({
   const goPrev = () => (month === 1 ? goToMonth(year - 1, 12) : goToMonth(year, month - 1));
   const goNext = () => {
     if (isCurrentMonth) return;
-    month === 12 ? goToMonth(year + 1, 1) : goToMonth(year, month + 1);
+    if (month === 12) {
+      goToMonth(year + 1, 1);
+    } else {
+      goToMonth(year, month + 1);
+    }
   };
 
-  const recentActivities = [...activities]
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 8);
+  const recentActivities = useMemo(
+    () =>
+      [...activities]
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .slice(0, 8),
+    [activities],
+  );
 
   // Group activities by category. Points already carry each activity's
   // multiplier (value × multiplier); the bonus is the part of those points a
   // spectacular performance added above the plain ×1 value, so the chart can
   // say not just where points came from but how much the multiplier added.
-  const categoryMap = new Map<
-    number,
-    { count: number; points: number; bonus: number; name?: string }
-  >();
-  for (const a of activities) {
-    const existing = categoryMap.get(a.category) || {
-      count: 0,
-      points: 0,
-      bonus: 0,
-      name: a.category_name,
-    };
-    existing.count++;
-    existing.points += a.points || 0;
-    const mult = a.multiplier ?? 1;
-    // Invites use the multiplier to count people invited, not a performance
-    // bonus, so this category never shows a "bonus points" line.
-    if (mult > 1 && a.points && a.category !== CAT_INVITE) {
-      existing.bonus += a.points - Math.round(a.points / mult);
+  const pieSlices = useMemo<PieSlice[]>(() => {
+    const categoryMap = new Map<
+      number,
+      { count: number; points: number; bonus: number; name?: string }
+    >();
+    for (const a of activities) {
+      const existing = categoryMap.get(a.category) || {
+        count: 0,
+        points: 0,
+        bonus: 0,
+        name: a.category_name,
+      };
+      existing.count++;
+      existing.points += a.points || 0;
+      const mult = a.multiplier ?? 1;
+      // Invites use the multiplier to count people invited, not a performance
+      // bonus, so this category never shows a "bonus points" line.
+      if (mult > 1 && a.points && a.category !== CAT_INVITE) {
+        existing.bonus += a.points - Math.round(a.points / mult);
+      }
+      categoryMap.set(a.category, existing);
     }
-    categoryMap.set(a.category, existing);
-  }
 
-  const pieSlices: PieSlice[] = Array.from(categoryMap.entries()).map(([catId, info], i) => ({
-    id: catId,
-    name: info.name || "نشاط",
-    count: info.count,
-    points: info.points,
-    bonusPoints: info.bonus,
-    color: PIE_COLORS[i % PIE_COLORS.length],
-  }));
+    return Array.from(categoryMap.entries()).map(([catId, info], i) => ({
+      id: catId,
+      name: info.name || "نشاط",
+      count: info.count,
+      points: info.points,
+      bonusPoints: info.bonus,
+      color: PIE_COLORS[i % PIE_COLORS.length],
+    }));
+  }, [activities]);
 
   return (
     <div className="flex flex-col gap-5 md:gap-6" dir="rtl">

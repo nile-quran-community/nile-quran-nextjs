@@ -24,9 +24,7 @@ import SectionHeading from "@/components/Profile/SectionHeading";
 import ProfileMetaInfo from "@/components/Profile/ProfileMetaInfo";
 import ProfileActivityList from "@/components/Profile/ProfileActivityList";
 import EditOwnProfile from "@/components/Profile/EditOwnProfile";
-import ProfileRoleTabs, {
-  type ProfileRoleView,
-} from "@/components/Profile/ProfileRoleTabs";
+import ProfileRoleTabs, { type ProfileRoleView } from "@/components/Profile/ProfileRoleTabs";
 import ModeratorProfileView from "@/components/Profile/views/ModeratorProfileView";
 import StudentProfileView from "@/components/Profile/views/StudentProfileView";
 
@@ -83,8 +81,12 @@ export default async function ProfilePage({
   const isOwnProfile = currentUser.id === targetUserId;
   const viewerRole = getPrimaryRole(currentUser.groups || []);
 
-  // Fetch target user's profile
-  const profileResult = await getUserProfile(targetUserId);
+  // Categories don't depend on the target profile at all, so they load
+  // alongside it instead of waiting for it to resolve first.
+  const [profileResult, categoriesResult] = await Promise.all([
+    getUserProfile(targetUserId),
+    getProfileCategories(),
+  ]);
 
   if (numericId !== null && profileResult.success && profileResult.data) {
     const query = requestedView ? `?view=${encodeURIComponent(requestedView)}` : "";
@@ -95,7 +97,7 @@ export default async function ProfilePage({
     return <ProfileNotFound message={profileResult.error || "لم نعثر على هذا العضو"} />;
   }
 
-  const { user: targetUser, points, activities } = profileResult.data;
+  const { user: targetUser, activities } = profileResult.data;
   const visibility = getVisibility(viewerRole, isOwnProfile);
 
   // Relationship-based activity visibility:
@@ -108,36 +110,16 @@ export default async function ProfilePage({
     }
   }
 
-  // Enrich activities with category names (values come from the API, not hard-coded)
-  const categoriesResult = await getProfileCategories();
   const categories = categoriesResult.success ? (categoriesResult.data ?? []) : [];
-  const enrichedActivities = enrichActivities(activities, categories);
 
-  // Fetch supervisor info (id + full name) for clickable link
-  let supervisorInfo: { id: number; fullName: string; username: string } | null = null;
-  if (targetUser.supervisor) {
-    const supResult = await getUserByUsername(targetUser.supervisor);
-    if (supResult.success && supResult.data) {
-      supervisorInfo = {
-        id: supResult.data.id,
-        fullName: `${supResult.data.first_name} ${supResult.data.last_name}`.trim() || supResult.data.username,
-        username: supResult.data.username,
-      };
-    }
-  }
-
-  // Fetch referrer info (id + full name) for clickable link
-  let referrerInfo: { id: number; fullName: string; username: string } | null = null;
-  if (targetUser.referrer) {
-    const refResult = await getUserByUsername(targetUser.referrer);
-    if (refResult.success && refResult.data) {
-      referrerInfo = {
-        id: refResult.data.id,
-        fullName: `${refResult.data.first_name} ${refResult.data.last_name}`.trim() || refResult.data.username,
-        username: refResult.data.username,
-      };
-    }
-  }
+  // Supervisor and referrer are two independent lookups by username — fetch
+  // them together instead of one after the other.
+  const [supervisorResult, referrerResult] = await Promise.all([
+    targetUser.supervisor ? getUserByUsername(targetUser.supervisor) : Promise.resolve(null),
+    targetUser.referrer ? getUserByUsername(targetUser.referrer) : Promise.resolve(null),
+  ]);
+  const supervisorInfo = toPersonInfo(supervisorResult);
+  const referrerInfo = toPersonInfo(referrerResult);
 
   // ============================
   // Own profile — role-specific dashboards, rendered on the server for every role
@@ -152,27 +134,34 @@ export default async function ProfilePage({
     let studentPanel: React.ReactNode = null;
     let supervisorPanel: React.ReactNode = null;
 
-    // Noticing a member slipping away is an administrator's work: they are the
-    // one who can reach out. A supervisor gets the same signal for their own
-    // circle, as a mark beside the student's name.
-    const quietMembers = isAdmin ? await getQuietMembers() : null;
+    // The dashboard speaks about one Hijri month, so it opens on the current one
+    const today = new Date();
+    const hijriToday = gregorianToHijri({
+      year: today.getFullYear(),
+      month: today.getMonth() + 1,
+      day: today.getDate(),
+    });
 
-    if (isStudent) {
-      // The dashboard speaks about one Hijri month, so it opens on the current one
-      const today = new Date();
-      const hijriToday = gregorianToHijri({
-        year: today.getFullYear(),
-        month: today.getMonth() + 1,
-        day: today.getDate(),
-      });
+    // None of these three depend on each other's results — noticing a quiet
+    // member is an administrator's own task, and the student/supervisor
+    // panels are two separate dashboards a member with both roles gets — so
+    // they load together instead of one after another.
+    const [quietMembers, studentMonthData, supervisedStudentsResult] = await Promise.all([
+      isAdmin ? getQuietMembers() : Promise.resolve(null),
+      isStudent
+        ? Promise.all([
+            getUserPointsForMonth(targetUser.id, hijriToday.year, hijriToday.month),
+            getStudentRank(targetUser.id, hijriToday.year, hijriToday.month),
+            targetUser.supervisor
+              ? getCirclePeers(targetUser.supervisor, targetUser.id)
+              : Promise.resolve({ success: true as const, data: [] as CirclePeer[] }),
+          ])
+        : Promise.resolve(null),
+      isSupervisor ? getSupervisedStudents(targetUser.username) : Promise.resolve(null),
+    ]);
 
-      const [monthResult, rankResult, peersResult] = await Promise.all([
-        getUserPointsForMonth(targetUser.id, hijriToday.year, hijriToday.month),
-        getStudentRank(targetUser.id, hijriToday.year, hijriToday.month),
-        targetUser.supervisor
-          ? getCirclePeers(targetUser.supervisor, targetUser.id)
-          : Promise.resolve({ success: true as const, data: [] as CirclePeer[] }),
-      ]);
+    if (isStudent && studentMonthData) {
+      const [monthResult, rankResult, peersResult] = studentMonthData;
 
       const monthActivities = enrichActivities(
         monthResult.success ? (monthResult.data?.activities ?? []) : [],
@@ -196,25 +185,19 @@ export default async function ProfilePage({
     }
 
     if (isSupervisor) {
-      const studentsResult = await getSupervisedStudents(targetUser.username);
-      const students: SupervisedStudent[] = studentsResult.success
-        ? (studentsResult.data ?? [])
+      const students: SupervisedStudent[] = supervisedStudentsResult?.success
+        ? (supervisedStudentsResult.data ?? [])
         : [];
 
       supervisorPanel = (
-        <ModeratorProfileView
-          students={students}
-          categories={categories}
-          viewerIsAdmin={isAdmin}
-        />
+        <ModeratorProfileView students={students} categories={categories} viewerIsAdmin={isAdmin} />
       );
     }
 
     const hasBothDashboards = studentPanel !== null && supervisorPanel !== null;
     // ?view= is what makes the choice linkable and survive a reload; anything
     // else (including no parameter) opens on the student dashboard.
-    const initialView: ProfileRoleView =
-      requestedView === "supervisor" ? "supervisor" : "student";
+    const initialView: ProfileRoleView = requestedView === "supervisor" ? "supervisor" : "student";
 
     return (
       <div className="w-full min-h-screen bg-[#EBF0EB] py-8 md:py-10" dir="rtl">
@@ -327,24 +310,26 @@ export default async function ProfilePage({
         {/* A member who has recorded nothing for weeks has usually stopped coming.
             Only an administrator sees this: reaching out is theirs to do, and a
             supervisor's part is limited to recitation and reading. */}
-        {viewerIsAdmin && targetIsStudent && isLongInactive(lastActivityAt, targetUser.date_joined) && (
-          <div className="bg-[#F4E0D6] border border-[#9B3D2E]/30 rounded-3xl p-5 md:p-6 flex items-start gap-3">
-            <div className="w-8 h-8 shrink-0 rounded-lg bg-[#9B3D2E]/10 text-[#9B3D2E] flex items-center justify-center">
-              <BellRing className="w-4 h-4" strokeWidth={2.2} />
+        {viewerIsAdmin &&
+          targetIsStudent &&
+          isLongInactive(lastActivityAt, targetUser.date_joined) && (
+            <div className="bg-[#F4E0D6] border border-[#9B3D2E]/30 rounded-3xl p-5 md:p-6 flex items-start gap-3">
+              <div className="w-8 h-8 shrink-0 rounded-lg bg-[#9B3D2E]/10 text-[#9B3D2E] flex items-center justify-center">
+                <BellRing className="w-4 h-4" strokeWidth={2.2} />
+              </div>
+              <div className="flex flex-col gap-1.5 min-w-0">
+                <h3 className={`${lalezar.className} text-lg text-[#9B3D2E] leading-none`}>
+                  منقطع عن النشاط
+                </h3>
+                <p className={`${tajawal.className} text-sm text-[#9B3D2E]/90 leading-relaxed`}>
+                  {inactiveWeeks === null
+                    ? "لم يسجّل هذا العضو أي نشاط منذ انضمامه."
+                    : `آخر نشاط لهذا العضو كان قبل ${toArabicDigits(inactiveWeeks)} أسبوعًا.`}{" "}
+                  يُستحسن التواصل معه والاطمئنان عليه.
+                </p>
+              </div>
             </div>
-            <div className="flex flex-col gap-1.5 min-w-0">
-              <h3 className={`${lalezar.className} text-lg text-[#9B3D2E] leading-none`}>
-                منقطع عن النشاط
-              </h3>
-              <p className={`${tajawal.className} text-sm text-[#9B3D2E]/90 leading-relaxed`}>
-                {inactiveWeeks === null
-                  ? "لم يسجّل هذا العضو أي نشاط منذ انضمامه."
-                  : `آخر نشاط لهذا العضو كان قبل ${toArabicDigits(inactiveWeeks)} أسبوعًا.`}{" "}
-                يُستحسن التواصل معه والاطمئنان عليه.
-              </p>
-            </div>
-          </div>
-        )}
+          )}
 
         {/* Meta info (visibility-controlled) */}
         <section className="bg-white rounded-3xl border border-[#043F2E]/10 shadow-sm p-5 md:p-6 flex flex-col gap-4">
@@ -404,9 +389,7 @@ function ProfileNotFound({ message }: { message: string }) {
       dir="rtl"
     >
       <div className="flex flex-col items-center gap-4 text-center">
-        <h1 className={`${lalezar.className} text-2xl text-[#043F2E]`}>
-          تعذّر تحميل الملف الشخصي
-        </h1>
+        <h1 className={`${lalezar.className} text-2xl text-[#043F2E]`}>تعذّر تحميل الملف الشخصي</h1>
         <p className={`${tajawal.className} text-sm text-[#043F2E]/60`}>{message}</p>
         <Link
           href="/"
@@ -418,6 +401,16 @@ function ProfileNotFound({ message }: { message: string }) {
       </div>
     </div>
   );
+}
+
+// Shared shape for the supervisor/referrer link cards, built from whichever
+// getUserByUsername result resolved (or didn't)
+function toPersonInfo(
+  result: Awaited<ReturnType<typeof getUserByUsername>> | null,
+): { id: number; fullName: string; username: string } | null {
+  if (!result || !result.success || !result.data) return null;
+  const { id, first_name, last_name, username } = result.data;
+  return { id, fullName: `${first_name} ${last_name}`.trim() || username, username };
 }
 
 // Category names and point values come from the API — never hard-coded here
@@ -433,4 +426,3 @@ function enrichActivities(
     points: (byId.get(a.category)?.value ?? 0) * a.multiplier,
   }));
 }
-
