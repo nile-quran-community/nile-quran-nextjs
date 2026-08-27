@@ -25,7 +25,6 @@ import {
   CalendarCheck,
 } from "lucide-react";
 import Link from "next/link";
-import SectionHeading from "../SectionHeading";
 import StatTile from "../StatTile";
 import { toArabicDigits, formatHijriDate } from "@/lib/utils";
 import {
