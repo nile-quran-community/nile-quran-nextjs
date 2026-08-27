@@ -64,28 +64,14 @@ export interface ControlPanelData {
   error?: string | unknown;
 }
 
-// ============================
-// 🟢 Module-level category cache
-// ============================
-let cachedCategories: Category[] | null = null;
-let categoriesFetchedAt: number | null = null;
-const CACHE_DURATION = 60 * 60 * 1000;
-
-async function fetchCategoriesCached(): Promise<Category[]> {
-  const now = Date.now();
-  if (cachedCategories && categoriesFetchedAt && now - categoriesFetchedAt < CACHE_DURATION) {
-    return cachedCategories;
-  }
-
+// getCategories() is already cached server-side for an hour (shared with the
+// profile page via getCachedPointsCategories in actions/categories.ts).
+// categoriesRef below is the only client-side memoization — it avoids
+// repeating even the (cheap, cached) round trip during this page's own
+// lifetime.
+async function fetchCategories(): Promise<Category[]> {
   const res = await getCategories();
-  if (res?.success) {
-    cachedCategories = Array.isArray(res.categories)
-      ? res.categories
-      : (res.categories as { results?: Category[] })?.results || [];
-    categoriesFetchedAt = now;
-  }
-
-  return cachedCategories || [];
+  return res.success ? res.categories : [];
 }
 
 // Same date-for-a-new-activity rule the row used to compute itself — now computed once per
@@ -147,7 +133,7 @@ export default function ControlPanelClient() {
           getUsers(year, month, week, "Student"),
           categoriesRef.current.length > 0
             ? Promise.resolve(categoriesRef.current)
-            : fetchCategoriesCached(),
+            : fetchCategories(),
           getPoints(year, month, week),
           getUsers(year, month, week, "Supervisor"),
         ]);
@@ -267,6 +253,14 @@ export default function ControlPanelClient() {
     [data.points.points],
   );
 
+  // Invite (id 5) always renders last in the desktop table — sorted once here
+  // instead of by the header and by every row on every render (categories
+  // themselves change rarely; drafts and search change on every keystroke).
+  const sortedCategories = useMemo(
+    () => [...data.categories].sort((a, b) => (a.id === 5 ? 1 : b.id === 5 ? -1 : 0)),
+    [data.categories],
+  );
+
   // Which users currently have an unsaved edit — drives both the bottom bar's count and each
   // row's own dirty prop. A draft entry can exist for a user and still not be "dirty" if every
   // touched field was edited back to its original value.
@@ -283,7 +277,8 @@ export default function ControlPanelClient() {
         const originalValue = originalActivities.find((a) => a.category === c.id)?.multiplier ?? 0;
         return draftValue !== originalValue;
       });
-      const supervisorDirty = draft.supervisor !== undefined && draft.supervisor !== user.supervisor;
+      const supervisorDirty =
+        draft.supervisor !== undefined && draft.supervisor !== user.supervisor;
 
       if (categoryDirty || supervisorDirty) ids.add(user.id);
     }
@@ -345,7 +340,9 @@ export default function ControlPanelClient() {
         const originalMultiplier = original?.multiplier ?? 0;
         if (draftMultiplier === originalMultiplier) continue;
         if (draftMultiplier > 0 && originalMultiplier === 0) {
-          categoryOps.push(() => addUserActivity(userId, category.id, activityDate, draftMultiplier));
+          categoryOps.push(() =>
+            addUserActivity(userId, category.id, activityDate, draftMultiplier),
+          );
         } else if (draftMultiplier > 0) {
           categoryOps.push(() => updateUserActivity(userId, original!.id, draftMultiplier));
         } else {
@@ -582,7 +579,7 @@ export default function ControlPanelClient() {
         <div className="bg-white rounded-3xl border border-[#043F2E]/15 shadow-sm overflow-hidden">
           {/* Table Header (sticky) */}
           <div className="hidden lg:block">
-            {data.categories.length > 0 && <TableHeader categories={data.categories} />}
+            {sortedCategories.length > 0 && <TableHeader categories={sortedCategories} />}
           </div>
 
           {/* Loading skeleton */}
@@ -623,7 +620,7 @@ export default function ControlPanelClient() {
                   lastname={user.last_name}
                   supervisor={user.supervisor}
                   supervisors={supervisors}
-                  categories={data.categories}
+                  categories={sortedCategories}
                   draft={drafts[user.id]}
                   isDirty={dirtyUserIds.has(user.id)}
                   disabled={isSavingAll}
@@ -744,24 +741,22 @@ function TableHeader({ categories }: { categories: Category[] }) {
         <HeaderLabel>المجموعة</HeaderLabel>
       </div>
 
-      {/* Categories */}
+      {/* Categories — the caller already sorts these (invite last) */}
       <div className="flex-1 flex items-start gap-1 min-w-0">
-        {[...categories]
-          .sort((a, b) => (a.id === 5 ? 1 : b.id === 5 ? -1 : 0))
-          .map((cat) => (
-            <div key={cat.id} className="flex-1 min-w-0 flex flex-col items-center gap-1 px-1">
-              <span
-                className={`${tajawal.className} text-center text-[11px] font-bold text-[#043F2E] leading-tight break-words`}
-              >
-                {cat.name}
-              </span>
-              <span
-                className={`${tajawal.className} text-[10px] font-bold text-[#043F2E] bg-[#BEE663] rounded-full px-1.5 py-0.5 leading-none`}
-              >
-                +{toArabicDigits(cat.value)}
-              </span>
-            </div>
-          ))}
+        {categories.map((cat) => (
+          <div key={cat.id} className="flex-1 min-w-0 flex flex-col items-center gap-1 px-1">
+            <span
+              className={`${tajawal.className} text-center text-[11px] font-bold text-[#043F2E] leading-tight break-words`}
+            >
+              {cat.name}
+            </span>
+            <span
+              className={`${tajawal.className} text-[10px] font-bold text-[#043F2E] bg-[#BEE663] rounded-full px-1.5 py-0.5 leading-none`}
+            >
+              +{toArabicDigits(cat.value)}
+            </span>
+          </div>
+        ))}
       </div>
 
       {/* Total */}

@@ -166,53 +166,51 @@ function UserRowComponent({
         </select>
       </div>
 
-      {/* Categories */}
+      {/* Categories — the caller already sorts these (invite last) */}
       <div className="flex-1 flex items-center gap-1 min-w-0">
-        {[...(categories || [])]
-          .sort((a, b) => (a.id === 5 ? 1 : b.id === 5 ? -1 : 0))
-          .map((category: Category) => {
-            const value = effectiveMultiplier(category.id);
+        {(categories || []).map((category: Category) => {
+          const value = effectiveMultiplier(category.id);
 
-            if (category.id === 5) {
-              return (
-                <div key={category.id} className="flex-1 min-w-0 flex justify-center">
-                  <MultiplierStepper
-                    value={value}
-                    min={0}
-                    max={20}
-                    disabled={disabled}
-                    title={category.name}
-                    onCommit={(n) => setCategoryDraft(category.id, n)}
-                  />
-                </div>
-              );
-            }
-
-            const isChecked = value > 0;
+          if (category.id === 5) {
             return (
-              <div
-                key={category.id}
-                className="flex-1 min-w-0 flex items-center justify-center gap-1"
-              >
-                <Checkbox
-                  checked={isChecked}
+              <div key={category.id} className="flex-1 min-w-0 flex justify-center">
+                <MultiplierStepper
+                  value={value}
+                  min={0}
+                  max={20}
                   disabled={disabled}
-                  onChange={(e) => setCategoryDraft(category.id, e.target.checked ? 1 : 0)}
                   title={category.name}
+                  onCommit={(n) => setCategoryDraft(category.id, n)}
                 />
-                {isChecked && (
-                  <MultiplierBadge
-                    value={value}
-                    disabled={disabled}
-                    title={category.name}
-                    onClick={() =>
-                      setMultiplierEdit({ categoryId: category.id, name: category.name, value })
-                    }
-                  />
-                )}
               </div>
             );
-          })}
+          }
+
+          const isChecked = value > 0;
+          return (
+            <div
+              key={category.id}
+              className="flex-1 min-w-0 flex items-center justify-center gap-1"
+            >
+              <Checkbox
+                checked={isChecked}
+                disabled={disabled}
+                onChange={(e) => setCategoryDraft(category.id, e.target.checked ? 1 : 0)}
+                title={category.name}
+              />
+              {isChecked && (
+                <MultiplierBadge
+                  value={value}
+                  disabled={disabled}
+                  title={category.name}
+                  onClick={() =>
+                    setMultiplierEdit({ categoryId: category.id, name: category.name, value })
+                  }
+                />
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {/* Total */}
