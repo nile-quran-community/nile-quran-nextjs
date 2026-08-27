@@ -5,7 +5,7 @@ import MonthGoalClient from "./MonthGoalClient";
 import PerformanceBoardClient from "./PerformanceBoardClient";
 import { getLeaderboardData } from "@/actions/PerformanceBoard";
 import { getGoalOfTheMonth } from "@/actions/goal";
-import { gregorianToHijri } from "@tabby_ai/hijri-converter";
+import { getPreviousHijriMonth } from "@/lib/utils";
 
 interface LeaderboardUser {
   id: number;
@@ -22,42 +22,45 @@ interface GoalData {
   current?: number;
 }
 
-function getPreviousHijriMonth(year: number, month: number): { year: number; month: number } {
-  if (month === 1) return { year: year - 1, month: 12 };
-  return { year, month: month - 1 };
+interface Props {
+  initialYear: number;
+  initialMonth: number;
+  initialLeaderboardData: LeaderboardUser[];
+  initialPreviousRanks: Record<number, number>;
+  initialGoalData: GoalData | null;
 }
 
-export default function DashboardContainer() {
-  const date = new Date();
-  const hijriDate = gregorianToHijri({
-    year: date.getFullYear(),
-    month: date.getMonth() + 1,
-    day: date.getDate(),
-  });
+export default function DashboardContainer({
+  initialYear,
+  initialMonth,
+  initialLeaderboardData,
+  initialPreviousRanks,
+  initialGoalData,
+}: Props) {
+  // Keep reference for the "Next" limit
+  const [currentMonth] = React.useState(initialMonth);
+  const [currentYear] = React.useState(initialYear);
+  const [month, setMonth] = React.useState(initialMonth);
+  const [year, setYear] = React.useState(initialYear);
 
-  // 1. Move into State
-  const [currentMonth] = React.useState(hijriDate.month); // Keep reference for "Next" limit
-  const [currentYear] = React.useState(hijriDate.year); // Keep reference for "Next" limit
-  const [month, setMonth] = React.useState(hijriDate.month);
-  const [year, setYear] = React.useState(hijriDate.year);
-
-  const [leaderboardData, setLeaderboardData] = React.useState<LeaderboardUser[]>([]);
-  const [previousRanks, setPreviousRanks] = React.useState<Record<number, number>>({});
-  const [goalData, setGoalData] = React.useState<GoalData | null>(null);
+  const [leaderboardData, setLeaderboardData] =
+    React.useState<LeaderboardUser[]>(initialLeaderboardData);
+  const [previousRanks, setPreviousRanks] =
+    React.useState<Record<number, number>>(initialPreviousRanks);
+  const [goalData, setGoalData] = React.useState<GoalData | null>(initialGoalData);
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
-  // 2. Fetcher depends on state year/month
-  const fetchDataForMonth = React.useCallback(async () => {
+  const loadMonth = React.useCallback(async (targetYear: number, targetMonth: number) => {
     setIsLoading(true);
     setError(null);
     try {
-      const prev = getPreviousHijriMonth(year, month);
+      const prev = getPreviousHijriMonth(targetYear, targetMonth);
 
       const [currentResult, previousResult, goalResult] = await Promise.all([
-        getLeaderboardData(year, month),
+        getLeaderboardData(targetYear, targetMonth),
         getLeaderboardData(prev.year, prev.month),
-        getGoalOfTheMonth(year, month),
+        getGoalOfTheMonth(targetYear, targetMonth),
       ]);
 
       if (currentResult.success) setLeaderboardData(currentResult.data);
@@ -76,16 +79,39 @@ export default function DashboardContainer() {
         setPreviousRanks({});
       }
     } catch (err) {
-      console.log("fetch error", err);
+      console.error("fetch error", err);
       setError("حدث خطأ غير متوقع");
     } finally {
       setIsLoading(false);
     }
-  }, [month, year]);
+  }, []);
 
-  React.useEffect(() => {
-    fetchDataForMonth();
-  }, [fetchDataForMonth]);
+  // The month we land on is already on screen from the server render — only a
+  // navigation to a different month needs a client-side fetch.
+  const goToMonth = React.useCallback(
+    (targetYear: number, targetMonth: number) => {
+      setYear(targetYear);
+      setMonth(targetMonth);
+
+      if (targetYear === initialYear && targetMonth === initialMonth) {
+        setLeaderboardData(initialLeaderboardData);
+        setPreviousRanks(initialPreviousRanks);
+        setGoalData(initialGoalData);
+        setError(null);
+        return;
+      }
+
+      loadMonth(targetYear, targetMonth);
+    },
+    [
+      initialYear,
+      initialMonth,
+      initialLeaderboardData,
+      initialPreviousRanks,
+      initialGoalData,
+      loadMonth,
+    ],
+  );
 
   const canGoNext = () => {
     if (year < currentYear) return true;
@@ -93,24 +119,21 @@ export default function DashboardContainer() {
     return false; // year > currentYear shouldn't happen, but guard anyway
   };
 
-  // 3. Update state to trigger re-renders
   const handlePreviousMonth = () => {
     if (isLoading) return;
     if (month === 1) {
-      setMonth(12);
-      setYear((prev) => prev - 1);
+      goToMonth(year - 1, 12);
     } else {
-      setMonth((prev) => prev - 1);
+      goToMonth(year, month - 1);
     }
   };
 
   const handleNextMonth = () => {
     if (isLoading || !canGoNext()) return;
     if (month === 12) {
-      setMonth(1);
-      setYear((prev) => prev + 1);
+      goToMonth(year + 1, 1);
     } else {
-      setMonth((prev) => prev + 1);
+      goToMonth(year, month + 1);
     }
   };
 
@@ -124,7 +147,7 @@ export default function DashboardContainer() {
         canGoNext={canGoNext()}
         onPreviousMonth={handlePreviousMonth}
         onNextMonth={handleNextMonth}
-        onRetry={fetchDataForMonth}
+        onRetry={() => loadMonth(year, month)}
         month={month}
         year={year}
         previousRanks={previousRanks}

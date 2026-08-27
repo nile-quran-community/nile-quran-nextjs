@@ -56,13 +56,32 @@ export function getHijriMonthDays(year: number, month: number) {
   // 4. إذا كان اليوم التالي هو 30، فإن الشهر 30 يوماً. وإلا فهو 29.
   return nextHijriDate.day === 30 ? 30 : 29;
 }
+// One month back in the Hijri calendar, wrapping the year at Muharram
+export function getPreviousHijriMonth(
+  year: number,
+  month: number,
+): { year: number; month: number } {
+  if (month === 1) return { year: year - 1, month: 12 };
+  return { year, month: month - 1 };
+}
+
 export const toArabicDigits = (num: number | string) => {
   return num.toString().replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[parseInt(d)]);
 };
 
 const gregorianMonthsArabic = [
-  "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
-  "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر",
+  "يناير",
+  "فبراير",
+  "مارس",
+  "أبريل",
+  "مايو",
+  "يونيو",
+  "يوليو",
+  "أغسطس",
+  "سبتمبر",
+  "أكتوبر",
+  "نوفمبر",
+  "ديسمبر",
 ];
 
 // "٢٢ أغسطس ٢٠٢٦" — returns the raw string when the date cannot be parsed
