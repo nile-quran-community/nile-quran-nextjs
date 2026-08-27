@@ -2,7 +2,6 @@
 import { useState, useEffect } from "react";
 import Menu from "@/public/menu.png";
 import { motion } from "framer-motion";
-import Image from "next/image";
 import LogoutButton from "./LogoutButton";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -31,7 +30,8 @@ export default function NavBarMobileMenu({ User }: Props) {
   return (
     <div className="">
       <div onClick={() => setIsMobileMenuOpen(true)} className="sm:hidden cursor-pointer">
-        <Image src={Menu} alt="" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={Menu.src} alt="" />
       </div>
       {/* Overlay — clicking it closes the menu */}
       <motion.div

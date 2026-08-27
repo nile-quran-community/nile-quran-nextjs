@@ -5,11 +5,11 @@ import { checkTokenValidity } from "@/actions/auth-actions";
 
 import NavBarMobileMenu from "./NavBarMobileMenu";
 const lalezar = Lalezar({
-  subsets: ["latin"],
+  subsets: ["arabic"],
   weight: "400",
 });
 const tajawal = Tajawal({
-  subsets: ["latin"],
+  subsets: ["arabic"],
   weight: "700",
 });
 
