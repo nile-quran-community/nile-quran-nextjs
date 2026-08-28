@@ -12,6 +12,7 @@ import {
   TrendingUp,
   Inbox,
   Check,
+  UserCheck,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -22,16 +23,17 @@ import {
   updateUserActivity,
   deleteUserActivity,
   updateUserSupervisor,
+  updateUserActiveStatus,
 } from "@/actions/ControlBoard";
-import UserRow, { type DraftEntry } from "./userRow";
+import UserRow, { UserAvatar, type DraftEntry } from "./userRow";
 import { gregorianToHijri, hijriToGregorian } from "@tabby_ai/hijri-converter";
 import { getHijriMonth, toArabicDigits } from "@/lib/utils";
 
-// 🟢 Fonts
+// Fonts
 const lalezar = Lalezar({ subsets: ["arabic"], weight: "400" });
 const tajawal = Tajawal({ subsets: ["arabic"], weight: ["400", "500", "700"] });
 
-// 🟢 Types
+// Types
 type Category = { id: number; name: string; value: number };
 type User = {
   id: number;
@@ -41,6 +43,7 @@ type User = {
   groups: string[];
   points: number;
   supervisor: string | null;
+  is_active: boolean;
 };
 type UserPoints = {
   user: number;
@@ -86,7 +89,7 @@ function getActivityDateFor(weekIndex: number, currentWeek: number, year: number
   return `${currentDate.year}-${currentDate.month}-${currentDate.day}T17:55:09.157Z`;
 }
 
-// 🟢 Component
+// Component
 export default function ControlPanelClient() {
   const date = new Date();
   const hijriDate = gregorianToHijri({
@@ -117,6 +120,9 @@ export default function ControlPanelClient() {
   const [weekIndex, setWeekIndex] = useState<number>(getInitialWeekIndex);
   const [searchQuery, setSearchQuery] = useState("");
   const [supervisors, setSupervisors] = useState<User[]>([]);
+  const [tab, setTab] = useState<"points" | "pending">("points");
+  const [confirmingActivateId, setConfirmingActivateId] = useState<number | null>(null);
+  const [activatingId, setActivatingId] = useState<number | null>(null);
 
   // Sparse per-user local edits, keyed by user id. A user only gets an entry once one of their
   // fields is touched; absent = "no local edit, use server truth." Cleared entirely on week
@@ -130,12 +136,12 @@ export default function ControlPanelClient() {
     async (week: number) => {
       try {
         const [usersRes, categories, pointsRes, supervisorsRes] = await Promise.all([
-          getUsers(year, month, week, "Student"),
+          getUsers("Student"),
           categoriesRef.current.length > 0
             ? Promise.resolve(categoriesRef.current)
             : fetchCategories(),
           getPoints(year, month, week),
-          getUsers(year, month, week, "Supervisor"),
+          getUsers("Supervisor"),
         ]);
 
         if (categories.length > 0) {
@@ -214,14 +220,16 @@ export default function ControlPanelClient() {
     }
   };
 
-  // 🟢 Filtered & sorted users (by points desc)
-  const filteredUsers = useMemo(() => {
-    const students = data?.users || [];
+  // Active students — disabled accounts are surfaced only in the "قيد التفعيل" tab,
+  // never in the points table or the top summary stats.
+  const activeUsers = useMemo(() => (data?.users || []).filter((u) => u.is_active), [data?.users]);
 
-    if (!searchQuery.trim()) return students;
+  // Filtered & sorted users (by points desc)
+  const filteredUsers = useMemo(() => {
+    if (!searchQuery.trim()) return activeUsers;
 
     const q = searchQuery.trim().toLowerCase();
-    return students.filter((u) => {
+    return activeUsers.filter((u) => {
       const fullName = `${u.first_name} ${u.last_name}`.toLowerCase();
       const supervisorUser = supervisors.find((s) => s.username === u.supervisor);
       const supervisorName = supervisorUser
@@ -229,21 +237,44 @@ export default function ControlPanelClient() {
         : "";
       return fullName.includes(q) || supervisorName.includes(q);
     });
-  }, [data?.users, searchQuery, supervisors]);
+  }, [activeUsers, searchQuery, supervisors]);
 
-  // 🟢 Summary statistics
+  // Students awaiting admin activation
+  const pendingUsers = useMemo(
+    () => (data?.users || []).filter((u) => !u.is_active),
+    [data?.users],
+  );
+
+  const handleActivateUser = async (userId: number) => {
+    setActivatingId(userId);
+    const res = await updateUserActiveStatus(userId, true);
+    setActivatingId(null);
+    setConfirmingActivateId(null);
+
+    if (res.success) {
+      setData((prev) => ({
+        ...prev,
+        users: prev.users.map((u) => (u.id === userId ? { ...u, is_active: true } : u)),
+      }));
+    } else {
+      alert("حدث خطأ أثناء تفعيل الحساب");
+    }
+  };
+
+  // Summary statistics — scoped to active accounts, so a disabled student's stale points
+  // entries can't inflate totals or skew the completion rate.
   const summary = useMemo(() => {
-    const students = data?.users || [];
+    const totalStudents = activeUsers.length;
+    const activeUserIds = new Set(activeUsers.map((u) => u.id));
+    const activePoints = data.points?.points?.filter((p) => activeUserIds.has(p.user)) ?? [];
 
-    const totalStudents = students.length;
-    const totalPoints = data.points?.points?.reduce((sum, p) => sum + (p.points || 0), 0);
-    const activeStudents =
-      data.points?.points?.filter((p) => (p.activities?.length || 0) > 0).length || 0;
+    const totalPoints = activePoints.reduce((sum, p) => sum + (p.points || 0), 0);
+    const activeStudents = activePoints.filter((p) => (p.activities?.length || 0) > 0).length;
     const completionRate =
       totalStudents > 0 ? Math.round((activeStudents / totalStudents) * 100) : 0;
 
     return { totalStudents, totalPoints, activeStudents, completionRate };
-  }, [data?.users, data.points]);
+  }, [activeUsers, data.points]);
 
   // Per-row slice of the points array — required for React.memo on UserRow to do anything at
   // all. Without this, data.points.points gets a new array reference on every save and would
@@ -417,7 +448,7 @@ export default function ControlPanelClient() {
 
   return (
     <div className="relative flex flex-col min-h-screen bg-[#EBF0EB]" dir="rtl">
-      {/* 🟢 Hero Header */}
+      {/* Hero Header */}
       <div className="relative w-full bg-[#043F2E] overflow-hidden">
         {/* Decorative geometric accents */}
         <div
@@ -452,9 +483,9 @@ export default function ControlPanelClient() {
         </div>
       </div>
 
-      {/* 🟢 Main content */}
+      {/* Main content */}
       <div className="container mx-auto px-4 lg:px-12 -mt-6 pb-12 relative z-10 flex flex-col gap-6">
-        {/* 🟢 Summary Stats */}
+        {/* Summary Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           <SummaryStat
             icon={<Users className="w-5 h-5" strokeWidth={2.2} />}
@@ -486,188 +517,237 @@ export default function ControlPanelClient() {
           />
         </div>
 
-        {/* 🟢 Filter + Progress card */}
-        <div className="bg-white rounded-3xl border border-[#043F2E]/15 shadow-sm p-5 md:p-6 flex flex-col gap-5">
-          {/* Month progress */}
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between flex-wrap gap-3">
-              <div className="flex items-center gap-3">
-                <div
-                  className={`${lalezar.className} text-2xl md:text-[28px] text-[#043F2E] leading-none`}
-                >
-                  {getHijriMonth(month - 1)} <span className="text-[#043F2E]/40">—</span>{" "}
-                  {toArabicDigits(year)}
-                </div>
-                <span className={`${tajawal.className} text-sm text-[#043F2E]/60 font-medium`}>
-                  الأسبوع {weekArabicNames[weekIndex - 1]}
-                </span>
-              </div>
-            </div>
+        {/* Tabs */}
+        <div className="flex items-center gap-2 bg-[#F7FBEA] border border-[#043F2E]/15 rounded-2xl p-1.5 w-fit">
+          <button
+            type="button"
+            onClick={() => setTab("points")}
+            className={`${tajawal.className} px-4 h-10 rounded-xl text-sm font-bold transition-colors cursor-pointer ${
+              tab === "points"
+                ? "bg-[#043F2E] text-white shadow-sm"
+                : "text-[#043F2E] hover:bg-white/50"
+            }`}
+          >
+            جدول النقاط
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab("pending")}
+            className={`${tajawal.className} flex items-center gap-1.5 px-4 h-10 rounded-xl text-sm font-bold transition-colors cursor-pointer ${
+              tab === "pending"
+                ? "bg-[#043F2E] text-white shadow-sm"
+                : "text-[#043F2E] hover:bg-white/50"
+            }`}
+          >
+            قيد التفعيل
+            {pendingUsers.length > 0 && (
+              <span
+                aria-label={`${pendingUsers.length} حساب بانتظار التفعيل`}
+                className="w-2 h-2 rounded-full bg-[#9B3D2E]"
+              />
+            )}
+          </button>
+        </div>
 
-            <Progress
-              value={(weekIndex / 5) * 100}
-              className="h-3 bg-[#DEFF90]"
-              className2="bg-[#9ADD00]"
-            />
+        {tab === "pending" && (
+          <PendingActivationSection
+            users={pendingUsers}
+            confirmingId={confirmingActivateId}
+            activatingId={activatingId}
+            onRequestActivate={setConfirmingActivateId}
+            onCancelActivate={() => setConfirmingActivateId(null)}
+            onConfirmActivate={handleActivateUser}
+          />
+        )}
 
-            {/* Week dots */}
-            <div className="flex items-center justify-between px-1">
-              {weekArabicNames.map((name, idx) => {
-                const isActive = idx + 1 === weekIndex;
-                const isPast = idx + 1 < weekIndex;
-                return (
-                  <div key={name} className="flex flex-col items-center gap-1.5 flex-1">
+        {tab === "points" && (
+          <>
+            {/* Filter + Progress card */}
+            <div className="bg-white rounded-3xl border border-[#043F2E]/15 shadow-sm p-5 md:p-6 flex flex-col gap-5">
+              {/* Month progress */}
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <div className="flex items-center gap-3">
                     <div
-                      className={`w-3 h-3 rounded-full transition-all ${
-                        isActive
-                          ? "bg-[#9ADD00] ring-4 ring-[#BEE663]/40 scale-110"
-                          : isPast
-                            ? "bg-[#9ADD00]"
-                            : "bg-[#DEFF90]"
-                      }`}
-                    />
-                    <span
-                      className={`${tajawal.className} text-[11px] md:text-xs font-medium ${
-                        isActive ? "text-[#043F2E]" : "text-[#043F2E]/40"
-                      }`}
+                      className={`${lalezar.className} text-2xl md:text-[28px] text-[#043F2E] leading-none`}
                     >
-                      {name}
+                      {getHijriMonth(month - 1)} <span className="text-[#043F2E]/40">—</span>{" "}
+                      {toArabicDigits(year)}
+                    </div>
+                    <span className={`${tajawal.className} text-sm text-[#043F2E]/60 font-medium`}>
+                      الأسبوع {weekArabicNames[weekIndex - 1]}
                     </span>
                   </div>
-                );
-              })}
-            </div>
-          </div>
+                </div>
 
-          {/* Divider */}
-          <div className="h-px bg-[#043F2E]/10" />
+                <Progress
+                  value={(weekIndex / 5) * 100}
+                  className="h-3 bg-[#DEFF90]"
+                  className2="bg-[#9ADD00]"
+                />
 
-          {/* Search + Navigation */}
-          <div className="flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
-            {/* Search */}
-            <div className="relative flex-1 max-w-md">
-              <Search
-                className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#043F2E]/50"
-                strokeWidth={2.2}
-              />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="ابحث عن طالب أو مشرف..."
-                className={`${tajawal.className} w-full h-12 pr-11 pl-4 bg-[#F7FBEA] border border-[#043F2E]/15 rounded-2xl text-[#043F2E] placeholder:text-[#043F2E]/40 focus:outline-none focus:border-[#043F2E]/40 focus:bg-white transition-colors text-sm font-medium`}
-              />
-            </div>
-
-            {/* Week navigation */}
-            <div className="flex justify-between items-center gap-2 bg-[#F7FBEA] border border-[#043F2E]/15 rounded-2xl p-1.5">
-              <button
-                onClick={() => handleWeekChange("prev")}
-                disabled={loading || isSavingAll}
-                aria-label="الأسبوع السابق"
-                className="w-10 h-10 rounded-xl bg-white hover:bg-[#BEE663] text-[#043F2E] flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm cursor-pointer"
-              >
-                <ChevronRight className="w-5 h-5" strokeWidth={2.4} />
-              </button>
-
-              <div
-                className={`${tajawal.className} px-4 min-w-[120px] text-center text-sm font-bold text-[#043F2E]`}
-              >
-                الأسبوع {weekArabicNames[weekIndex - 1]}
+                {/* Week dots */}
+                <div className="flex items-center justify-between px-1">
+                  {weekArabicNames.map((name, idx) => {
+                    const isActive = idx + 1 === weekIndex;
+                    const isPast = idx + 1 < weekIndex;
+                    return (
+                      <div key={name} className="flex flex-col items-center gap-1.5 flex-1">
+                        <div
+                          className={`w-3 h-3 rounded-full transition-all ${
+                            isActive
+                              ? "bg-[#9ADD00] ring-4 ring-[#BEE663]/40 scale-110"
+                              : isPast
+                                ? "bg-[#9ADD00]"
+                                : "bg-[#DEFF90]"
+                          }`}
+                        />
+                        <span
+                          className={`${tajawal.className} text-[11px] md:text-xs font-medium ${
+                            isActive ? "text-[#043F2E]" : "text-[#043F2E]/40"
+                          }`}
+                        >
+                          {name}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
 
-              <button
-                onClick={() => handleWeekChange("next")}
-                disabled={loading || isSavingAll}
-                aria-label="الأسبوع التالي"
-                className="w-10 h-10 rounded-xl bg-white hover:bg-[#BEE663] text-[#043F2E] flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm cursor-pointer"
-              >
-                <ChevronLeft className="w-5 h-5" strokeWidth={2.4} />
-              </button>
-            </div>
-          </div>
-        </div>
+              {/* Divider */}
+              <div className="h-px bg-[#043F2E]/10" />
 
-        {/* 🟢 Table Card */}
-        <div className="bg-white rounded-3xl border border-[#043F2E]/15 shadow-sm overflow-hidden">
-          {/* Table Header (sticky) */}
-          <div className="hidden lg:block">
-            {sortedCategories.length > 0 && <TableHeader categories={sortedCategories} />}
-          </div>
+              {/* Search + Navigation */}
+              <div className="flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
+                {/* Search */}
+                <div className="relative flex-1 max-w-md">
+                  <Search
+                    className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#043F2E]/50"
+                    strokeWidth={2.2}
+                  />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="ابحث عن طالب أو مشرف..."
+                    className={`${tajawal.className} w-full h-12 pr-11 pl-4 bg-[#F7FBEA] border border-[#043F2E]/15 rounded-2xl text-[#043F2E] placeholder:text-[#043F2E]/40 focus:outline-none focus:border-[#043F2E]/40 focus:bg-white transition-colors text-sm font-medium`}
+                  />
+                </div>
 
-          {/* Loading skeleton */}
-          {loading && (
-            <div className="p-4 md:p-6 flex flex-col gap-3">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="h-16 md:h-14 rounded-2xl bg-[#F7FBEA] animate-pulse" />
-              ))}
-            </div>
-          )}
+                {/* Week navigation */}
+                <div className="flex justify-between items-center gap-2 bg-[#F7FBEA] border border-[#043F2E]/15 rounded-2xl p-1.5">
+                  <button
+                    onClick={() => handleWeekChange("prev")}
+                    disabled={loading || isSavingAll}
+                    aria-label="الأسبوع السابق"
+                    className="w-10 h-10 rounded-xl bg-white hover:bg-[#BEE663] text-[#043F2E] flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm cursor-pointer"
+                  >
+                    <ChevronRight className="w-5 h-5" strokeWidth={2.4} />
+                  </button>
 
-          {/* Empty state */}
-          {!loading && filteredUsers.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
-              <div className="w-16 h-16 rounded-2xl bg-[#F7FBEA] flex items-center justify-center mb-4">
-                <Inbox className="w-7 h-7 text-[#043F2E]/40" strokeWidth={1.8} />
+                  <div
+                    className={`${tajawal.className} px-4 min-w-[120px] text-center text-sm font-bold text-[#043F2E]`}
+                  >
+                    الأسبوع {weekArabicNames[weekIndex - 1]}
+                  </div>
+
+                  <button
+                    onClick={() => handleWeekChange("next")}
+                    disabled={loading || isSavingAll}
+                    aria-label="الأسبوع التالي"
+                    className="w-10 h-10 rounded-xl bg-white hover:bg-[#BEE663] text-[#043F2E] flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm cursor-pointer"
+                  >
+                    <ChevronLeft className="w-5 h-5" strokeWidth={2.4} />
+                  </button>
+                </div>
               </div>
-              <h3 className={`${lalezar.className} text-xl text-[#043F2E] mb-1`}>
-                {searchQuery ? "لا توجد نتائج" : "لا يوجد طلاب"}
-              </h3>
-              <p className={`${tajawal.className} text-sm text-[#043F2E]/60 font-medium`}>
-                {searchQuery ? "جرب البحث بكلمة مختلفة" : "لم يتم العثور على طلاب لهذا الأسبوع"}
-              </p>
             </div>
-          )}
 
-          {/* Desktop table rows */}
-          {!loading && filteredUsers.length > 0 && (
-            <div className="hidden lg:flex flex-col">
-              {filteredUsers.map((user, index) => (
-                <UserRow
-                  key={user.id}
-                  variant="desktop"
-                  isLast={index === filteredUsers.length - 1}
-                  userId={user.id}
-                  points={pointsByUser.get(user.id)}
-                  firstname={user.first_name}
-                  lastname={user.last_name}
-                  supervisor={user.supervisor}
-                  supervisors={supervisors}
-                  categories={sortedCategories}
-                  draft={drafts[user.id]}
-                  isDirty={dirtyUserIds.has(user.id)}
-                  disabled={isSavingAll}
-                  onCategoryDraftChange={handleCategoryDraftChange}
-                  onSupervisorDraftChange={handleSupervisorDraftChange}
-                />
-              ))}
-            </div>
-          )}
+            {/* Table Card */}
+            <div className="bg-white rounded-3xl border border-[#043F2E]/15 shadow-sm overflow-hidden">
+              {/* Table Header (sticky) */}
+              <div className="hidden lg:block">
+                {sortedCategories.length > 0 && <TableHeader categories={sortedCategories} />}
+              </div>
 
-          {/* Mobile cards */}
-          {!loading && filteredUsers.length > 0 && (
-            <div className="lg:hidden flex flex-col gap-3 p-4">
-              {filteredUsers.map((user) => (
-                <UserRow
-                  key={user.id}
-                  variant="mobile"
-                  userId={user.id}
-                  points={pointsByUser.get(user.id)}
-                  firstname={user.first_name}
-                  lastname={user.last_name}
-                  supervisor={user.supervisor}
-                  supervisors={supervisors}
-                  categories={data.categories}
-                  draft={drafts[user.id]}
-                  isDirty={dirtyUserIds.has(user.id)}
-                  disabled={isSavingAll}
-                  onCategoryDraftChange={handleCategoryDraftChange}
-                  onSupervisorDraftChange={handleSupervisorDraftChange}
-                />
-              ))}
+              {/* Loading skeleton */}
+              {loading && (
+                <div className="p-4 md:p-6 flex flex-col gap-3">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="h-16 md:h-14 rounded-2xl bg-[#F7FBEA] animate-pulse" />
+                  ))}
+                </div>
+              )}
+
+              {/* Empty state */}
+              {!loading && filteredUsers.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+                  <div className="w-16 h-16 rounded-2xl bg-[#F7FBEA] flex items-center justify-center mb-4">
+                    <Inbox className="w-7 h-7 text-[#043F2E]/40" strokeWidth={1.8} />
+                  </div>
+                  <h3 className={`${lalezar.className} text-xl text-[#043F2E] mb-1`}>
+                    {searchQuery ? "لا توجد نتائج" : "لا يوجد طلاب"}
+                  </h3>
+                  <p className={`${tajawal.className} text-sm text-[#043F2E]/60 font-medium`}>
+                    {searchQuery ? "جرب البحث بكلمة مختلفة" : "لم يتم العثور على طلاب لهذا الأسبوع"}
+                  </p>
+                </div>
+              )}
+
+              {/* Desktop table rows */}
+              {!loading && filteredUsers.length > 0 && (
+                <div className="hidden lg:flex flex-col">
+                  {filteredUsers.map((user, index) => (
+                    <UserRow
+                      key={user.id}
+                      variant="desktop"
+                      isLast={index === filteredUsers.length - 1}
+                      userId={user.id}
+                      points={pointsByUser.get(user.id)}
+                      firstname={user.first_name}
+                      lastname={user.last_name}
+                      supervisor={user.supervisor}
+                      supervisors={supervisors}
+                      categories={sortedCategories}
+                      draft={drafts[user.id]}
+                      isDirty={dirtyUserIds.has(user.id)}
+                      disabled={isSavingAll}
+                      isActive={user.is_active}
+                      onCategoryDraftChange={handleCategoryDraftChange}
+                      onSupervisorDraftChange={handleSupervisorDraftChange}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* Mobile cards */}
+              {!loading && filteredUsers.length > 0 && (
+                <div className="lg:hidden flex flex-col gap-3 p-4">
+                  {filteredUsers.map((user) => (
+                    <UserRow
+                      key={user.id}
+                      variant="mobile"
+                      userId={user.id}
+                      points={pointsByUser.get(user.id)}
+                      firstname={user.first_name}
+                      lastname={user.last_name}
+                      supervisor={user.supervisor}
+                      supervisors={supervisors}
+                      categories={data.categories}
+                      draft={drafts[user.id]}
+                      isDirty={dirtyUserIds.has(user.id)}
+                      disabled={isSavingAll}
+                      isActive={user.is_active}
+                      onCategoryDraftChange={handleCategoryDraftChange}
+                      onSupervisorDraftChange={handleSupervisorDraftChange}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </>
+        )}
       </div>
 
       <UnsavedChangesBar
@@ -681,7 +761,7 @@ export default function ControlPanelClient() {
 }
 
 // ============================
-// 🟢 Summary Stat Card
+// Summary Stat Card
 // ============================
 function SummaryStat({
   icon,
@@ -736,7 +816,102 @@ function SummaryStat({
 }
 
 // ============================
-// 🟢 Table Header (desktop)
+// Pending Activation list
+// ============================
+function PendingActivationSection({
+  users,
+  confirmingId,
+  activatingId,
+  onRequestActivate,
+  onCancelActivate,
+  onConfirmActivate,
+}: {
+  users: User[];
+  confirmingId: number | null;
+  activatingId: number | null;
+  onRequestActivate: (userId: number) => void;
+  onCancelActivate: () => void;
+  onConfirmActivate: (userId: number) => void;
+}) {
+  if (users.length === 0) {
+    return (
+      <div className="bg-white rounded-3xl border border-[#043F2E]/15 shadow-sm flex flex-col items-center justify-center py-16 px-6 text-center">
+        <div className="w-16 h-16 rounded-2xl bg-[#F7FBEA] flex items-center justify-center mb-4">
+          <UserCheck className="w-7 h-7 text-[#043F2E]/40" strokeWidth={1.8} />
+        </div>
+        <h3 className={`${lalezar.className} text-xl text-[#043F2E] mb-1`}>
+          لا توجد حسابات قيد التفعيل
+        </h3>
+        <p className={`${tajawal.className} text-sm text-[#043F2E]/60 font-medium`}>
+          كل الحسابات الجديدة تم تفعيلها
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-3xl border border-[#043F2E]/15 shadow-sm overflow-hidden flex flex-col">
+      {users.map((user, index) => {
+        const fullName = `${user.first_name} ${user.last_name}`.trim();
+        const initials =
+          `${user.first_name?.charAt(0) || ""}${user.last_name?.charAt(0) || ""}`.trim();
+        const isConfirming = confirmingId === user.id;
+        const isBusy = activatingId === user.id;
+
+        return (
+          <div
+            key={user.id}
+            className={`flex items-center gap-3 px-4 py-3.5 bg-white hover:bg-[#F7FBEA]/60 transition-colors ${
+              index !== users.length - 1 ? "border-b border-[#043F2E]/8" : ""
+            }`}
+          >
+            <UserAvatar initials={initials} size="sm" />
+            <div className="flex-1 min-w-0">
+              <p className={`${tajawal.className} text-sm font-bold text-[#043F2E] truncate`}>
+                {fullName}
+              </p>
+              <p className={`${tajawal.className} text-xs text-[#043F2E]/50 truncate`}>
+                @{user.username}
+              </p>
+            </div>
+
+            {isConfirming ? (
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  disabled={isBusy}
+                  onClick={onCancelActivate}
+                  className={`${tajawal.className} px-3 h-9 rounded-xl bg-[#F7FBEA] hover:bg-[#EBF0EB] text-[#043F2E] text-xs font-bold disabled:opacity-50 transition-colors cursor-pointer`}
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="button"
+                  disabled={isBusy}
+                  onClick={() => onConfirmActivate(user.id)}
+                  className={`${tajawal.className} px-3 h-9 rounded-xl bg-[#BEE663] hover:bg-[#9ADD00] text-[#043F2E] text-xs font-bold disabled:opacity-50 transition-colors cursor-pointer`}
+                >
+                  {isBusy ? "جارٍ التفعيل..." : "تأكيد التفعيل"}
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => onRequestActivate(user.id)}
+                className={`${tajawal.className} shrink-0 px-3.5 h-9 rounded-xl bg-[#043F2E] hover:bg-[#065f46] text-white text-xs font-bold transition-colors cursor-pointer`}
+              >
+                تفعيل الحساب
+              </button>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ============================
+// Table Header (desktop)
 // ============================
 function TableHeader({ categories }: { categories: Category[] }) {
   return (
@@ -789,7 +964,7 @@ function HeaderLabel({ children }: { children: React.ReactNode }) {
 }
 
 // ============================
-// 🟢 Unsaved changes bar (bottom-floating global save)
+// Unsaved changes bar (bottom-floating global save)
 // ============================
 function UnsavedChangesBar({
   count,

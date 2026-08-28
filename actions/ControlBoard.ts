@@ -161,34 +161,48 @@ export async function updateUserSupervisor(uid: number, supervisorUsername: stri
   }
 }
 
-export async function getUsers(year: number, month: number, weekIndex: number, group?: string) {
+// ===============================
+// UPDATE USER ACTIVE STATUS
+// ===============================
+export async function updateUserActiveStatus(uid: number, isActive: boolean) {
+  try {
+    const cookieStore = await cookies();
+    const access = cookieStore.get("access")?.value;
+
+    const response = await fetch(`${API_BASE}api/v1/users/${uid}/`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${access}`,
+        "Accept-Language": "ar",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ is_active: isActive }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return { success: false, error: errorData?.is_active?.[0] || errorData?.detail };
+    }
+
+    revalidatePath("/control-board");
+    return { success: true };
+  } catch (error) {
+    console.error("Error updating active status:", error);
+    return { success: false };
+  }
+}
+
+// date_after/date_before are NOT supported on this endpoint (see /api/v1/schema/) — the
+// backend silently ignores unknown query params, so don't pass them here (unlike
+// getPoints/getUserActivities below, where the schema does support them).
+export async function getUsers(group?: string) {
   try {
     const cookieStore = await cookies();
     const access = cookieStore.get("access")?.value;
 
     if (!access) throw new Error("No access token found in cookies");
-    const monthDays = getHijriMonthDays(year, month);
 
-    let startHijriDay: number;
-    let endHijriDay: number;
-
-    if (weekIndex >= 1 && weekIndex <= 4) {
-      startHijriDay = (weekIndex - 1) * 7 + 1;
-      endHijriDay = weekIndex * 7;
-    } else if (weekIndex === 5) {
-      startHijriDay = 29;
-      endHijriDay = monthDays === 29 ? 29 : 30;
-    } else {
-      throw new Error("Invalid weekIndex");
-    }
-
-    const startDate = hijriToGregorian({ year, month, day: startHijriDay });
-    const endDate = hijriToGregorian({ year, month, day: endHijriDay });
-
-    const start = `${startDate.year}-${String(startDate.month).padStart(2, "0")}-${String(startDate.day).padStart(2, "0")}`;
-    const end = `${endDate.year}-${String(endDate.month).padStart(2, "0")}-${String(endDate.day).padStart(2, "0")}`;
-
-    const query = `?date_after=${start}&date_before=${end}${group ? `&group=${group}` : ""}`;
+    const query = group ? `?group=${group}` : "";
     const result = await fetch(`${API_BASE}api/v1/users/${query}`, {
       method: "GET",
       headers: {
