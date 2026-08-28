@@ -45,6 +45,7 @@ type Props = {
   draft: DraftEntry | undefined;
   isDirty: boolean;
   disabled: boolean;
+  isActive: boolean;
   onCategoryDraftChange: (userId: number, categoryId: number, multiplier: number) => void;
   onSupervisorDraftChange: (userId: number, supervisor: string | null) => void;
   variant: "desktop" | "mobile";
@@ -62,6 +63,7 @@ function UserRowComponent({
   draft,
   isDirty,
   disabled,
+  isActive,
   onCategoryDraftChange,
   onSupervisorDraftChange,
   variant,
@@ -72,6 +74,10 @@ function UserRowComponent({
 
   const fullName = `${firstname} ${lastname}`.trim();
   const initials = `${firstname?.charAt(0) || ""}${lastname?.charAt(0) || ""}`.trim();
+
+  // A disabled account's points don't count toward the leaderboard, so editing them is
+  // pointless — the whole row is read-only until an admin re-activates the account.
+  const rowDisabled = disabled || !isActive;
 
   const [multiplierEdit, setMultiplierEdit] = useState<MultiplierEdit | null>(null);
 
@@ -92,7 +98,7 @@ function UserRowComponent({
     <MultiplierModal
       categoryName={multiplierEdit.name}
       value={multiplierEdit.value}
-      loading={disabled}
+      loading={rowDisabled}
       onClose={() => setMultiplierEdit(null)}
       onSelect={(n) => {
         setMultiplierEdit(null);
@@ -113,8 +119,9 @@ function UserRowComponent({
           userPoints={userPoints}
           categories={categories}
           effectiveMultiplier={effectiveMultiplier}
-          disabled={disabled}
+          disabled={rowDisabled}
           isDirty={isDirty}
+          isActive={isActive}
           onToggle={(categoryId, checked) => setCategoryDraft(categoryId, checked ? 1 : 0)}
           onMultiplierChange={setCategoryDraft}
           onOpenMultiplier={setMultiplierEdit}
@@ -127,15 +134,11 @@ function UserRowComponent({
   return (
     <div
       className={`group relative flex items-center gap-3 px-4 py-3 bg-white hover:bg-[#F7FBEA]/60 transition-colors ${
-        isDirty ? "border-s-4 border-s-[#9ADD00] bg-[#F7FBEA]/40" : ""
-      } ${!isLast ? "border-b border-[#043F2E]/8" : ""}`}
+        !isActive ? "opacity-60 grayscale-[30%]" : ""
+      } ${isDirty ? "border-s-4 border-s-[#9ADD00] bg-[#F7FBEA]/40" : ""} ${!isLast ? "border-b border-[#043F2E]/8" : ""}`}
     >
       {/* Avatar */}
-      <div className="w-[44px] h-[44px] shrink-0 rounded-full bg-gradient-to-br from-[#043F2E] to-[#065f46] flex items-center justify-center text-white shadow-sm">
-        <span className={`${tajawal.className} text-sm font-bold leading-none`}>
-          {initials || <User className="w-4 h-4" strokeWidth={2.2} />}
-        </span>
-      </div>
+      <UserAvatar initials={initials} size="sm" />
 
       {/* Name */}
       <div className="w-[150px] shrink-0 min-w-0">
@@ -145,6 +148,11 @@ function UserRowComponent({
         >
           {fullName}
         </p>
+        {!isActive && (
+          <p className={`${tajawal.className} text-[10px] font-medium text-[#9B3D2E]`}>
+            الحساب معطل
+          </p>
+        )}
       </div>
 
       {/* Group / Supervisor */}
@@ -152,7 +160,7 @@ function UserRowComponent({
         <Users className="w-3.5 h-3.5 text-[#043F2E]/40 shrink-0" strokeWidth={2.2} />
         <select
           value={effectiveSupervisor || ""}
-          disabled={disabled}
+          disabled={rowDisabled}
           onChange={handleSupervisorChange}
           title={effectiveSupervisor || "بدون مشرف"}
           className={`${tajawal.className} w-full h-8 min-w-0 bg-transparent border-none rounded-md text-xs font-medium text-[#043F2E]/70 truncate focus:outline-none focus:bg-[#F7FBEA] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer appearance-none`}
@@ -178,7 +186,7 @@ function UserRowComponent({
                   value={value}
                   min={0}
                   max={20}
-                  disabled={disabled}
+                  disabled={rowDisabled}
                   title={category.name}
                   onCommit={(n) => setCategoryDraft(category.id, n)}
                 />
@@ -194,14 +202,14 @@ function UserRowComponent({
             >
               <Checkbox
                 checked={isChecked}
-                disabled={disabled}
+                disabled={rowDisabled}
                 onChange={(e) => setCategoryDraft(category.id, e.target.checked ? 1 : 0)}
                 title={category.name}
               />
               {isChecked && (
                 <MultiplierBadge
                   value={value}
-                  disabled={disabled}
+                  disabled={rowDisabled}
                   title={category.name}
                   onClick={() =>
                     setMultiplierEdit({ categoryId: category.id, name: category.name, value })
@@ -232,7 +240,28 @@ function UserRowComponent({
 export default memo(UserRowComponent);
 
 // ============================
-// 🟢 Custom Checkbox
+// Avatar — initials with a gradient fallback. Shared by the points table (this file) and
+// PendingActivationSection (ControlPanelClient.tsx), which render the same avatar for the
+// same User shape.
+// ============================
+export function UserAvatar({ initials, size }: { initials: string; size: "sm" | "md" }) {
+  const dimension = size === "md" ? "w-12 h-12" : "w-11 h-11";
+  const textSize = size === "md" ? "text-base" : "text-sm";
+  const iconSize = size === "md" ? "w-5 h-5" : "w-4 h-4";
+
+  return (
+    <div
+      className={`${dimension} shrink-0 rounded-full bg-gradient-to-br from-[#043F2E] to-[#065f46] flex items-center justify-center text-white shadow-sm`}
+    >
+      <span className={`${tajawal.className} ${textSize} font-bold leading-none`}>
+        {initials || <User className={iconSize} strokeWidth={2.2} />}
+      </span>
+    </div>
+  );
+}
+
+// ============================
+// Custom Checkbox
 // ============================
 function Checkbox({
   checked,
@@ -267,7 +296,7 @@ function Checkbox({
 }
 
 // ============================
-// 🟢 Multiplier stepper (invite member)
+// Multiplier stepper (invite member)
 // ============================
 function MultiplierStepper({
   value,
@@ -322,7 +351,7 @@ function MultiplierStepper({
 }
 
 // ============================
-// 🟢 Multiplier badge (opens modal)
+// Multiplier badge (opens modal)
 // ============================
 function MultiplierBadge({
   value,
@@ -349,7 +378,7 @@ function MultiplierBadge({
 }
 
 // ============================
-// 🟢 Multiplier modal
+// Multiplier modal
 // ============================
 function MultiplierModal({
   categoryName,
@@ -412,7 +441,7 @@ function MultiplierModal({
 }
 
 // ============================
-// 🟢 Mobile Card variant
+// Mobile Card variant
 // ============================
 function MobileCard({
   fullName,
@@ -425,6 +454,7 @@ function MobileCard({
   effectiveMultiplier,
   disabled,
   isDirty,
+  isActive,
   onToggle,
   onMultiplierChange,
   onOpenMultiplier,
@@ -439,6 +469,7 @@ function MobileCard({
   effectiveMultiplier: (categoryId: number) => number;
   disabled: boolean;
   isDirty: boolean;
+  isActive: boolean;
   onToggle: (categoryId: number, checked: boolean) => void;
   onMultiplierChange: (categoryId: number, multiplier: number) => void;
   onOpenMultiplier: (edit: MultiplierEdit) => void;
@@ -447,19 +478,20 @@ function MobileCard({
     <div
       className={`bg-[#F7FBEA] rounded-2xl border p-4 flex flex-col gap-4 ${
         isDirty ? "border-[#9ADD00]" : "border-[#043F2E]/10"
-      }`}
+      } ${!isActive ? "opacity-60 grayscale-[30%]" : ""}`}
     >
       {/* Header: Avatar + Name + Total */}
       <div className="flex items-center gap-3">
-        <div className="w-12 h-12 shrink-0 rounded-full bg-gradient-to-br from-[#043F2E] to-[#065f46] flex items-center justify-center text-white shadow-sm">
-          <span className={`${tajawal.className} text-base font-bold leading-none`}>
-            {initials || <User className="w-5 h-5" strokeWidth={2.2} />}
-          </span>
-        </div>
+        <UserAvatar initials={initials} size="md" />
         <div className="flex-1 min-w-0">
           <p className={`${tajawal.className} text-base font-bold text-[#043F2E] truncate`}>
             {fullName}
           </p>
+          {!isActive && (
+            <p className={`${tajawal.className} text-[10px] font-medium text-[#9B3D2E]`}>
+              الحساب معطل
+            </p>
+          )}
           <div className="flex items-center gap-1 mt-0.5">
             <Users className="w-3 h-3 text-[#043F2E]/40 shrink-0" strokeWidth={2.2} />
             <select
