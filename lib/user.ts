@@ -24,13 +24,13 @@ export async function Login(username: string, password: string) {
       if (response.status === 404 || response.status === 401) {
         return {
           errors: {
-            email: "Could not authenticate user. Please check your credentials.",
+            email: "تعذر التحقق من الهوية، يرجى التأكد من اسم المستخدم وكلمة المرور.",
           },
         };
       }
       return {
         errors: {
-          email: `Server error: ${result.detail || "Unknown error occurred"}`,
+          email: `خطأ في الخادم: ${result.detail || "حدث خطأ غير معروف"}`,
         },
       };
     }
@@ -39,7 +39,7 @@ export async function Login(username: string, password: string) {
     if (!result.access) {
       return {
         errors: {
-          email: "Could not authenticate user. Please check your credentials.",
+          email: "تعذر التحقق من الهوية، يرجى التأكد من اسم المستخدم وكلمة المرور.",
         },
       };
     }
@@ -51,15 +51,14 @@ export async function Login(username: string, password: string) {
     if (error instanceof TypeError && error.message.includes("fetch")) {
       return {
         errors: {
-          email:
-            "Network error: Unable to connect to the server. Please check if the server is running.",
+          email: "تعذر الاتصال بالخادم، يرجى المحاولة مرة أخرى لاحقًا.",
         },
       };
     }
 
     return {
       errors: {
-        email: "An unexpected error occurred. Please try again.",
+        email: "حدث خطأ غير متوقع، يرجى المحاولة مرة أخرى.",
       },
     };
   }
@@ -83,7 +82,7 @@ export default async function createUser(data: types) {
       if (response.status === 401) {
         return {
           errors: {
-            auth: "Unauthorized. Please login.",
+            auth: "غير مصرح لك، يرجى تسجيل الدخول.",
           },
         };
       }
@@ -104,7 +103,7 @@ export default async function createUser(data: types) {
       if (response.status === 409) {
         return {
           errors: {
-            email: "Email already exists.",
+            email: "البريد الإلكتروني مستخدم بالفعل.",
           },
         };
       }
@@ -112,7 +111,7 @@ export default async function createUser(data: types) {
       // Fallback
       return {
         errors: {
-          general: result?.message || "Something went wrong",
+          general: result?.message || "حدث خطأ ما، يرجى المحاولة مرة أخرى.",
         },
       };
     }
@@ -121,7 +120,7 @@ export default async function createUser(data: types) {
   } catch {
     return {
       errors: {
-        network: "Cannot connect to server.",
+        network: "تعذر الاتصال بالخادم، يرجى المحاولة مرة أخرى لاحقًا.",
       },
     };
   }
@@ -143,13 +142,13 @@ export async function getUserRole(token: string) {
       if (response.status === 404 || response.status === 401) {
         return {
           errors: {
-            email: "Could not authenticate user. Please check your credentials.",
+            email: "تعذر التحقق من الهوية، يرجى التأكد من اسم المستخدم وكلمة المرور.",
           },
         };
       }
       return {
         errors: {
-          email: `Server error: ${result.detail || "Unknown error occurred"}`,
+          email: `خطأ في الخادم: ${result.detail || "حدث خطأ غير معروف"}`,
         },
       };
     }
@@ -161,15 +160,14 @@ export async function getUserRole(token: string) {
     if (error instanceof TypeError && error.message.includes("fetch")) {
       return {
         errors: {
-          email:
-            "Network error: Unable to connect to the server. Please check if the server is running.",
+          email: "تعذر الاتصال بالخادم، يرجى المحاولة مرة أخرى لاحقًا.",
         },
       };
     }
 
     return {
       errors: {
-        email: "An unexpected error occurred. Please try again.",
+        email: "حدث خطأ غير متوقع، يرجى المحاولة مرة أخرى.",
       },
     };
   }
