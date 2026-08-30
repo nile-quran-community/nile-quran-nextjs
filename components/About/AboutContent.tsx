@@ -21,7 +21,6 @@ import {
   Wallet,
   MapPin,
   MessagesSquare,
-  Sparkles,
   Quote,
 } from "lucide-react";
 
@@ -182,14 +181,14 @@ export default function AboutContent() {
         />
 
         <div className="relative max-w-4xl mx-auto px-6 md:px-10 py-16 md:py-20 flex flex-col gap-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-[#BEE663] flex items-center justify-center shadow-md">
-              <Sparkles className="w-6 h-6 text-[#043F2E]" strokeWidth={2.2} />
-            </div>
-            <span className={`${tajawal.className} text-sm font-medium text-[#BEE663]/80`}>
-              مجتمع مقرأة النيل
-            </span>
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo.jpeg"
+            alt="مقرأة النيل"
+            width={240}
+            height={240}
+            className="h-20 md:h-24 w-auto self-start rounded-2xl shadow-md"
+          />
 
           <h1 className={`${lalezar.className} text-3xl md:text-5xl leading-tight`}>
             عن مجتمع مقرأة النيل
