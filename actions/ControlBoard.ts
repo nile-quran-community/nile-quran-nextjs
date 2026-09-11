@@ -31,7 +31,7 @@ export async function addUserActivity(
       body: JSON.stringify({ category, multiplier, date }),
     });
 
-    revalidatePath("/control-panel");
+    revalidatePath("/control-board");
     return { success: true };
   } catch (error) {
     console.error("Error adding activity:", error);
@@ -69,7 +69,7 @@ export async function updateUserActivity(uid: number, activityId: number, multip
       };
     }
 
-    revalidatePath("/control-panel");
+    revalidatePath("/control-board");
     return { success: true };
   } catch (error) {
     console.error("Error updating activity:", error);
