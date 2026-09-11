@@ -1,11 +1,11 @@
 "use client";
 
 import React from "react";
-import MonthGoalClient from "./MonthGoalClient";
+import GoalsClient from "./GoalsClient";
 import PerformanceBoardClient from "./PerformanceBoardClient";
 import { getLeaderboardData } from "@/actions/PerformanceBoard";
-import { getGoalOfTheMonth } from "@/actions/goal";
 import { getPreviousHijriMonth } from "@/lib/utils";
+import type { Goal } from "@/actions/goal";
 
 interface LeaderboardUser {
   id: number;
@@ -15,19 +15,12 @@ interface LeaderboardUser {
   groups: string[];
 }
 
-interface GoalData {
-  id?: number;
-  description?: string;
-  target?: number;
-  current?: number;
-}
-
 interface Props {
   initialYear: number;
   initialMonth: number;
   initialLeaderboardData: LeaderboardUser[];
   initialPreviousRanks: Record<number, number>;
-  initialGoalData: GoalData | null;
+  goals: Goal[];
 }
 
 export default function DashboardContainer({
@@ -35,7 +28,7 @@ export default function DashboardContainer({
   initialMonth,
   initialLeaderboardData,
   initialPreviousRanks,
-  initialGoalData,
+  goals,
 }: Props) {
   // Keep reference for the "Next" limit
   const [currentMonth] = React.useState(initialMonth);
@@ -47,7 +40,6 @@ export default function DashboardContainer({
     React.useState<LeaderboardUser[]>(initialLeaderboardData);
   const [previousRanks, setPreviousRanks] =
     React.useState<Record<number, number>>(initialPreviousRanks);
-  const [goalData, setGoalData] = React.useState<GoalData | null>(initialGoalData);
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -57,14 +49,12 @@ export default function DashboardContainer({
     try {
       const prev = getPreviousHijriMonth(targetYear, targetMonth);
 
-      const [currentResult, previousResult, goalResult] = await Promise.all([
+      const [currentResult, previousResult] = await Promise.all([
         getLeaderboardData(targetYear, targetMonth),
         getLeaderboardData(prev.year, prev.month),
-        getGoalOfTheMonth(targetYear, targetMonth),
       ]);
 
       if (currentResult.success) setLeaderboardData(currentResult.data);
-      if (goalResult.success) setGoalData(goalResult.data);
 
       if (previousResult.success) {
         // The API returns Students only, pre-sorted by points, so these ranks
@@ -96,21 +86,13 @@ export default function DashboardContainer({
       if (targetYear === initialYear && targetMonth === initialMonth) {
         setLeaderboardData(initialLeaderboardData);
         setPreviousRanks(initialPreviousRanks);
-        setGoalData(initialGoalData);
         setError(null);
         return;
       }
 
       loadMonth(targetYear, targetMonth);
     },
-    [
-      initialYear,
-      initialMonth,
-      initialLeaderboardData,
-      initialPreviousRanks,
-      initialGoalData,
-      loadMonth,
-    ],
+    [initialYear, initialMonth, initialLeaderboardData, initialPreviousRanks, loadMonth],
   );
 
   const canGoNext = () => {
@@ -139,7 +121,7 @@ export default function DashboardContainer({
 
   return (
     <div className="w-full h-full flex items-start gap-10 justify-center px-5 max-lg:flex-col-reverse">
-      <MonthGoalClient goalData={goalData} isLoading={isLoading} />
+      <GoalsClient goals={goals} />
       <PerformanceBoardClient
         leaderboardData={leaderboardData}
         isLoading={isLoading}

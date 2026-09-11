@@ -1,4 +1,5 @@
 import { Lalezar, Tajawal } from "next/font/google";
+import { PageHero } from "@/components/ui/PageHero";
 import {
   BookOpen,
   Compass,
@@ -166,64 +167,49 @@ const VISION_GOALS = [
 export default function AboutContent() {
   return (
     <div className="w-full bg-[#EBF0EB] min-h-screen" dir="rtl">
-      {/* ============================ */}
-      {/* 🟢 Hero */}
-      {/* ============================ */}
-      <section className="relative bg-[#043F2E] text-white overflow-hidden">
-        {/* Decorative gradient accents */}
-        <div
-          aria-hidden
-          className="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-[#BEE663]/10 blur-3xl"
-        />
-        <div
-          aria-hidden
-          className="absolute -bottom-32 -left-16 w-96 h-96 rounded-full bg-[#BEE663]/5 blur-3xl"
+      <PageHero innerClassName="gap-6">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/logo.jpeg"
+          alt="مقرأة النيل"
+          width={240}
+          height={240}
+          className="h-20 md:h-24 w-auto self-start rounded-2xl shadow-md"
         />
 
-        <div className="relative max-w-4xl mx-auto px-6 md:px-10 py-16 md:py-20 flex flex-col gap-6">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/logo.jpeg"
-            alt="مقرأة النيل"
-            width={240}
-            height={240}
-            className="h-20 md:h-24 w-auto self-start rounded-2xl shadow-md"
-          />
+        <h1 className={`${lalezar.className} text-3xl md:text-5xl leading-tight`}>
+          عن مجتمع مقرأة النيل
+        </h1>
 
-          <h1 className={`${lalezar.className} text-3xl md:text-5xl leading-tight`}>
-            عن مجتمع مقرأة النيل
-          </h1>
-
-          <div className="flex items-center gap-3">
-            <div className="h-px flex-1 bg-[#BEE663]/30" />
-            <p className={`${lalezar.className} text-xl md:text-2xl text-[#BEE663]`}>
-              ولتكن منكم أمة
-            </p>
-            <div className="h-px flex-1 bg-[#BEE663]/30" />
-          </div>
-
-          <div className="flex flex-col gap-4 max-w-3xl">
-            <p
-              className={`${tajawal.className} text-base md:text-[17px] leading-[1.9] text-white/90 font-normal`}
-            >
-              مرحلة الجامعة من أجمل وأهم مراحل حياة الشاب؛ فيها تتسع مداركه، وتتكوّن شخصيته، وتتشكّل
-              طموحاته وعلاقاته، ويبدأ في رسم ملامح مستقبله.
-            </p>
-            <p
-              className={`${tajawal.className} text-base md:text-[17px] leading-[1.9] text-white/90 font-normal`}
-            >
-              وفي خضم هذه الرحلة، يظل الإنسان في حاجة إلى صحبة تعينه على الخير، وتذكّره بالله، وتشاركه
-              الطريق إليه؛ ليكون غيثًا نافعًا أينما حل.
-            </p>
-            <p
-              className={`${tajawal.className} text-base md:text-[17px] leading-[1.9] text-white/80 font-normal`}
-            >
-              ومن هنا تبرز الحاجة إلى مجتمع يجمع الشباب على القرآن، ويهيئ لهم بيئة صالحة ينمون فيها
-              معًا، ويتواصون بالحق، ويتعاونون على البر والتقوى.
-            </p>
-          </div>
+        <div className="flex items-center gap-3">
+          <div className="h-px flex-1 bg-[#BEE663]/30" />
+          <p className={`${lalezar.className} text-xl md:text-2xl text-[#BEE663]`}>
+            ولتكن منكم أمة
+          </p>
+          <div className="h-px flex-1 bg-[#BEE663]/30" />
         </div>
-      </section>
+
+        <div className="flex flex-col gap-4 max-w-3xl">
+          <p
+            className={`${tajawal.className} text-base md:text-[17px] leading-[1.9] text-white/90 font-normal`}
+          >
+            مرحلة الجامعة من أجمل وأهم مراحل حياة الشاب؛ فيها تتسع مداركه، وتتكوّن شخصيته، وتتشكّل
+            طموحاته وعلاقاته، ويبدأ في رسم ملامح مستقبله.
+          </p>
+          <p
+            className={`${tajawal.className} text-base md:text-[17px] leading-[1.9] text-white/90 font-normal`}
+          >
+            وفي خضم هذه الرحلة، يظل الإنسان في حاجة إلى صحبة تعينه على الخير، وتذكّره بالله، وتشاركه
+            الطريق إليه؛ ليكون غيثًا نافعًا أينما حل.
+          </p>
+          <p
+            className={`${tajawal.className} text-base md:text-[17px] leading-[1.9] text-white/80 font-normal`}
+          >
+            ومن هنا تبرز الحاجة إلى مجتمع يجمع الشباب على القرآن، ويهيئ لهم بيئة صالحة ينمون فيها
+            معًا، ويتواصون بالحق، ويتعاونون على البر والتقوى.
+          </p>
+        </div>
+      </PageHero>
 
       {/* ============================ */}
       {/* 🟢 Content */}

@@ -15,6 +15,7 @@ import {
   UserCheck,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { PageHero, PageHeroHeading } from "@/components/ui/PageHero";
 import {
   getUsers,
   getCategories,
@@ -448,40 +449,14 @@ export default function ControlPanelClient() {
 
   return (
     <div className="relative flex flex-col min-h-screen bg-[#EBF0EB]" dir="rtl">
-      {/* Hero Header */}
-      <div className="relative w-full bg-[#043F2E] overflow-hidden">
-        {/* Decorative geometric accents */}
-        <div
-          aria-hidden
-          className="absolute -top-24 -left-24 w-72 h-72 rounded-full bg-[#BEE663]/10 blur-2xl"
+      <PageHero>
+        <PageHeroHeading
+          icon={Sparkles}
+          eyebrow="لوحة الإدارة"
+          title="لوحة التحكم"
+          subtitle="إدارة نقاط الطلاب والمتابعة الأسبوعية"
         />
-        <div
-          aria-hidden
-          className="absolute -bottom-32 -right-16 w-96 h-96 rounded-full bg-[#BEE663]/5 blur-3xl"
-        />
-
-        <div className="relative container mx-auto px-6 lg:px-12 py-10 flex flex-col gap-6">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-[#BEE663] flex items-center justify-center shadow-md">
-                <Sparkles className="w-7 h-7 text-[#043F2E]" strokeWidth={2.2} />
-              </div>
-              <div className="flex flex-col">
-                <h1
-                  className={`${lalezar.className} text-3xl md:text-4xl text-white leading-tight`}
-                >
-                  لوحة التحكم
-                </h1>
-                <p
-                  className={`${tajawal.className} text-sm md:text-base text-[#BEE663]/80 font-medium`}
-                >
-                  إدارة نقاط الطلاب والمتابعة الأسبوعية
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      </PageHero>
 
       {/* Main content */}
       <div className="container mx-auto px-4 lg:px-12 -mt-6 pb-12 relative z-10 flex flex-col gap-6">

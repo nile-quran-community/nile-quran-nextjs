@@ -1,6 +1,7 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { hijriToGregorian, gregorianToHijri } from "@tabby_ai/hijri-converter";
+import type { Goal } from "@/actions/goal";
 
 export interface WeekRange {
   start: string;
@@ -39,6 +40,38 @@ export const formatDate = (d: Date) => {
   const day = String(d.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 };
+
+// "today" in the community's own timezone rather than the server process's — matters near
+// midnight when the server (e.g. a UTC Docker container) and Cairo disagree on the date.
+// ponytail: hardcoded to Africa/Cairo; promote to an env-configured timezone if the platform
+// ever serves communities outside Egypt.
+export const getTodayDateString = () =>
+  new Date().toLocaleDateString("en-CA", { timeZone: "Africa/Cairo" });
+
+export const formatArabicNumber = (n: number) => toArabicDigits(n.toLocaleString("en-US"));
+
+export function getGoalProgress(current: number, target: number): number {
+  if (target <= 0) return 0;
+  return Math.min(Math.max((current / target) * 100, 0), 100);
+}
+
+// A date field may come back as a bare "YYYY-MM-DD" or a full datetime — compare only the date part.
+function dateOnly(d: string | null): string | null {
+  return d ? d.slice(0, 10) : null;
+}
+
+// An unset start/end date is treated as open-ended (already started / never ending) rather than
+// excluded — the backend's date-range filters can't express "or null", and goals created before
+// start/end dates existed in the admin UI have neither set, so filtering server-side would
+// silently hide them. Shared by the home page's current-goals filter and the goals page's status
+// pills so the two surfaces can't disagree on which goals count as active.
+export function getGoalStatus(goal: Goal, today: string): "current" | "upcoming" | "ended" {
+  const start = dateOnly(goal.start_date);
+  const end = dateOnly(goal.end_date);
+  if (start && start > today) return "upcoming";
+  if (end && end < today) return "ended";
+  return "current";
+}
 
 export function getHijriMonthDays(year: number, month: number) {
   // 1. نحول يوم 29 من الشهر الهجري المطلوب إلى ميلادي
