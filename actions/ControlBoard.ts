@@ -258,12 +258,12 @@ export async function getUserActivities(
     let startHijriDay: number;
     let endHijriDay: number;
 
-    if (weekIndex >= 1 && weekIndex <= 4) {
+    if (weekIndex >= 1 && weekIndex <= 3) {
       startHijriDay = (weekIndex - 1) * 7 + 1;
       endHijriDay = weekIndex * 7;
-    } else if (weekIndex === 5) {
-      startHijriDay = 29;
-      endHijriDay = monthDays === 29 ? 29 : 30;
+    } else if (weekIndex === 4) {
+      startHijriDay = 22;
+      endHijriDay = monthDays;
     } else {
       throw new Error("Invalid weekIndex");
     }
@@ -309,12 +309,12 @@ export async function getPoints(year: number, month: number, weekIndex: number) 
     let startHijriDay: number;
     let endHijriDay: number;
 
-    if (weekIndex >= 1 && weekIndex <= 4) {
+    if (weekIndex >= 1 && weekIndex <= 3) {
       startHijriDay = (weekIndex - 1) * 7 + 1;
       endHijriDay = weekIndex * 7;
-    } else if (weekIndex === 5) {
-      startHijriDay = 29;
-      endHijriDay = monthDays === 29 ? 29 : 30;
+    } else if (weekIndex === 4) {
+      startHijriDay = 22;
+      endHijriDay = monthDays;
     } else {
       throw new Error("Invalid weekIndex");
     }

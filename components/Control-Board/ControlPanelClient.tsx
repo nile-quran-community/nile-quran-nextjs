@@ -114,15 +114,12 @@ export default function ControlPanelClient() {
     day: date.getDate(),
   });
 
-  const getInitialWeekIndex = () => {
-    if (hijriDate.day <= 28) {
-      return Math.ceil(hijriDate.day / 7);
-    }
-    return 5;
-  };
+  // Clamped, not a plain ceil: days 29/30 (the old trailing "week 5") now fold into week 4
+  // instead of the month having a 5th, 1-2 day week.
+  const getInitialWeekIndex = () => Math.min(Math.ceil(hijriDate.day / 7), 4);
 
   const currentWeek = getInitialWeekIndex();
-  const weekArabicNames = ["الأول", "الثاني", "الثالث", "الرابع", "الخامس"];
+  const weekArabicNames = ["الأول", "الثاني", "الثالث", "الرابع"];
 
   const [data, setData] = useState<ControlPanelData>({
     users: [],
@@ -220,7 +217,7 @@ export default function ControlPanelClient() {
     if (loading || isSavingAll) return;
 
     if (dir === "next") {
-      if (weekIndex < 5) {
+      if (weekIndex < 4) {
         setWeekIndex((prev) => prev + 1);
       } else {
         setWeekIndex(1);
@@ -235,7 +232,7 @@ export default function ControlPanelClient() {
       if (weekIndex > 1) {
         setWeekIndex((prev) => prev - 1);
       } else {
-        setWeekIndex(5);
+        setWeekIndex(4);
         if (month === 1) {
           setMonth(12);
           setYear((prev) => prev - 1);
@@ -599,7 +596,7 @@ export default function ControlPanelClient() {
                 </div>
 
                 <Progress
-                  value={(weekIndex / 5) * 100}
+                  value={(weekIndex / 4) * 100}
                   className="h-3 bg-[#DEFF90]"
                   className2="bg-[#9ADD00]"
                 />
