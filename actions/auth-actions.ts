@@ -6,7 +6,8 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { cache } from "react";
 import { jwtDecode, JwtPayload } from "jwt-decode";
-import type { SignupErrors, SignupFormState } from "@/lib/types";
+import type { ZodError } from "zod";
+import { loginSchema, signupSchema, type LoginValues, type SignupValues } from "@/lib/schemas";
 
 const API_BASE = process.env.BASE_URL;
 
@@ -20,34 +21,45 @@ const COOKIE_OPTIONS = {
   path: "/",
 };
 
-export async function login(prevState: { errors: Record<string, string> }, formData: FormData) {
-  const username = formData.get("username") as string;
-  const password = formData.get("password") as string;
+// Field errors keyed the way the form names its inputs; "general" is anything
+// that belongs to no single field.
+export type FormErrors = Record<string, string>;
 
-  const existingUser = await Login(username, password);
+export async function login(values: LoginValues): Promise<{ errors: FormErrors } | undefined> {
+  // The browser already checks these, but a server action is a public endpoint sooo
+  const parsed = loginSchema.safeParse(values);
+  if (!parsed.success) {
+    return { errors: fieldErrors(parsed.error) };
+  }
+
+  const existingUser = await Login(parsed.data.username, parsed.data.password);
 
   if (!existingUser.access) {
     return {
       errors: {
-        email: existingUser?.detail || "فشل تسجيل الدخول، تأكد من اسم المستخدم وكلمة المرور.",
+        general:
+          existingUser?.errors?.email ||
+          existingUser?.detail ||
+          "فشل تسجيل الدخول، تأكد من اسم المستخدم وكلمة المرور.",
       },
     };
   }
 
-  if (existingUser.access) {
-    const cookieStore = await cookies();
+  const cookieStore = await cookies();
+  await cookieStore.set(COOKIE_NAME1, existingUser.access, COOKIE_OPTIONS);
+  await cookieStore.set(COOKIE_NAME2, existingUser.refresh, COOKIE_OPTIONS);
 
-    await cookieStore.set(COOKIE_NAME1, existingUser.access, COOKIE_OPTIONS);
-    await cookieStore.set(COOKIE_NAME2, existingUser.refresh, COOKIE_OPTIONS);
+  redirect("/");
+}
 
-    redirect("/");
-  } else {
-    return {
-      errors: {
-        email: `حدث خطأ أثناء تسجيل الدخول: ${existingUser.detail}`,
-      },
-    };
+// zod reports every failing rule; the forms show one message per field, so keep the first
+function fieldErrors(error: ZodError): FormErrors {
+  const errors: FormErrors = {};
+  for (const issue of error.issues) {
+    const key = String(issue.path[0] ?? "general");
+    if (!(key in errors)) errors[key] = issue.message;
   }
+  return errors;
 }
 
 export async function logout() {
@@ -136,101 +148,44 @@ export async function checkTokenValidity() {
   return checkTokenValidityCached();
 }
 
-export async function signup(prevState: SignupFormState, formData: FormData) {
-  const firstName = formData.get("firstName") as string;
-  const lastName = formData.get("lastName") as string;
-  const email = formData.get("email") as string;
-  const referrer = formData.get("referrer") as string;
-  const username = formData.get("username") as string;
-  const password = formData.get("password") as string;
-
-  const values = { firstName, lastName, email, referrer, username };
-
-  const errors: SignupErrors = {};
-
-  // First Name
-  if (!firstName || firstName.trim().length === 0) {
-    errors.firstName = "الاسم الأول مطلوب";
-  } else if (firstName.trim().length < 2) {
-    errors.firstName = "يجب أن يحتوي الاسم الأول على حرفين على الأقل";
-  } else if (firstName.trim().length > 50) {
-    errors.firstName = "يجب ألا يتجاوز الاسم الأول 50 حرفًا";
-  } else if (!/^[\u0621-\u064A\u0660-\u0669a-zA-Z\s'-]+$/.test(firstName.trim())) {
-    errors.firstName = "يسمح فقط بالحروف العربية أو الإنجليزية والمسافات والواصلات";
+// DRF answers with one message or a list of them per field.
+// The form shows a single line, so take the first.
+function flattenApiErrors(errors: Record<string, unknown>): FormErrors {
+  const flat: FormErrors = {};
+  for (const [key, value] of Object.entries(errors)) {
+    const message = Array.isArray(value) ? value[0] : value;
+    if (message) flat[key] = String(message);
   }
 
-  // Last Name
-  if (!lastName || lastName.trim().length === 0) {
-    errors.lastName = "اسم العائلة مطلوب";
-  } else if (lastName.trim().length < 2) {
-    errors.lastName = "يجب أن يحتوي اسم العائلة على حرفين على الأقل";
-  } else if (lastName.trim().length > 50) {
-    errors.lastName = "يجب ألا يتجاوز اسم العائلة 50 حرفًا";
-  } else if (!/^[\u0621-\u064A\u0660-\u0669a-zA-Z\s'-]+$/.test(lastName.trim())) {
-    errors.lastName = "يسمح فقط بالحروف العربية أو الإنجليزية والمسافات والواصلات";
+  return flat;
+}
+
+export async function signup(values: SignupValues): Promise<{ errors: FormErrors } | undefined> {
+  const parsed = signupSchema.safeParse(values);
+  if (!parsed.success) {
+    return { errors: fieldErrors(parsed.error) };
   }
 
-  // Email
-  if (!email || email.trim().length === 0) {
-    errors.email = "البريد الإلكتروني مطلوب";
-  } else if (!email.includes("@")) {
-    errors.email = "يرجى إدخال بريد إلكتروني صحيح";
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-    errors.email = "يرجى إدخال بريد إلكتروني صحيح";
-  } else if (email.trim().length > 254) {
-    errors.email = "البريد الإلكتروني طويل جدًا";
-  }
-
-  // Referrer
-  if (!referrer || referrer.trim().length === 0) {
-    errors.referrer = "يجب اختيار جهة الإحالة";
-  }
-
-  // Username
-  if (!username || username.trim().length === 0) {
-    errors.username = "اسم المستخدم مطلوب";
-  }
-
-  // Password
-  if (!password || password.length === 0) {
-    errors.password = "كلمة المرور مطلوبة";
-  } else if (password.length < 8) {
-    errors.password = "يجب أن تحتوي كلمة المرور على 8 أحرف على الأقل";
-  } else if (password.length > 128) {
-    errors.password = "كلمة المرور طويلة جدًا";
-  } else if (!/(?=.*[a-z])/.test(password)) {
-    errors.password = "يجب أن تحتوي كلمة المرور على حرف صغير واحد على الأقل";
-  } else if (!/(?=.*[A-Z])/.test(password)) {
-    errors.password = "يجب أن تحتوي كلمة المرور على حرف كبير واحد على الأقل";
-  } else if (!/(?=.*\d)/.test(password)) {
-    errors.password = "يجب أن تحتوي كلمة المرور على رقم واحد على الأقل";
-  } else if (!/(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])/.test(password)) {
-    errors.password = "يجب أن تحتوي كلمة المرور على رمز خاص واحد على الأقل";
-  }
-
-  if (Object.keys(errors).length > 0) {
-    return { errors, values };
-  }
+  const { firstName, lastName, email, referrer, username, password } = parsed.data;
 
   try {
     const result = await createUser({
-      first_name: firstName.trim(),
-      last_name: lastName.trim(),
-      email: email.trim().toLowerCase(),
-      password: password,
+      first_name: firstName,
+      last_name: lastName,
+      email: email.toLowerCase(),
+      password,
       referrer: referrer.toLowerCase(),
-      username: username.trim(),
+      username,
     });
+
     if (result?.errors) {
-      return {
-        values,
-        errors: result.errors,
-        success: result.success,
-        data: result.data,
-      };
+      return { errors: flattenApiErrors(result.errors) };
     }
 
-    redirect("/auth");
+    // The account is created but inactive until an administrator approves it.
+    // The login page says so but the login endpoint itself cannot, because it
+    // answers identically for a wrong password and a pending account.
+    redirect("/auth?mode=login&pending=1");
   } catch (error: unknown) {
     if (
       typeof error === "object" &&
@@ -242,11 +197,6 @@ export async function signup(prevState: SignupFormState, formData: FormData) {
       throw error;
     }
 
-    return {
-      values,
-      errors: {
-        email: "حدث خطأ غير متوقع، يرجى المحاولة مرة أخرى.",
-      },
-    };
+    return { errors: { general: "حدث خطأ غير متوقع، يرجى المحاولة مرة أخرى." } };
   }
 }

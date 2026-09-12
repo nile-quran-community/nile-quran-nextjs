@@ -1,18 +1,20 @@
 "use client";
 import { Tajawal } from "next/font/google";
-import { useActionState } from "react";
-import { AlertCircle, Lock, Mail, AtSign, UserPlus } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Lock, Mail, AtSign, UserPlus } from "lucide-react";
 import { signup } from "@/actions/auth-actions";
+import { signupSchema, type SignupValues } from "@/lib/schemas";
 import { Spinner } from "../ui/spinner";
-import type { SignupFormState } from "@/lib/types";
 import InfoTooltip from "./InfoTooltip";
+import FormErrorList from "./FormErrorList";
 
 const tajawal = Tajawal({
   subsets: ["arabic"],
   weight: "700",
 });
 
-function inputClass(hasError: string | undefined, withIcon: boolean) {
+function inputClass(hasError: boolean, withIcon: boolean) {
   return [
     "bg-white w-full h-14 max-sm:h-11 rounded-[7px] border placeholder:text-end outline-none focus:placeholder:opacity-0 transition-colors",
     hasError
@@ -22,54 +24,80 @@ function inputClass(hasError: string | undefined, withIcon: boolean) {
   ].join(" ");
 }
 
+// Field names the API answers with, mapped onto the names this form uses
+const API_FIELD_ALIASES: Record<string, keyof SignupValues> = {
+  first_name: "firstName",
+  last_name: "lastName",
+};
+
 export default function SignUpForm() {
-  const initialState: SignupFormState = {
-    errors: {},
-    values: {
+  const {
+    register,
+    handleSubmit,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm<SignupValues>({
+    resolver: zodResolver(signupSchema),
+    // The form keeps whatever the member typed when a submit fails
+    defaultValues: {
       firstName: "",
       lastName: "",
       email: "",
       username: "",
       referrer: "",
+      password: "",
     },
-  };
-  const [formState, formAction, isPending] = useActionState(signup, initialState);
+  });
+
+  const onSubmit = handleSubmit(async (values) => {
+    // A successful signup redirects from the server action and never returns
+    const result = await signup(values);
+    for (const [field, message] of Object.entries(result?.errors ?? {})) {
+      const target = API_FIELD_ALIASES[field] ?? field;
+      const known = target in signupSchema.shape;
+      setError(known ? (target as keyof SignupValues) : "root", { message });
+    }
+  });
 
   return (
     <form
       id="auth-form"
-      action={formAction}
+      onSubmit={onSubmit}
+      noValidate
       className={`${tajawal.className} px-20 py-5 flex flex-col gap-5 max-sm:px-8`}
     >
       <div className="flex gap-3">
         <div className="w-1/2 flex flex-col gap-3 items-end">
-          <label className="text-[#043F2E] text-[20px] max-sm:text-[16px]">الاسم الاخير</label>
+          <label htmlFor="lastName" className="text-[#043F2E] text-[20px] max-sm:text-[16px]">
+            الاسم الاخير
+          </label>
           <input
             type="text"
             id="lastName"
-            name="lastName"
-            defaultValue={formState.values?.lastName ?? ""}
             placeholder="الاسم الاخير"
             dir="auto"
-            className={inputClass(formState.errors?.lastName, false)}
+            className={inputClass(!!errors.lastName, false)}
+            {...register("lastName")}
           />
         </div>
         <div className="w-1/2 flex flex-col gap-3 items-end">
-          <label className="text-[#043F2E] text-[20px] max-sm:text-[16px]">الاسم الاول</label>
+          <label htmlFor="firstName" className="text-[#043F2E] text-[20px] max-sm:text-[16px]">
+            الاسم الاول
+          </label>
           <input
             type="text"
             id="firstName"
-            name="firstName"
-            defaultValue={formState.values?.firstName ?? ""}
             placeholder="الاسم الاول"
             dir="auto"
-            required
-            className={inputClass(formState.errors?.firstName, false)}
+            className={inputClass(!!errors.firstName, false)}
+            {...register("firstName")}
           />
         </div>
       </div>
       <div className="flex flex-col gap-3 items-end">
-        <label className="text-[#043F2E] text-[20px] max-sm:text-[16px]">البريد الالكترونى</label>
+        <label htmlFor="email" className="text-[#043F2E] text-[20px] max-sm:text-[16px]">
+          البريد الالكترونى
+        </label>
         <div className="relative w-full">
           <Mail
             className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#043F2E]/60 pointer-events-none"
@@ -78,17 +106,18 @@ export default function SignUpForm() {
           <input
             type="email"
             id="email"
-            name="email"
-            defaultValue={formState.values?.email ?? ""}
             placeholder="البريد الالكترونى"
             dir="auto"
-            required
-            className={inputClass(formState.errors?.email, true)}
+            autoComplete="email"
+            className={inputClass(!!errors.email, true)}
+            {...register("email")}
           />
         </div>
       </div>
       <div className="flex flex-col gap-3 items-end">
-        <label className="text-[#043F2E] text-[20px] max-sm:text-[16px]">اسم المستخدم</label>
+        <label htmlFor="username" className="text-[#043F2E] text-[20px] max-sm:text-[16px]">
+          اسم المستخدم
+        </label>
         <div className="relative w-full">
           <AtSign
             className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#043F2E]/60 pointer-events-none"
@@ -97,12 +126,11 @@ export default function SignUpForm() {
           <input
             type="text"
             id="username"
-            name="username"
-            defaultValue={formState.values?.username ?? ""}
             placeholder="اسم المستخدم"
             dir="auto"
-            required
-            className={inputClass(formState.errors?.username, true)}
+            autoComplete="username"
+            className={inputClass(!!errors.username, true)}
+            {...register("username")}
           />
         </div>
       </div>
@@ -121,17 +149,17 @@ export default function SignUpForm() {
           <input
             type="text"
             id="referrer"
-            name="referrer"
-            defaultValue={formState.values?.referrer ?? ""}
             placeholder="اسم المستخدم لمن دعاك"
             dir="auto"
-            required
-            className={inputClass(formState.errors?.referrer, true)}
+            className={inputClass(!!errors.referrer, true)}
+            {...register("referrer")}
           />
         </div>
       </div>
       <div className="flex flex-col gap-3 items-end">
-        <label className="text-[#043F2E] text-[20px] max-sm:text-[16px]">كلمة السر</label>
+        <label htmlFor="password" className="text-[#043F2E] text-[20px] max-sm:text-[16px]">
+          كلمة السر
+        </label>
         <div className="relative w-full">
           <Lock
             className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#043F2E]/60 pointer-events-none"
@@ -140,38 +168,21 @@ export default function SignUpForm() {
           <input
             type="password"
             id="password"
-            name="password"
-            required
             placeholder="كلمة السر"
             dir="auto"
-            className={inputClass(formState.errors?.password, true)}
+            autoComplete="new-password"
+            className={inputClass(!!errors.password, true)}
+            {...register("password")}
           />
         </div>
       </div>
-      {/* ERRORS */}
-      {formState.errors && Object.keys(formState.errors).length > 0 && (
-        <ul dir="rtl" className="list-none p-0 m-0 text-right w-full flex flex-col gap-2">
-          {Object.entries(formState.errors).map(([key, value]) => {
-            if (!value) return null;
-            return (
-              <li
-                key={key}
-                role="alert"
-                className="flex items-center gap-1.5 text-sm text-[#9B3D2E] font-medium"
-              >
-                <AlertCircle className="w-3.5 h-3.5 shrink-0" strokeWidth={2.4} />
-                <span>{String(value)}</span>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+      <FormErrorList errors={errors} />
       <button
-        disabled={isPending}
+        disabled={isSubmitting}
         type="submit"
         className="rounded-[7px] flex justify-center items-center w-full bg-[#BEE663] h-14 max-sm:h-11 font-extrabold text-[20px] text-[#043F2E] cursor-pointer"
       >
-        {isPending ? <Spinner /> : "إنشاء حساب"}
+        {isSubmitting ? <Spinner /> : "إنشاء حساب"}
       </button>
     </form>
   );
