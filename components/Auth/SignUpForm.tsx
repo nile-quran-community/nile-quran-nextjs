@@ -7,7 +7,7 @@ import { signup } from "@/actions/auth-actions";
 import { signupSchema, type SignupValues } from "@/lib/schemas";
 import { Spinner } from "../ui/spinner";
 import InfoTooltip from "./InfoTooltip";
-import FormErrorList from "./FormErrorList";
+import FieldError from "../ui/field-error";
 
 const tajawal = Tajawal({
   subsets: ["arabic"],
@@ -77,8 +77,11 @@ export default function SignUpForm() {
             placeholder="الاسم الاخير"
             dir="auto"
             className={inputClass(!!errors.lastName, false)}
+            aria-invalid={!!errors.lastName}
+            aria-describedby={errors.lastName ? "lastName-error" : undefined}
             {...register("lastName")}
           />
+          <FieldError id="lastName-error" message={errors.lastName?.message} />
         </div>
         <div className="w-1/2 flex flex-col gap-3 items-end">
           <label htmlFor="firstName" className="text-[#043F2E] text-[20px] max-sm:text-[16px]">
@@ -90,8 +93,11 @@ export default function SignUpForm() {
             placeholder="الاسم الاول"
             dir="auto"
             className={inputClass(!!errors.firstName, false)}
+            aria-invalid={!!errors.firstName}
+            aria-describedby={errors.firstName ? "firstName-error" : undefined}
             {...register("firstName")}
           />
+          <FieldError id="firstName-error" message={errors.firstName?.message} />
         </div>
       </div>
       <div className="flex flex-col gap-3 items-end">
@@ -110,9 +116,12 @@ export default function SignUpForm() {
             dir="auto"
             autoComplete="email"
             className={inputClass(!!errors.email, true)}
+            aria-invalid={!!errors.email}
+            aria-describedby={errors.email ? "email-error" : undefined}
             {...register("email")}
           />
         </div>
+        <FieldError id="email-error" message={errors.email?.message} />
       </div>
       <div className="flex flex-col gap-3 items-end">
         <label htmlFor="username" className="text-[#043F2E] text-[20px] max-sm:text-[16px]">
@@ -130,9 +139,12 @@ export default function SignUpForm() {
             dir="auto"
             autoComplete="username"
             className={inputClass(!!errors.username, true)}
+            aria-invalid={!!errors.username}
+            aria-describedby={errors.username ? "username-error" : undefined}
             {...register("username")}
           />
         </div>
+        <FieldError id="username-error" message={errors.username?.message} />
       </div>
       <div className="flex flex-col gap-3 items-end">
         <div className="flex items-center gap-2">
@@ -152,9 +164,12 @@ export default function SignUpForm() {
             placeholder="اسم المستخدم لمن دعاك"
             dir="auto"
             className={inputClass(!!errors.referrer, true)}
+            aria-invalid={!!errors.referrer}
+            aria-describedby={errors.referrer ? "referrer-error" : undefined}
             {...register("referrer")}
           />
         </div>
+        <FieldError id="referrer-error" message={errors.referrer?.message} />
       </div>
       <div className="flex flex-col gap-3 items-end">
         <label htmlFor="password" className="text-[#043F2E] text-[20px] max-sm:text-[16px]">
@@ -172,11 +187,14 @@ export default function SignUpForm() {
             dir="auto"
             autoComplete="new-password"
             className={inputClass(!!errors.password, true)}
+            aria-invalid={!!errors.password}
+            aria-describedby={errors.password ? "password-error" : undefined}
             {...register("password")}
           />
         </div>
+        <FieldError id="password-error" message={errors.password?.message} />
       </div>
-      <FormErrorList errors={errors} />
+      <FieldError message={errors.root?.message} />
       <button
         disabled={isSubmitting}
         type="submit"

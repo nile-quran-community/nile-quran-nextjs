@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Lalezar, Tajawal } from "next/font/google";
 import { Pencil, X, Mail, Lock, Loader2, Check, UserCheck, AlertCircle } from "lucide-react";
 import { updateUser } from "@/actions/profile";
+import FieldError from "@/components/ui/field-error";
 import { editProfileSchema, type EditProfileValues } from "@/lib/schemas";
 
 const lalezar = Lalezar({ subsets: ["arabic"], weight: "400" });
@@ -268,19 +269,6 @@ function EditModal({
           </button>
         </form>
       </div>
-    </div>
-  );
-}
-
-function FieldError({ message }: { message?: string }) {
-  if (!message) return null;
-  return (
-    <div
-      role="alert"
-      className={`${tajawal.className} flex items-center gap-1.5 text-xs text-[#9B3D2E] font-medium`}
-    >
-      <AlertCircle className="w-3.5 h-3.5 shrink-0" strokeWidth={2.4} />
-      <span>{message}</span>
     </div>
   );
 }

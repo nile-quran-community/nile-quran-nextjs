@@ -6,7 +6,7 @@ import { Lock, User as UserIcon } from "lucide-react";
 import { login } from "@/actions/auth-actions";
 import { loginSchema, type LoginValues } from "@/lib/schemas";
 import { Spinner } from "../ui/spinner";
-import FormErrorList from "./FormErrorList";
+import FieldError from "../ui/field-error";
 
 const tajawal = Tajawal({
   subsets: ["arabic"],
@@ -33,9 +33,9 @@ export default function LoginForm() {
     defaultValues: { username: "", password: "" },
   });
 
-  // Login errors are generic ("invalid credentials") — the backend doesn't
-  // tell us which field is wrong, so highlight both together.
-  const hasLoginError = Object.keys(errors).length > 0;
+  // A rejected login names no field; the backend deliberately won't say which
+  // half was wrong, so it marks both inputs and speaks once, above the button.
+  const badCredentials = !!errors.root;
 
   const onSubmit = handleSubmit(async (values) => {
     // A successful login redirects from the server action and never returns
@@ -67,10 +67,13 @@ export default function LoginForm() {
             placeholder="اسم المستخدم"
             dir="auto"
             autoComplete="username"
-            className={inputClass(hasLoginError)}
+            className={inputClass(!!errors.username || badCredentials)}
+            aria-invalid={!!errors.username || badCredentials}
+            aria-describedby={errors.username ? "username-error" : undefined}
             {...register("username")}
           />
         </div>
+        <FieldError id="username-error" message={errors.username?.message} />
       </div>
       <div className="flex flex-col gap-3 items-end">
         <label htmlFor="password" className="text-[#043F2E] text-[20px] max-sm:text-[16px]">
@@ -87,12 +90,15 @@ export default function LoginForm() {
             placeholder="كلمة السر"
             dir="auto"
             autoComplete="current-password"
-            className={inputClass(hasLoginError)}
+            className={inputClass(!!errors.password || badCredentials)}
+            aria-invalid={!!errors.password || badCredentials}
+            aria-describedby={errors.password ? "password-error" : undefined}
             {...register("password")}
           />
         </div>
+        <FieldError id="password-error" message={errors.password?.message} />
       </div>
-      <FormErrorList errors={errors} />
+      <FieldError message={errors.root?.message} />
       <button
         disabled={isSubmitting}
         type="submit"
