@@ -13,6 +13,7 @@ import {
   Inbox,
   Check,
   UserCheck,
+  RotateCcw,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { PageHero, PageHeroHeading } from "@/components/ui/PageHero";
@@ -81,13 +82,27 @@ async function fetchCategories(): Promise<Category[]> {
 // Same date-for-a-new-activity rule the row used to compute itself — now computed once per
 // save batch instead of once per row, since every pending edit in a batch targets the same
 // currently-viewed week.
-function getActivityDateFor(weekIndex: number, currentWeek: number, year: number, month: number) {
-  if (weekIndex === currentWeek) {
+//
+// "Is this really today" requires year + month to match too, not just the week number —
+// week 1 of the viewed month otherwise looks identical to week 1 of the real current month
+// whenever today happens to fall in week 1, silently stamping historical entries with
+// today's real date instead of a date inside the month being edited.
+function getActivityDateFor(
+  weekIndex: number,
+  currentWeek: number,
+  year: number,
+  month: number,
+  todayHijriYear: number,
+  todayHijriMonth: number,
+) {
+  if (weekIndex === currentWeek && year === todayHijriYear && month === todayHijriMonth) {
     return new Date().toISOString();
   }
   const day = weekIndex === 1 ? 1 : (weekIndex - 1) * 7 + 1;
   const currentDate = hijriToGregorian({ year, month, day });
-  return `${currentDate.year}-${currentDate.month}-${currentDate.day}T17:55:09.157Z`;
+  // Fixed midday time-of-day — only the date matters for a historical entry, and any
+  // constant time keeps it safely inside that calendar day.
+  return `${currentDate.year}-${currentDate.month}-${currentDate.day}T12:00:00.000Z`;
 }
 
 // Component
@@ -190,6 +205,16 @@ export default function ControlPanelClient() {
     setLoading(true);
     fetchWeekData(weekIndex).finally(() => setLoading(false));
   }, [weekIndex, fetchWeekData]);
+
+  const isViewingCurrentWeek =
+    weekIndex === currentWeek && month === hijriDate.month && year === hijriDate.year;
+
+  const handleGoToCurrentWeek = () => {
+    if (loading || isSavingAll || isViewingCurrentWeek) return;
+    setYear(hijriDate.year);
+    setMonth(hijriDate.month);
+    setWeekIndex(currentWeek);
+  };
 
   const handleWeekChange = (dir: "prev" | "next") => {
     if (loading || isSavingAll) return;
@@ -364,7 +389,14 @@ export default function ControlPanelClient() {
     if (isSavingAll || dirtyUserIds.size === 0) return;
     setIsSavingAll(true);
 
-    const activityDate = getActivityDateFor(weekIndex, currentWeek, year, month);
+    const activityDate = getActivityDateFor(
+      weekIndex,
+      currentWeek,
+      year,
+      month,
+      hijriDate.year,
+      hijriDate.month,
+    );
     const categoryOps: Array<() => Promise<{ success: boolean; error?: string }>> = [];
     const supervisorOps: Array<{
       userId: number;
@@ -553,6 +585,17 @@ export default function ControlPanelClient() {
                       الأسبوع {weekArabicNames[weekIndex - 1]}
                     </span>
                   </div>
+
+                  {!isViewingCurrentWeek && (
+                    <button
+                      onClick={handleGoToCurrentWeek}
+                      disabled={loading || isSavingAll}
+                      className={`${tajawal.className} flex items-center gap-1.5 px-3 h-9 rounded-xl bg-[#043F2E] hover:bg-[#065f46] text-white text-xs font-bold transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer`}
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" strokeWidth={2.4} />
+                      العودة للأسبوع الحالي
+                    </button>
+                  )}
                 </div>
 
                 <Progress
