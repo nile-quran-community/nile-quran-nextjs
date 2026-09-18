@@ -3,7 +3,7 @@ import { checkTokenValidity } from "@/actions/auth-actions";
 import { redirect } from "next/navigation";
 import DashboardContainer from "@/components/Home/DashboardContainer";
 import { getLeaderboardData } from "@/actions/PerformanceBoard";
-import { getGoalOfTheMonth } from "@/actions/goal";
+import { getCurrentGoals } from "@/actions/goal";
 import { getPreviousHijriMonth } from "@/lib/utils";
 import { gregorianToHijri } from "@tabby_ai/hijri-converter";
 
@@ -31,10 +31,10 @@ export default async function Home() {
   });
   const prevMonth = getPreviousHijriMonth(hijriToday.year, hijriToday.month);
 
-  const [currentResult, previousResult, goalResult] = await Promise.all([
+  const [currentResult, previousResult, goalsResult] = await Promise.all([
     getLeaderboardData(hijriToday.year, hijriToday.month),
     getLeaderboardData(prevMonth.year, prevMonth.month),
-    getGoalOfTheMonth(hijriToday.year, hijriToday.month),
+    getCurrentGoals(),
   ]);
 
   // The API returns Students only, pre-sorted by points, so these ranks align
@@ -53,7 +53,7 @@ export default async function Home() {
         initialMonth={hijriToday.month}
         initialLeaderboardData={currentResult.success ? currentResult.data : []}
         initialPreviousRanks={previousRanks}
-        initialGoalData={goalResult.success ? goalResult.data : null}
+        goals={goalsResult.success ? goalsResult.data : []}
       />
     </div>
   );

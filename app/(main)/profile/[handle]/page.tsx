@@ -71,11 +71,19 @@ export default async function ProfilePage({
 
   let targetUserId = numericId;
   if (targetUserId === null) {
-    const byUsername = await getUserByUsername(decodedHandle);
-    if (!byUsername.success || !byUsername.data) {
-      return <ProfileNotFound message="لم نعثر على هذا العضو" />;
+    if (decodedHandle === currentUser.username) {
+      targetUserId = currentUser.id;
+    } else {
+      const byUsername = await getUserByUsername(decodedHandle);
+      if (!byUsername.success || !byUsername.data) {
+        return <ProfileNotFound message="لم نعثر على هذا العضو" />;
+      }
+      targetUserId = byUsername.data.id;
     }
-    targetUserId = byUsername.data.id;
+  }
+
+  if (targetUserId === null) {
+    return <ProfileNotFound message="لم نعثر على هذا العضو" />;
   }
 
   const isOwnProfile = currentUser.id === targetUserId;
