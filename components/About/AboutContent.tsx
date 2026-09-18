@@ -11,7 +11,6 @@ import {
   Handshake,
   Heart,
   GraduationCap,
-  Flag,
   TrendingUp,
   Target,
   Code2,
@@ -42,67 +41,47 @@ type ValueItem = {
 const VALUES: ValueItem[] = [
   {
     name: "معرفة الله",
-    description: "معرفة الله وفهم مراده هي أسمى الغايات.",
+    description: "نسعى لمعرفة الله وفهم مراده.",
     Icon: BookOpen,
   },
   {
     name: "مركزية الوحي",
-    description: "نجعل الوحي أساسًا لفهم مراد الله والعمل له.",
+    description: "نجعل الوحي أساسًا لفهم الحياة والعمل.",
     Icon: Compass,
   },
   {
-    name: "القرآن والسنة",
-    description: "القرآن والسنة هما المركز في تزكية النفوس وإصلاحها.",
+    name: "القرآن والتدبر",
+    description: "نجتمع حول القرآن تلاوةً وتدبرًا وعملًا.",
     Icon: BookMarked,
   },
   {
     name: "الاعتزاز بالإسلام",
-    description: "نعتز بالإسلام في تفاصيله الكلية والجزئية.",
+    description: "نعتز بديننا ويظهر أثره في حياتنا.",
     Icon: Star,
   },
   {
-    name: "تصحيح الأفكار",
-    description: "نسعى إلى تصحيح الأفكار المغلوطة التي دخلت على قيمنا ومفاهيمنا.",
-    Icon: RefreshCw,
-  },
-  {
     name: "الهوية واللغة",
-    description: "نفتخر بهويتنا الإسلامية ولغتنا العربية.",
+    description: "نعتز بهويتنا الإسلامية ولغتنا العربية.",
     Icon: Globe,
   },
   {
-    name: "الأخوة",
-    description: "نؤمن بأن رابطة الإيمان تصنع خير حصن للأخوة.",
+    name: "الصحبة الصالحة",
+    description: "نتواصى بالحق ونعين بعضنا على الثبات.",
     Icon: Users,
   },
   {
-    name: "الصدق",
-    description: "الصدق في الجد والهزل.",
+    name: "الصدق والإخلاص",
+    description: "نصدق مع الله ومع أنفسنا ومع إخواننا.",
     Icon: CheckCircle,
   },
   {
-    name: "التعاون",
-    description: "التعاون على البر والتقوى والعمل لدين الله.",
+    name: "الرحمة والتعاون",
+    description: "نتراحم ونتعاون على البر والتقوى.",
     Icon: Handshake,
   },
   {
-    name: "الرحمة",
-    description: "التراحم والتغافل عن الزلات.",
-    Icon: Heart,
-  },
-  {
-    name: "العلماء والسلف",
-    description: "تقدير العلماء والسلف الصالح ومحبتهم.",
-    Icon: GraduationCap,
-  },
-  {
-    name: "قضايا الأمة",
-    description: "الاعتناء بقضايا الأمة، وخاصة قضية فلسطين.",
-    Icon: Flag,
-  },
-  {
-    name: "علو الهمة",
-    description: "علو الهمة وإتعاب الجسد لتستريح الروح.",
+    name: "علو الهمة والعمل",
+    description: "نرفع هممنا ونحوّل إيماننا إلى عمل نافع.",
     Icon: TrendingUp,
   },
 ];
@@ -152,12 +131,11 @@ const TEAMS: TeamItem[] = [
 ];
 
 const VISION_GOALS = [
-  "التقرب من رب العالمين.",
-  "لمّ الشمل حول وحي الله.",
-  "بناء صحبة صالحة تعين على الثبات.",
-  "تدبر القرآن والوصول إلى مراد الله منه.",
-  "العمل من أجل أمتنا الإسلامية.",
-  "الاعتناء بقضايا الأمة، خاصة ما يتعلق بفلسطين.",
+  "التقرب من رب العالمين لتحقيق الأنس به",
+  "تدبر القرآن وعلوم الدين لفهم مراد الله وتعزيز الثقة بالإسلام",
+  "التواصي بالحق والتعاون على البر لتقوية أواصر المحبة في الله",
+  "الاعتناء بقضايا المسلمين العامة والخاصة لسد ثغور الدعوة",
+  "العمل من أجل أمتنا الإسلامية لتكون لها السيادة والريادة",
 ];
 
 // ============================
@@ -279,14 +257,8 @@ export default function AboutContent() {
         </Section>
 
         {/* Vision */}
-        <Section eyebrow="الوجهة" title="رؤيتنا ووجهتنا">
+        <Section eyebrow="الوجهة" title="رؤيتنا">
           <div className="flex flex-col gap-5">
-            <p
-              className={`${tajawal.className} text-[15px] md:text-base leading-[1.95] text-[#043F2E]/85 font-normal`}
-            >
-              أنشئ مجتمع مقرأة النيل منذ ما يزيد عن عام — بفضل الله — ليكون صحبة صالحة اجتمعت لتتلو
-              كتاب الله وتتدبر آياته.
-            </p>
             <p
               className={`${tajawal.className} text-[15px] md:text-base leading-[1.95] text-[#043F2E]/85 font-normal`}
             >
@@ -303,17 +275,6 @@ export default function AboutContent() {
                 </li>
               ))}
             </ul>
-            <p
-              className={`${tajawal.className} text-[15px] md:text-base leading-[1.95] text-[#043F2E]/85 font-normal`}
-            >
-              ورغم التحديات والاضطرابات التي صاحبت بدايات المجتمع، استطعنا — بحمد الله — تجاوزها
-              والاستمرار، مع تنويع أنشطتنا وخلق روح خاصة للمجتمع.
-            </p>
-            <p
-              className={`${tajawal.className} text-[15px] md:text-base leading-[1.95] text-[#043F2E]/85 font-normal`}
-            >
-              ومع الوقت اتضح لنا أن هذه الروح تلبي احتياجًا حقيقيًا يفتقده كثير من الشباب.
-            </p>
           </div>
         </Section>
 
