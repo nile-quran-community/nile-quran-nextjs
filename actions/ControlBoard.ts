@@ -202,7 +202,10 @@ export async function getUsers(group?: string) {
 
     if (!access) throw new Error("No access token found in cookies");
 
-    const query = group ? `?group=${group}` : "";
+    // Sort by first name, then last name (Arabic names supported)
+    const params = new URLSearchParams({ ordering: "first_name,last_name" });
+    if (group) params.set("group", group);
+    const query = `?${params.toString()}`;
     const fetchPage = async (url: string) => {
       const result = await fetch(url, {
         method: "GET",
