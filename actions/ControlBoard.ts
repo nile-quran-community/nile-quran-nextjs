@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getHijriMonthDays } from "@/lib/utils";
 import { cookies } from "next/headers";
 import { hijriToGregorian } from "@tabby_ai/hijri-converter";
+import type { ProfileFields } from "@/lib/profile-fields";
 import { getCachedPointsCategories } from "./categories";
 
 const API_BASE = process.env.BASE_URL;
@@ -220,6 +221,57 @@ export async function getUsers(group?: string) {
   } catch (error) {
     console.error("Error fetching user details:", error);
     return { success: false, error: error };
+  }
+}
+
+// ===============================
+// GET ALL MEMBERS (Admin only) — every group, every field, no page cap
+// ===============================
+// `getUsers` above caps out at one page (PAGE_SIZE 50) which is fine for the
+// control board's "Student" tab, wrong for a full member roster. This walks `next`.
+
+export interface Member extends ProfileFields {
+  id: number;
+  username: string;
+  first_name: string;
+  last_name: string;
+  groups: string[];
+  is_active: boolean;
+}
+
+export async function getAllMembers(): Promise<
+  { success: true; members: Member[] } | { success: false; error: string }
+> {
+  try {
+    const cookieStore = await cookies();
+    const access = cookieStore.get("access")?.value;
+    if (!access) throw new Error("No access token found in cookies");
+
+    const members: Member[] = [];
+    let url: string | null = `${API_BASE}api/v1/users/`;
+    let guard = 0;
+
+    while (url && guard < 20) {
+      const res = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${access}`,
+          "Accept-Language": "ar",
+          "Content-Type": "application/json",
+        },
+        cache: "no-store",
+      });
+      if (!res.ok) throw new Error(`API ${res.status}`);
+
+      const page: { results: Member[]; next: string | null } = await res.json();
+      members.push(...(page.results || []));
+      url = page.next;
+      guard++;
+    }
+
+    return { success: true, members };
+  } catch (error) {
+    console.error("Error fetching members:", error);
+    return { success: false, error: error instanceof Error ? error.message : "Unknown error" };
   }
 }
 

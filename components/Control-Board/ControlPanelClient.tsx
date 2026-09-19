@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef, useMemo, useEffect } from "react";
+import Link from "next/link";
 import { Lalezar, Tajawal } from "next/font/google";
 import {
   ChevronLeft,
@@ -26,8 +27,11 @@ import {
   deleteUserActivity,
   updateUserSupervisor,
   updateUserActiveStatus,
+  getAllMembers,
+  type Member,
 } from "@/actions/ControlBoard";
 import UserRow, { UserAvatar, type DraftEntry } from "./userRow";
+import MembersTable from "./MembersTable";
 import { gregorianToHijri, hijriToGregorian } from "@tabby_ai/hijri-converter";
 import { getHijriMonth, toArabicDigits } from "@/lib/utils";
 
@@ -133,9 +137,16 @@ export default function ControlPanelClient() {
   const [weekIndex, setWeekIndex] = useState<number>(getInitialWeekIndex);
   const [searchQuery, setSearchQuery] = useState("");
   const [supervisors, setSupervisors] = useState<User[]>([]);
-  const [tab, setTab] = useState<"points" | "pending">("points");
+  const [tab, setTab] = useState<"points" | "pending" | "members">("points");
   const [confirmingActivateId, setConfirmingActivateId] = useState<number | null>(null);
   const [activatingId, setActivatingId] = useState<number | null>(null);
+
+  // Every member across every group, fetched only once the tab is actually opened. It's a
+  // heavier, separate query (getAllMembers walks the full paginated roster) than the Student/
+  // Supervisor fetch the rest of this page already does.
+  const [members, setMembers] = useState<Member[] | null>(null);
+  const [membersLoading, setMembersLoading] = useState(false);
+  const [membersError, setMembersError] = useState<string | null>(null);
 
   // Sparse per-user local edits, keyed by user id. A user only gets an entry once one of their
   // fields is touched; absent = "no local edit, use server truth." Cleared entirely on week
@@ -202,6 +213,20 @@ export default function ControlPanelClient() {
     setLoading(true);
     fetchWeekData(weekIndex).finally(() => setLoading(false));
   }, [weekIndex, fetchWeekData]);
+
+  // Fetched once, the first time the tab is opened, not on mount, since most admin visits
+  // never touch it, and not on every switch back to it, since the roster doesn't change that often.
+  useEffect(() => {
+    if (tab !== "members" || members !== null || membersLoading) return;
+    setMembersLoading(true);
+    setMembersError(null);
+    getAllMembers()
+      .then((res) => {
+        if (res.success) setMembers(res.members);
+        else setMembersError(res.error);
+      })
+      .finally(() => setMembersLoading(false));
+  }, [tab, members, membersLoading]);
 
   const isViewingCurrentWeek =
     weekIndex === currentWeek && month === hijriDate.month && year === hijriDate.year;
@@ -483,7 +508,7 @@ export default function ControlPanelClient() {
           icon={Sparkles}
           eyebrow="لوحة الإدارة"
           title="لوحة التحكم"
-          subtitle="إدارة نقاط الطلاب والمتابعة الأسبوعية"
+          subtitle="إدارة نقاط الطلاب، تفعيل الحسابات، ومتابعة بيانات الأعضاء"
         />
       </PageHero>
 
@@ -522,7 +547,7 @@ export default function ControlPanelClient() {
         </div>
 
         {/* Tabs */}
-        <div className="flex items-center gap-2 bg-[#F7FBEA] border border-[#043F2E]/15 rounded-2xl p-1.5 w-fit">
+        <div className="flex items-center gap-2 bg-[#F7FBEA] border border-[#043F2E]/15 rounded-2xl p-1.5 w-fit flex-wrap">
           <button
             type="button"
             onClick={() => setTab("points")}
@@ -551,6 +576,17 @@ export default function ControlPanelClient() {
               />
             )}
           </button>
+          <button
+            type="button"
+            onClick={() => setTab("members")}
+            className={`${tajawal.className} px-4 h-10 rounded-xl text-sm font-bold transition-colors cursor-pointer ${
+              tab === "members"
+                ? "bg-[#043F2E] text-white shadow-sm"
+                : "text-[#043F2E] hover:bg-white/50"
+            }`}
+          >
+            الأعضاء
+          </button>
         </div>
 
         {tab === "pending" && (
@@ -563,6 +599,19 @@ export default function ControlPanelClient() {
             onConfirmActivate={handleActivateUser}
           />
         )}
+
+        {tab === "members" &&
+          (membersLoading ? (
+            <div className="bg-white rounded-3xl border border-[#043F2E]/10 shadow-sm p-8 text-center text-[#043F2E]/50">
+              <span className={tajawal.className}>جارٍ تحميل بيانات الأعضاء...</span>
+            </div>
+          ) : membersError ? (
+            <div className="bg-white rounded-3xl border border-[#9B3D2E]/20 shadow-sm p-6 text-center text-[#9B3D2E]">
+              <span className={tajawal.className}>تعذّر تحميل قائمة الأعضاء: {membersError}</span>
+            </div>
+          ) : (
+            <MembersTable members={members ?? []} />
+          ))}
 
         {tab === "points" && (
           <>
@@ -722,6 +771,7 @@ export default function ControlPanelClient() {
                       points={pointsByUser.get(user.id)}
                       firstname={user.first_name}
                       lastname={user.last_name}
+                      username={user.username}
                       supervisor={user.supervisor}
                       supervisors={supervisors}
                       categories={sortedCategories}
@@ -747,6 +797,7 @@ export default function ControlPanelClient() {
                       points={pointsByUser.get(user.id)}
                       firstname={user.first_name}
                       lastname={user.last_name}
+                      username={user.username}
                       supervisor={user.supervisor}
                       supervisors={supervisors}
                       categories={data.categories}
@@ -881,14 +932,17 @@ function PendingActivationSection({
             }`}
           >
             <UserAvatar initials={initials} size="sm" />
-            <div className="flex-1 min-w-0">
+            <Link
+              href={`/profile/${encodeURIComponent(user.username)}`}
+              className="flex-1 min-w-0 hover:underline"
+            >
               <p className={`${tajawal.className} text-sm font-bold text-[#043F2E] truncate`}>
                 {fullName}
               </p>
               <p className={`${tajawal.className} text-xs text-[#043F2E]/50 truncate`}>
                 @{user.username}
               </p>
-            </div>
+            </Link>
 
             {isConfirming ? (
               <div className="flex items-center gap-2 shrink-0">

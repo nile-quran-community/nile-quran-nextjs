@@ -2,6 +2,7 @@
 
 import { useState, memo } from "react";
 
+import Link from "next/link";
 import { Tajawal } from "next/font/google";
 import { Check, Minus, Plus, User, Users, X } from "lucide-react";
 
@@ -39,6 +40,7 @@ type Props = {
   points: UserPoints | undefined;
   firstname: string;
   lastname: string;
+  username: string;
   supervisor: string | null;
   supervisors: SupervisorOption[];
   categories: Category[];
@@ -57,6 +59,7 @@ function UserRowComponent({
   points,
   firstname,
   lastname,
+  username,
   supervisor,
   supervisors,
   categories,
@@ -112,6 +115,7 @@ function UserRowComponent({
       <>
         <MobileCard
           fullName={fullName}
+          username={username}
           initials={initials}
           supervisor={effectiveSupervisor}
           supervisors={supervisors}
@@ -142,12 +146,13 @@ function UserRowComponent({
 
       {/* Name */}
       <div className="w-[150px] shrink-0 min-w-0">
-        <p
-          className={`${tajawal.className} text-sm font-bold text-[#043F2E] truncate`}
+        <Link
+          href={`/profile/${encodeURIComponent(username)}`}
+          className={`${tajawal.className} text-sm font-bold text-[#043F2E] truncate hover:underline block`}
           title={fullName}
         >
           {fullName}
-        </p>
+        </Link>
         {!isActive && (
           <p className={`${tajawal.className} text-[10px] font-medium text-[#9B3D2E]`}>
             الحساب معطل
@@ -445,6 +450,7 @@ function MultiplierModal({
 // ============================
 function MobileCard({
   fullName,
+  username,
   initials,
   supervisor,
   supervisors,
@@ -460,6 +466,7 @@ function MobileCard({
   onOpenMultiplier,
 }: {
   fullName: string;
+  username: string;
   initials: string;
   supervisor: string | null;
   supervisors: SupervisorOption[];
@@ -484,9 +491,12 @@ function MobileCard({
       <div className="flex items-center gap-3">
         <UserAvatar initials={initials} size="md" />
         <div className="flex-1 min-w-0">
-          <p className={`${tajawal.className} text-base font-bold text-[#043F2E] truncate`}>
+          <Link
+            href={`/profile/${encodeURIComponent(username)}`}
+            className={`${tajawal.className} text-base font-bold text-[#043F2E] truncate hover:underline block`}
+          >
             {fullName}
-          </p>
+          </Link>
           {!isActive && (
             <p className={`${tajawal.className} text-[10px] font-medium text-[#9B3D2E]`}>
               الحساب معطل
