@@ -15,6 +15,7 @@ import {
   Check,
   UserCheck,
   RotateCcw,
+  X,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { PageHero, PageHeroHeading } from "@/components/ui/PageHero";
@@ -30,6 +31,9 @@ import {
   getAllMembers,
   type Member,
 } from "@/actions/ControlBoard";
+import { updateUser } from "@/actions/profile";
+import { ALL_GROUPS, getGroupLabel } from "@/lib/profile-types";
+import RoleBadge from "@/components/Profile/RoleBadge";
 import UserRow, { UserAvatar, type DraftEntry } from "./userRow";
 import MembersTable from "./MembersTable";
 import { gregorianToHijri, hijriToGregorian } from "@tabby_ai/hijri-converter";
@@ -110,7 +114,7 @@ function getActivityDateFor(
 }
 
 // Component
-export default function ControlPanelClient() {
+export default function ControlPanelClient({ currentUserId }: { currentUserId?: number }) {
   const date = new Date();
   const hijriDate = gregorianToHijri({
     year: date.getFullYear(),
@@ -137,9 +141,23 @@ export default function ControlPanelClient() {
   const [weekIndex, setWeekIndex] = useState<number>(getInitialWeekIndex);
   const [searchQuery, setSearchQuery] = useState("");
   const [supervisors, setSupervisors] = useState<User[]>([]);
-  const [tab, setTab] = useState<"points" | "pending" | "members">("points");
+  const [tab, setTab] = useState<"points" | "teams" | "pending" | "members">("points");
+  // The whole community, not just students — an Admin or Supervisor serves on a
+  // team too. Fetched the first time the teams tab is opened rather than on every
+  // week change, since team membership has nothing to do with the week on screen.
+  const [roster, setRoster] = useState<User[]>([]);
+  const [rosterLoading, setRosterLoading] = useState(false);
+  const [rosterError, setRosterError] = useState(false);
+  // One attempt per page visit: keyed off a ref, not off `roster.length`, so a
+  // failed fetch leaves an empty list rather than re-firing on every render.
+  const rosterFetchedRef = useRef(false);
   const [confirmingActivateId, setConfirmingActivateId] = useState<number | null>(null);
   const [activatingId, setActivatingId] = useState<number | null>(null);
+  // Which member's groups are open for editing. Group membership isn't weekly data,
+  // so it's saved on its own the moment the modal is confirmed — it never joins the
+  // week's draft batch, which is cleared on every week change.
+  const [groupsEditId, setGroupsEditId] = useState<number | null>(null);
+  const [savingGroups, setSavingGroups] = useState(false);
 
   // Every member across every group, fetched only once the tab is actually opened. It's a
   // heavier, separate query (getAllMembers walks the full paginated roster) than the Student/
@@ -228,6 +246,27 @@ export default function ControlPanelClient() {
       .finally(() => setMembersLoading(false));
   }, [tab, members, membersLoading]);
 
+  useEffect(() => {
+    if (tab !== "teams" || rosterFetchedRef.current) return;
+    rosterFetchedRef.current = true;
+    setRosterLoading(true);
+    setRosterError(false);
+    getUsers()
+      .then((res) => {
+        if (!res.success) throw new Error("roster fetch failed");
+        const raw = res.users;
+        setRoster(Array.isArray(raw) ? raw : raw?.results || []);
+      })
+      .catch((error) => {
+        console.error("Error loading roster:", error);
+        // Say so rather than drawing every group empty, and let the ref go back
+        // so leaving the tab and returning is a retry.
+        setRosterError(true);
+        rosterFetchedRef.current = false;
+      })
+      .finally(() => setRosterLoading(false));
+  }, [tab]);
+
   const isViewingCurrentWeek =
     weekIndex === currentWeek && month === hijriDate.month && year === hijriDate.year;
 
@@ -308,6 +347,35 @@ export default function ControlPanelClient() {
       alert("حدث خطأ أثناء تفعيل الحساب");
     }
   };
+
+  // Opened from the teams tab, which works off the roster — the points table has
+  // nothing to do with group membership.
+  const groupsEditUser = roster.find((u) => u.id === groupsEditId) ?? null;
+
+  const handleSaveGroups = async (groups: string[]) => {
+    if (groupsEditId === null) return;
+    setSavingGroups(true);
+    const res = await updateUser(groupsEditId, { groups });
+    setSavingGroups(false);
+
+    if (!res.success) {
+      alert(res.error || "حدث خطأ أثناء تحديث المجموعات");
+      return;
+    }
+
+    // data.users is the `?group=Student` list: a member who is no longer a student
+    // leaves it now rather than lingering in the table until the next week change.
+    setData((prev) => ({
+      ...prev,
+      users: groups.includes("Student")
+        ? prev.users.map((u) => (u.id === groupsEditId ? { ...u, groups } : u))
+        : prev.users.filter((u) => u.id !== groupsEditId),
+    }));
+    setRoster((prev) => prev.map((u) => (u.id === groupsEditId ? { ...u, groups } : u)));
+    setGroupsEditId(null);
+  };
+
+  const handleEditGroups = useCallback((userId: number) => setGroupsEditId(userId), []);
 
   // Summary statistics — scoped to active accounts, so a disabled student's stale points
   // entries can't inflate totals or skew the completion rate.
@@ -561,6 +629,17 @@ export default function ControlPanelClient() {
           </button>
           <button
             type="button"
+            onClick={() => setTab("teams")}
+            className={`${tajawal.className} px-4 h-10 rounded-xl text-sm font-bold transition-colors cursor-pointer ${
+              tab === "teams"
+                ? "bg-[#043F2E] text-white shadow-sm"
+                : "text-[#043F2E] hover:bg-white/50"
+            }`}
+          >
+            المجموعات
+          </button>
+          <button
+            type="button"
             onClick={() => setTab("pending")}
             className={`${tajawal.className} flex items-center gap-1.5 px-4 h-10 rounded-xl text-sm font-bold transition-colors cursor-pointer ${
               tab === "pending"
@@ -588,6 +667,15 @@ export default function ControlPanelClient() {
             الأعضاء
           </button>
         </div>
+
+        {tab === "teams" && (
+          <GroupsSection
+            users={roster}
+            loading={rosterLoading}
+            error={rosterError}
+            onEditMember={handleEditGroups}
+          />
+        )}
 
         {tab === "pending" && (
           <PendingActivationSection
@@ -816,12 +904,300 @@ export default function ControlPanelClient() {
         )}
       </div>
 
+      {groupsEditUser && (
+        <GroupsModal
+          fullName={`${groupsEditUser.first_name} ${groupsEditUser.last_name}`.trim()}
+          groups={groupsEditUser.groups || []}
+          saving={savingGroups}
+          isSelf={groupsEditUser.id === currentUserId}
+          onClose={() => !savingGroups && setGroupsEditId(null)}
+          onSave={handleSaveGroups}
+        />
+      )}
+
       <UnsavedChangesBar
         count={pendingChangesCount}
         isSaving={isSavingAll}
         onSaveAll={handleSaveAll}
         onDiscardAll={handleDiscardAll}
       />
+    </div>
+  );
+}
+
+// ============================
+// Groups — who belongs where. One card per group the API defines, roles included,
+// so the page states the membership as it really is rather than the teams half of
+// it; the last card catches anyone in no group at all. Tapping a member opens the
+// same groups modal the points table uses.
+// ============================
+function GroupsSection({
+  users,
+  loading,
+  error,
+  onEditMember,
+}: {
+  users: User[];
+  loading: boolean;
+  error: boolean;
+  onEditMember: (userId: number) => void;
+}) {
+  const active = users
+    .filter((u) => u.is_active)
+    .sort((a, b) =>
+      `${a.first_name} ${a.last_name}`
+        .trim()
+        .localeCompare(`${b.first_name} ${b.last_name}`.trim(), "ar"),
+    );
+  // "No group this build knows", not "no group" — a member whose only group is one
+  // the API added since would otherwise appear on no card at all.
+  const unassigned = active.filter((u) => !ALL_GROUPS.some((g) => (u.groups || []).includes(g)));
+
+  if (loading) {
+    return (
+      <div className="grid gap-4 md:grid-cols-2">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="h-48 rounded-3xl bg-white/60 animate-pulse" />
+        ))}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div
+        role="alert"
+        className="bg-white rounded-3xl border border-[#043F2E]/15 shadow-sm flex flex-col items-center justify-center py-16 px-6 text-center"
+      >
+        <div className="w-16 h-16 rounded-2xl bg-[#F4E0D6] flex items-center justify-center mb-4">
+          <Users className="w-7 h-7 text-[#9B3D2E]" strokeWidth={1.8} />
+        </div>
+        <h3 className={`${lalezar.className} text-xl text-[#043F2E] mb-1`}>تعذّر تحميل الأعضاء</h3>
+        <p className={`${tajawal.className} text-sm text-[#043F2E]/60 font-medium`}>
+          انتقل إلى تبويب آخر ثم عد إلى المجموعات للمحاولة مرة أخرى
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-4 md:grid-cols-2">
+      {ALL_GROUPS.map((group) => (
+        <GroupCard
+          key={group}
+          title={<RoleBadge group={group} size="lg" />}
+          members={active.filter((u) => (u.groups || []).includes(group))}
+          emptyText="لا أحد في هذه المجموعة بعد"
+          onEditMember={onEditMember}
+        />
+      ))}
+
+      <GroupCard
+        title={
+          <span className={`${tajawal.className} text-sm font-medium text-[#043F2E]/70`}>
+            بدون مجموعة
+          </span>
+        }
+        members={unassigned}
+        emptyText="كل الأعضاء ضمن مجموعة"
+        onEditMember={onEditMember}
+      />
+    </div>
+  );
+}
+
+function GroupCard({
+  title,
+  members,
+  emptyText,
+  onEditMember,
+}: {
+  title: React.ReactNode;
+  members: User[];
+  emptyText: string;
+  onEditMember: (userId: number) => void;
+}) {
+  return (
+    <section className="bg-white rounded-3xl border border-[#043F2E]/15 shadow-sm p-5 flex flex-col gap-3">
+      <div className="flex items-center justify-between gap-2">
+        {title}
+        <span
+          className={`${tajawal.className} shrink-0 min-w-[28px] h-7 px-2 flex items-center justify-center rounded-lg text-xs font-bold ${
+            members.length > 0 ? "bg-[#BEE663] text-[#043F2E]" : "bg-[#F7FBEA] text-[#043F2E]/40"
+          }`}
+        >
+          {toArabicDigits(members.length)}
+        </span>
+      </div>
+
+      <div className="h-px bg-[#043F2E]/10" />
+
+      {members.length === 0 ? (
+        <p className={`${tajawal.className} text-sm font-medium text-[#043F2E]/50 py-2`}>
+          {emptyText}
+        </p>
+      ) : (
+        <ul className="flex flex-col gap-1 max-h-72 overflow-y-auto">
+          {members.map((m) => {
+            const fullName = `${m.first_name} ${m.last_name}`.trim() || m.username;
+            const initials =
+              `${m.first_name?.charAt(0) || ""}${m.last_name?.charAt(0) || ""}`.trim();
+            return (
+              <li key={m.id}>
+                <button
+                  type="button"
+                  onClick={() => onEditMember(m.id)}
+                  aria-label={`مجموعات ${fullName}`}
+                  className="w-full flex items-center gap-2.5 p-1.5 rounded-xl text-start hover:bg-[#F7FBEA] transition-colors cursor-pointer"
+                >
+                  <UserAvatar initials={initials} size="sm" />
+                  <span
+                    className={`${tajawal.className} min-w-0 flex-1 text-sm font-medium text-[#043F2E] truncate`}
+                  >
+                    {fullName}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+// ============================
+// Groups modal — the member's place in the community (role + NQC teams).
+// Saved on its own, outside the week's draft batch.
+// ============================
+function GroupsModal({
+  fullName,
+  groups,
+  saving,
+  isSelf,
+  onClose,
+  onSave,
+}: {
+  fullName: string;
+  groups: string[];
+  saving: boolean;
+  /** The admin editing their own membership — see the locked Admin checkbox below */
+  isSelf: boolean;
+  onClose: () => void;
+  onSave: (groups: string[]) => void;
+}) {
+  const [selected, setSelected] = useState<string[]>(groups);
+
+  const toggle = (group: string) =>
+    setSelected((prev) =>
+      prev.includes(group) ? prev.filter((g) => g !== group) : [...prev, group],
+    );
+
+  // A group the API added that this build doesn't list yet must survive a save
+  // here rather than being silently stripped off the member.
+  const unknown = groups.filter((g) => !ALL_GROUPS.includes(g as (typeof ALL_GROUPS)[number]));
+  const changed = selected.length !== groups.length || selected.some((g) => !groups.includes(g));
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[#043F2E]/40 p-4"
+      onClick={onClose}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={`مجموعات ${fullName}`}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-[360px] max-h-[85vh] overflow-y-auto bg-white rounded-3xl border border-[#043F2E]/10 shadow-lg p-5 flex flex-col gap-4"
+      >
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <h3 className={`${lalezar.className} text-xl text-[#043F2E] leading-tight truncate`}>
+              المجموعات
+            </h3>
+            <p className={`${tajawal.className} text-xs font-medium text-[#043F2E]/60 truncate`}>
+              {fullName}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="إغلاق"
+            className="w-7 h-7 shrink-0 rounded-lg flex items-center justify-center text-[#043F2E]/60 hover:bg-[#F7FBEA] hover:text-[#043F2E] transition-colors cursor-pointer"
+          >
+            <X className="w-4 h-4" strokeWidth={2.2} />
+          </button>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          {ALL_GROUPS.map((group) => {
+            const checked = selected.includes(group);
+            // Dropping your own admin group locks you out of this page, and with a
+            // single admin account nothing in the UI can undo it.
+            const locked = isSelf && group === "Admin" && checked;
+            return (
+              <button
+                key={group}
+                type="button"
+                disabled={saving || locked}
+                title={locked ? "لا يمكنك إزالة صلاحية الإدارة عن نفسك" : undefined}
+                onClick={() => toggle(group)}
+                className={`flex items-center gap-3 rounded-xl border p-2.5 text-start transition-colors disabled:opacity-50 cursor-pointer ${
+                  checked
+                    ? "bg-[#BEE663]/15 border-[#043F2E]/30"
+                    : "bg-[#F7FBEA] border-[#043F2E]/8 hover:border-[#043F2E]/25"
+                }`}
+              >
+                <span
+                  className={`shrink-0 w-6 h-6 rounded-lg flex items-center justify-center ${
+                    checked
+                      ? "bg-[#BEE663] border border-[#043F2E]"
+                      : "bg-white border border-[#043F2E]/15"
+                  }`}
+                >
+                  {checked && <Check className="w-3.5 h-3.5 text-[#043F2E]" strokeWidth={3} />}
+                </span>
+                <RoleBadge group={group} size="md" />
+              </button>
+            );
+          })}
+        </div>
+
+        {unknown.length > 0 && (
+          <p className={`${tajawal.className} text-[11px] text-[#043F2E]/60`}>
+            مجموعات أخرى محفوظة كما هي: {unknown.map(getGroupLabel).join(" · ")}
+          </p>
+        )}
+
+        {!selected.includes("Student") && (
+          <p
+            dir="rtl"
+            role="status"
+            className={`${tajawal.className} flex items-start gap-2 rounded-xl bg-[#F4E0D6] border border-[#9B3D2E]/30 p-3 text-xs text-[#9B3D2E]`}
+          >
+            بدون مجموعة «طالب» لن يظهر العضو في جدول النقاط ولا في ترتيب الشهر.
+          </p>
+        )}
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            disabled={saving || !changed}
+            onClick={() => onSave(selected)}
+            className={`${tajawal.className} flex-1 h-11 rounded-xl bg-[#BEE663] hover:bg-[#9ADD00] text-[#043F2E] text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer`}
+          >
+            {saving ? "جارٍ الحفظ..." : "حفظ"}
+          </button>
+          <button
+            type="button"
+            disabled={saving}
+            onClick={onClose}
+            className={`${tajawal.className} h-11 px-4 rounded-xl bg-[#F7FBEA] border border-[#043F2E]/15 text-[#043F2E] text-sm font-bold hover:bg-white transition-colors disabled:opacity-50 cursor-pointer`}
+          >
+            إلغاء
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -993,9 +1369,9 @@ function TableHeader({ categories }: { categories: Category[] }) {
         <HeaderLabel>الاسم</HeaderLabel>
       </div>
 
-      {/* Group */}
+      {/* Supervisor */}
       <div className="w-[120px] shrink-0">
-        <HeaderLabel>المجموعة</HeaderLabel>
+        <HeaderLabel>المشرف</HeaderLabel>
       </div>
 
       {/* Categories — the caller already sorts these (invite last) */}

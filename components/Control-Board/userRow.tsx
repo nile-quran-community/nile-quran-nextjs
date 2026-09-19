@@ -160,7 +160,7 @@ function UserRowComponent({
         )}
       </div>
 
-      {/* Group / Supervisor */}
+      {/* Supervisor */}
       <div className="w-[120px] shrink-0 min-w-0 flex items-center gap-1.5">
         <Users className="w-3.5 h-3.5 text-[#043F2E]/40 shrink-0" strokeWidth={2.2} />
         <select

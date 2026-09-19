@@ -26,7 +26,7 @@ import PersonalInfoSection from "@/components/Profile/PersonalInfoSection";
 import ProfileActivityList from "@/components/Profile/ProfileActivityList";
 import EditOwnProfile from "@/components/Profile/EditOwnProfile";
 import ProfileRoleTabs, { type ProfileRoleView } from "@/components/Profile/ProfileRoleTabs";
-import ModeratorProfileView from "@/components/Profile/views/ModeratorProfileView";
+import SupervisorProfileView from "@/components/Profile/views/SupervisorProfileView";
 import StudentProfileView from "@/components/Profile/views/StudentProfileView";
 
 import { toArabicDigits, getHijriMonth } from "@/lib/utils";
@@ -110,7 +110,7 @@ export default async function ProfilePage({
   const visibility = getVisibility(viewerRole, isOwnProfile);
 
   // Relationship-based activity visibility:
-  // - Moderator sees activities only for students they supervise
+  // - Supervisor sees activities only for students they supervise
   // - Student sees activities only on their own profile (already handled by isOwnProfile)
   if (viewerRole === "Supervisor" && !isOwnProfile) {
     const isSupervisorOfTarget = targetUser.supervisor === currentUser.username;
@@ -199,7 +199,11 @@ export default async function ProfilePage({
         : [];
 
       supervisorPanel = (
-        <ModeratorProfileView students={students} categories={categories} viewerIsAdmin={isAdmin} />
+        <SupervisorProfileView
+          students={students}
+          categories={categories}
+          viewerIsAdmin={isAdmin}
+        />
       );
     }
 

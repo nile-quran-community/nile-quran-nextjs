@@ -1,9 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getHijriMonthDays } from "@/lib/utils";
+import { getHijriWeekRange } from "@/lib/utils";
 import { cookies } from "next/headers";
-import { hijriToGregorian } from "@tabby_ai/hijri-converter";
 import type { ProfileFields } from "@/lib/profile-fields";
 import { getCachedPointsCategories } from "./categories";
 
@@ -203,20 +202,46 @@ export async function getUsers(group?: string) {
 
     if (!access) throw new Error("No access token found in cookies");
 
-    const query = group ? `?group=${group}` : "";
-    const result = await fetch(`${API_BASE}api/v1/users/${query}`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${access}`,
-        "Accept-Language": "ar",
-        "Content-Type": "application/json",
-      },
-      cache: "no-store",
-    });
-    const resultData = await result.json();
+    // Sort by first name, then last name (Arabic names supported)
+    const params = new URLSearchParams({ ordering: "first_name,last_name" });
+    if (group) params.set("group", group);
+    const query = `?${params.toString()}`;
+    const fetchPage = async (url: string) => {
+      const result = await fetch(url, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${access}`,
+          "Accept-Language": "ar",
+          "Content-Type": "application/json",
+        },
+        cache: "no-store",
+      });
+      // Without this a 401/403 returns {detail}, `results` is undefined, and the
+      // caller renders an empty board — a failure dressed up as "no members".
+      if (!result.ok) {
+        throw new Error(`Failed to fetch users (${result.status})`);
+      }
+      return result.json();
+    };
+
+    // The endpoint pages at 50 (DRF PAGE_SIZE, with no page_size query param to
+    // raise it), so walk `next` — otherwise member 51 is invisible to the board,
+    // and to every other caller of this action.
+    const firstPage = await fetchPage(`${API_BASE}api/v1/users/${query}`);
+    const users = firstPage.results ?? [];
+    let next: string | null = firstPage.next ?? null;
+    let guard = 0;
+
+    while (next && guard < 20) {
+      const page = await fetchPage(next);
+      users.push(...(page.results ?? []));
+      next = page.next ?? null;
+      guard++;
+    }
+
     return {
       success: true,
-      users: resultData.results,
+      users,
     };
   } catch (error) {
     console.error("Error fetching user details:", error);
@@ -305,26 +330,7 @@ export async function getUserActivities(
     const access = cookieStore.get("access")?.value;
 
     if (!access) throw new Error("No access token found in cookies");
-    const monthDays = getHijriMonthDays(year, month);
-
-    let startHijriDay: number;
-    let endHijriDay: number;
-
-    if (weekIndex >= 1 && weekIndex <= 3) {
-      startHijriDay = (weekIndex - 1) * 7 + 1;
-      endHijriDay = weekIndex * 7;
-    } else if (weekIndex === 4) {
-      startHijriDay = 22;
-      endHijriDay = monthDays;
-    } else {
-      throw new Error("Invalid weekIndex");
-    }
-
-    const startDate = hijriToGregorian({ year, month, day: startHijriDay });
-    const endDate = hijriToGregorian({ year, month, day: endHijriDay });
-
-    const start = `${startDate.year}-${String(startDate.month).padStart(2, "0")}-${String(startDate.day).padStart(2, "0")}`;
-    const end = `${endDate.year}-${String(endDate.month).padStart(2, "0")}-${String(endDate.day).padStart(2, "0")}`;
+    const { start, end } = getHijriWeekRange(year, month, weekIndex);
 
     const query = `?date_after=${start}&date_before=${end}`;
     const response = await fetch(`${API_BASE}api/v1/users/${Id}/activities/${query}`, {
@@ -356,26 +362,7 @@ export async function getPoints(year: number, month: number, weekIndex: number) 
     const access = cookieStore.get("access")?.value;
 
     if (!access) throw new Error("No access token found in cookies");
-    const monthDays = getHijriMonthDays(year, month);
-
-    let startHijriDay: number;
-    let endHijriDay: number;
-
-    if (weekIndex >= 1 && weekIndex <= 3) {
-      startHijriDay = (weekIndex - 1) * 7 + 1;
-      endHijriDay = weekIndex * 7;
-    } else if (weekIndex === 4) {
-      startHijriDay = 22;
-      endHijriDay = monthDays;
-    } else {
-      throw new Error("Invalid weekIndex");
-    }
-
-    const startDate = hijriToGregorian({ year, month, day: startHijriDay });
-    const endDate = hijriToGregorian({ year, month, day: endHijriDay });
-
-    const start = `${startDate.year}-${String(startDate.month).padStart(2, "0")}-${String(startDate.day).padStart(2, "0")}`;
-    const end = `${endDate.year}-${String(endDate.month).padStart(2, "0")}-${String(endDate.day).padStart(2, "0")}`;
+    const { start, end } = getHijriWeekRange(year, month, weekIndex);
 
     const query = `?date_after=${start}&date_before=${end}`;
     const response = await fetch(`${API_BASE}api/v1/users/points/${query}`, {

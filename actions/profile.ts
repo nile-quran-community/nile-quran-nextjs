@@ -2,7 +2,13 @@
 
 import { cookies } from "next/headers";
 import { gregorianToHijri, hijriToGregorian } from "@tabby_ai/hijri-converter";
-import { getHijriMonthDays } from "@/lib/utils";
+import {
+  getHijriMonthDays,
+  getHijriWeekQueryRange,
+  getTodayDateString,
+  sameHijriWeek,
+} from "@/lib/utils";
+import type { WeekRange } from "@/lib/utils";
 import { SUPERVISOR_MANAGED_CATEGORY_IDS } from "@/lib/profile-types";
 import type { ProfileFields } from "@/lib/profile-fields";
 import { getCachedPointsCategories } from "./categories";
@@ -386,7 +392,7 @@ export async function getQuietMembers(): Promise<FetchResult<QuietMember[]>> {
 }
 
 // ===============================
-// Get Supervised Students (Moderator only)
+// Get Supervised Students (Supervisor only)
 // ===============================
 
 export async function getSupervisedStudents(supervisorUsername: string): Promise<
@@ -413,7 +419,7 @@ export async function getSupervisedStudents(supervisorUsername: string): Promise
     const { start, end } = getLastSevenDays();
     const { start: monthStart, end: monthEnd } = getCurrentHijriMonthRange();
 
-    // Students supervised by this moderator; their points and activity count for
+    // Students supervised by this supervisor; their points and activity count for
     // the current Hijri month (same period as the rest of the app); their
     // all-time activity, used only to tell whether they have gone quiet; and
     // this week's recitation on its own — the last one answers "who has not
@@ -518,8 +524,8 @@ export async function updateUser(
       try {
         const errData = JSON.parse(text);
         // DRF keys field errors by field name and permissions land in `detail`;
-        // rather than naming every field (there are ~20 now), take whichever
-        // one the response actually contains.
+        // rather than naming every field (there are ~20 now, including `groups`),
+        // take whichever one the response actually contains.
         const firstFieldError = Object.values(errData ?? {}).find(
           (v): v is string[] => Array.isArray(v) && typeof v[0] === "string",
         )?.[0];
@@ -538,10 +544,15 @@ export async function updateUser(
 }
 
 // ===============================
-// Get Student Activities (Moderator/Admin)
+// Get Student Activities (Supervisor/Admin)
 // ===============================
 
-export async function getStudentActivities(studentId: number): Promise<FetchResult<ApiActivity[]>> {
+// `range` narrows the query to a Gregorian window — pass one when the caller only
+// needs a single week (the one-per-week check) rather than the student's whole log.
+export async function getStudentActivities(
+  studentId: number,
+  range?: WeekRange,
+): Promise<FetchResult<ApiActivity[]>> {
   try {
     const token = await getToken();
     if (!token) throw new Error("No access token");
@@ -549,7 +560,9 @@ export async function getStudentActivities(studentId: number): Promise<FetchResu
     // The endpoint is paginated (PAGE_SIZE 50) — walk `next` so an older
     // activity never becomes invisible, and so undeletable, in the log
     const activities: ApiActivity[] = [];
-    let url: string | null = `${API_BASE}api/v1/users/${studentId}/activities/`;
+    let url: string | null = range
+      ? `${API_BASE}api/v1/users/${studentId}/activities/?date_after=${range.start}&date_before=${range.end}`
+      : `${API_BASE}api/v1/users/${studentId}/activities/`;
     let guard = 0;
 
     while (url && guard < 20) {
@@ -576,7 +589,7 @@ export async function getStudentActivities(studentId: number): Promise<FetchResu
 }
 
 // ===============================
-// Change a Student Activity's Category (Moderator/Admin)
+// Change a Student Activity's Category (Supervisor/Admin)
 // ===============================
 // A supervisor who recorded reading where they meant recitation should be able to
 // correct it without deleting and re-recording. Both the old and the new category
@@ -604,6 +617,22 @@ export async function updateStudentActivityCategory(
     }
     if (activity.category === categoryId) {
       return { success: true, data: null };
+    }
+
+    // Turning a reading into a recitation in a week that already holds one would
+    // stack two — the same rule recording goes through.
+    const taken = await weekAlreadyRecorded(
+      studentId,
+      categoryId,
+      activity.date.slice(0, 10),
+      token,
+      activityId,
+    );
+    if (taken) {
+      return {
+        success: false,
+        error: `${await categoryName(categoryId, token)} مسجّل لهذا الطالب في هذا الأسبوع بالفعل`,
+      };
     }
 
     const res = await fetch(`${API_BASE}api/v1/users/${studentId}/activities/${activityId}/`, {
@@ -637,7 +666,7 @@ export async function updateStudentActivityCategory(
 }
 
 // ===============================
-// Change a Student Activity's Multiplier (Moderator/Admin)
+// Change a Student Activity's Multiplier (Supervisor/Admin)
 // ===============================
 // Spectacular performance is recorded as a multiplier on the activity, and the
 // API counts points as multiplier × category value. A performance recorded at
@@ -700,8 +729,124 @@ export async function updateStudentActivityMultiplier(
   }
 }
 
+// Does this student already have THIS activity in the week `targetDate` falls in?
+// Recitation and reading are different acts — a student may both recite the portion
+// they memorised and read another one in the same week — so they never collide with
+// each other, only with themselves.
+// `ignoreActivityId` is the record being edited; a record never collides with itself.
+// The query window is padded (see `getHijriWeekQueryRange`); `sameHijriWeek` decides.
+async function weekAlreadyRecorded(
+  studentId: number,
+  categoryId: number,
+  targetDate: string,
+  token: string,
+  ignoreActivityId?: number,
+): Promise<boolean> {
+  const window = getHijriWeekQueryRange(targetDate);
+
+  const existing = await fetchJson<{ results: ApiActivity[] } | ApiActivity[]>(
+    `${API_BASE}api/v1/users/${studentId}/activities/?date_after=${window.start}&date_before=${window.end}`,
+    token,
+  );
+  const rows = Array.isArray(existing) ? existing : (existing.results ?? []);
+
+  return rows.some(
+    (a) =>
+      a.id !== ignoreActivityId &&
+      a.category === categoryId &&
+      sameHijriWeek(a.date.slice(0, 10), targetDate),
+  );
+}
+
+// The activity's own name, for a message that says which one is already recorded
+async function categoryName(categoryId: number, token: string): Promise<string> {
+  try {
+    const categories = await getCachedPointsCategories(token);
+    return categories.find((c) => c.id === categoryId)?.name ?? "هذا النشاط";
+  } catch {
+    return "هذا النشاط";
+  }
+}
+
 // ===============================
-// Delete Student Activity (Moderator/Admin)
+// Move a Student Activity to Another Day (Supervisor/Admin)
+// ===============================
+// A recitation heard on Tuesday but recorded on Thursday belongs on Tuesday: the
+// week it counts toward, and the record the student reads back, should both say
+// what actually happened. Same supervisor scope as the other corrections, and the
+// same one-per-week rule as recording — moving a record must not stack two of them
+// into one week.
+
+export async function updateStudentActivityDate(
+  studentId: number,
+  activityId: number,
+  date: string,
+): Promise<FetchResult<null>> {
+  try {
+    const token = await getToken();
+    if (!token) throw new Error("No access token");
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return { success: false, error: "تاريخ غير صالح" };
+    }
+    // Nothing is recited in advance
+    if (date > getTodayDateString()) {
+      return { success: false, error: "لا يمكن اختيار تاريخ في المستقبل" };
+    }
+
+    const activity = await fetchJson<ApiActivity>(
+      `${API_BASE}api/v1/users/${studentId}/activities/${activityId}/`,
+      token,
+    );
+    if (!SUPERVISOR_MANAGED_CATEGORY_IDS.includes(activity.category)) {
+      return { success: false, error: "هذا النوع من الأنشطة يسجّله المدراء" };
+    }
+    if (activity.date.slice(0, 10) === date) {
+      return { success: true, data: null };
+    }
+
+    const taken = await weekAlreadyRecorded(studentId, activity.category, date, token, activityId);
+    if (taken) {
+      return {
+        success: false,
+        error: `${await categoryName(activity.category, token)} مسجّل لهذا الطالب في ذلك الأسبوع بالفعل`,
+      };
+    }
+
+    // Midday, the same constant the control board stamps historical entries with:
+    // only the day matters, and it keeps the record inside that calendar day.
+    const res = await fetch(`${API_BASE}api/v1/users/${studentId}/activities/${activityId}/`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Accept-Language": "ar",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ date: `${date}T12:00:00.000Z` }),
+      cache: "no-store",
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      let errorMsg = `تعذّر تعديل التاريخ (${res.status})`;
+      try {
+        const data = JSON.parse(text);
+        errorMsg = data?.detail || data?.date?.[0] || data?.error || errorMsg;
+      } catch {
+        // not JSON
+      }
+      return { success: false, error: errorMsg };
+    }
+
+    return { success: true, data: null };
+  } catch (error) {
+    console.error("Error updating student activity date:", error);
+    return { success: false, error: "تعذّر تعديل التاريخ" };
+  }
+}
+
+// ===============================
+// Delete Student Activity (Supervisor/Admin)
 // ===============================
 
 export async function deleteStudentActivity(
@@ -756,7 +901,7 @@ export async function deleteStudentActivity(
 }
 
 // ===============================
-// Add Student Activity (Moderator/Admin)
+// Add Student Activity (Supervisor/Admin)
 // ===============================
 
 export async function addStudentActivity(
@@ -773,7 +918,27 @@ export async function addStudentActivity(
       return { success: false, error: "هذا النوع من الأنشطة يسجّله المدراء" };
     }
 
-    const date = new Date().toISOString();
+    // One record of each activity per student per week: the weekly portion is a
+    // single act, the control board shows one checkbox per category per week, and
+    // a second record would quietly double a student's points. Recitation and
+    // reading are separate acts a student may both do in one week, so each blocks
+    // only itself.
+    // ponytail: checked, not constrained — two requests racing can still both
+    // pass. A unique constraint on (user, week) in the API is the real guarantee.
+    //
+    // The day the guard checks and the day the record is stamped with must be the
+    // same one: "today" in Cairo, at noon UTC so no timezone can shift it onto a
+    // neighbouring day — and so, near a week boundary, into a neighbouring week.
+    const today = getTodayDateString();
+    const taken = await weekAlreadyRecorded(studentId, categoryId, today, token);
+    if (taken) {
+      return {
+        success: false,
+        error: `سُجّل ${await categoryName(categoryId, token)} لهذا الطالب هذا الأسبوع بالفعل — عدّله أو احذفه أولاً`,
+      };
+    }
+
+    const date = `${today}T12:00:00.000Z`;
 
     const res = await fetch(`${API_BASE}api/v1/users/${studentId}/activities/`, {
       method: "POST",
@@ -800,11 +965,10 @@ export async function addStudentActivity(
     const data = await res.json();
     return { success: true, data: { id: data.id } };
   } catch (error) {
+    // `fetchJson` throws raw English ("API 500: ...") — the week check runs through
+    // it, so anything it throws has to be translated before it reaches a supervisor
     console.error("Error adding student activity:", error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error",
-    };
+    return { success: false, error: "تعذّر تسجيل النشاط، حاول مرة أخرى" };
   }
 }
 

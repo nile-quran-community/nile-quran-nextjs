@@ -93,6 +93,57 @@ export function getHijriMonthDays(year: number, month: number) {
   // 4. إذا كان اليوم التالي هو 30، فإن الشهر 30 يوماً. وإلا فهو 29.
   return nextHijriDate.day === 30 ? 30 : 29;
 }
+// The community's week, bucketed the way the control board does it: Hijri days
+// 1-7, 8-14, 15-21, and 22-to-month-end (29 or 30). The board draws one checkbox
+// per category per week, so a week is also the unit a recitation belongs to —
+// two records in the same week are something it cannot represent.
+export function getHijriWeekRange(year: number, month: number, weekIndex: number): WeekRange {
+  // NaN passes both comparisons on its own, and an unparseable date reaches here
+  // as exactly that — better to throw than to hand back "NaN-NaN-NaN" as a filter
+  if (!Number.isInteger(weekIndex) || weekIndex < 1 || weekIndex > 4) {
+    throw new Error(`Invalid weekIndex: ${weekIndex}`);
+  }
+
+  const startDay = (weekIndex - 1) * 7 + 1;
+  const endDay = weekIndex === 4 ? getHijriMonthDays(year, month) : weekIndex * 7;
+  const iso = (day: number) => {
+    const g = hijriToGregorian({ year, month, day });
+    return `${g.year}-${String(g.month).padStart(2, "0")}-${String(g.day).padStart(2, "0")}`;
+  };
+
+  return { start: iso(startDay), end: iso(endDay) };
+}
+
+// The week a given Gregorian "YYYY-MM-DD" falls in
+export function getHijriWeekRangeForDate(isoDate: string): WeekRange {
+  const [year, month, day] = isoDate.slice(0, 10).split("-").map(Number);
+  const hijri = gregorianToHijri({ year, month, day });
+  return getHijriWeekRange(hijri.year, hijri.month, Math.min(Math.ceil(hijri.day / 7), 4));
+}
+
+// Do two Gregorian dates fall in the same Hijri week? This is what decides
+// membership — both on the server and in the browser, so the two cannot disagree
+// about whether a record belongs to the week being looked at.
+export function sameHijriWeek(a: string, b: string): boolean {
+  return getHijriWeekRangeForDate(a).start === getHijriWeekRangeForDate(b).start;
+}
+
+function shiftDays(isoDate: string, days: number): string {
+  const d = new Date(`${isoDate}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+// The Gregorian window to ask the API for when you want a Hijri week's records,
+// padded by three days on each side: the API filters on Gregorian bounds derived
+// here by converting Hijri days, so a boundary that lands a day out would
+// otherwise hide the very record being looked for. The padding costs nothing — a
+// week holds a handful of rows — and `sameHijriWeek` is what decides membership.
+export function getHijriWeekQueryRange(isoDate: string): WeekRange {
+  const week = getHijriWeekRangeForDate(isoDate);
+  return { start: shiftDays(week.start, -3), end: shiftDays(week.end, 3) };
+}
+
 // One month back in the Hijri calendar, wrapping the year at Muharram
 export function getPreviousHijriMonth(
   year: number,

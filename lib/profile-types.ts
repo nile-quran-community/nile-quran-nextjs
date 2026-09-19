@@ -1,3 +1,16 @@
+import {
+  Target,
+  Shield,
+  GraduationCap,
+  BookOpen,
+  Wallet,
+  Video,
+  Code2,
+  Flame,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
+
 // ===============================
 // Profile Types & Visibility Rules
 // ===============================
@@ -114,36 +127,109 @@ export function getPrimaryRole(groups: string[]): RoleType {
   return "Student";
 }
 
-// All roles a user belongs to, highest first (a user can be e.g. Supervisor + Admin)
+// All roles a user belongs to, highest first (a user can be e.g. Supervisor + Admin).
+// No fallback: a member can hold a team and no role at all, and calling them a
+// student on their own profile would contradict what the control board shows.
 export function getRoles(groups: string[]): RoleType[] {
   const roles: RoleType[] = [];
   if (groups.includes("Admin")) roles.push("Admin");
   if (groups.includes("Supervisor")) roles.push("Supervisor");
   if (groups.includes("Student")) roles.push("Student");
-  if (roles.length === 0) roles.push("Student");
   return roles;
 }
 
-export function getRoleLabel(role: RoleType): string {
-  switch (role) {
-    case "Admin":
-      return "مدير";
-    case "Supervisor":
-      return "مشرف";
-    case "Student":
-      return "طالب";
-  }
+// The teams a member can belong to alongside their role — the API's own group
+// names (settings.GROUP_PERMISSIONS), which is what `user.groups` carries.
+export const TEAM_GROUPS = ["Treasurer", "Media", "Developer", "Researcher", "Beast"] as const;
+export type TeamGroup = (typeof TEAM_GROUPS)[number];
+export type GroupName = RoleType | TeamGroup;
+
+// Every group the API knows, roles first — the order the control board offers them in
+export const ALL_GROUPS: GroupName[] = ["Admin", "Supervisor", "Student", ...TEAM_GROUPS];
+
+// The one place a group is described: how a single member of it is named (badges,
+// rows, checkboxes), how the group is named as a body of people (the about page's
+// voice), what the team does, and the mark it wears. Rename a group here and every
+// screen follows — nothing else should carry its Arabic name or its icon.
+export interface GroupMeta {
+  /** One member of the group */
+  label: string;
+  /** The group as a body of people */
+  collective: string;
+  /** What the team does — shown on the about page; the roles have no team card */
+  description?: string;
+  Icon: LucideIcon;
 }
 
-export function getRoleIcon(role: RoleType): string {
-  switch (role) {
-    case "Admin":
-      return "👑";
-    case "Supervisor":
-      return "🛡️";
-    case "Student":
-      return "📚";
-  }
+export const GROUPS: Record<GroupName, GroupMeta> = {
+  Admin: {
+    label: "مدير",
+    collective: "الإداريون",
+    description:
+      "مسؤولون عن التأكد من تحقق رؤية المجتمع ورسالته وقيمه في أعماله، ومتابعة المشاريع والبحث العلمي.",
+    Icon: Target,
+  },
+  Supervisor: { label: "مشرف", collective: "المشرفون", Icon: Shield },
+  Student: { label: "طالب", collective: "الطلبة", Icon: GraduationCap },
+  Treasurer: {
+    label: "أمين خزنة",
+    collective: "أمناء الخزنة",
+    description:
+      "مسؤولون عن جمع الصدقات والتبرعات والغرامات المتعلقة بمخالفة القواعد، وتنظيم الموارد المالية للمجتمع.",
+    Icon: Wallet,
+  },
+  Media: {
+    label: "إعلامي",
+    collective: "الإعلاميون",
+    description:
+      "يعملون على تحويل الأفكار إلى مواد مرئية جذابة، واستخدام مواقع التواصل الاجتماعي بصورة فعالة للتعريف بالمجتمع ونشر رسالته.",
+    Icon: Video,
+  },
+  Developer: {
+    label: "مطوّر",
+    collective: "المطورون",
+    description:
+      "مسؤولون عن تطوير كل ما يخدم المجتمع، وصناعة الموقع الإلكتروني والإشراف عليه وتحسينه.",
+    Icon: Code2,
+  },
+  Researcher: {
+    label: "باحث",
+    collective: "البحث العلمي",
+    description: "يهتم فريق البحث العلمي بالبحث المنهجي في القضايا المؤثرة على مجتمعنا.",
+    Icon: BookOpen,
+  },
+  Beast: {
+    label: "وحش",
+    collective: "الوحوش",
+    description:
+      "مسؤولون عن تنظيم الفعاليات، والحرص على ظهورها بصورة جميلة ومرتبة ومنظمة، وابتكار المسابقات البدنية وغيرها من الأنشطة التي تشعل الحماس.",
+    Icon: Flame,
+  },
+};
+
+// A group the API has but this build doesn't know yet is shown under its own name
+// rather than dropped — an admin should still see what a member belongs to.
+export function getGroupLabel(group: string): string {
+  return GROUPS[group as GroupName]?.label ?? group;
+}
+
+export function getGroupIcon(group: string): LucideIcon {
+  return GROUPS[group as GroupName]?.Icon ?? Users;
+}
+
+// Who may write goals: the groups the API grants add/change/delete_goal to
+// (settings.GROUP_PERMISSIONS — the goals endpoint is behind DjangoModelPermissions).
+// /users/me hands back groups, not permissions, so this list has to be kept in step
+// with the backend's; the API is still the one that enforces it.
+export const GOAL_EDITOR_GROUPS: GroupName[] = ["Admin", "Treasurer", "Media"];
+
+export function canEditGoals(groups: string[]): boolean {
+  return GOAL_EDITOR_GROUPS.some((g) => groups.includes(g));
+}
+
+// Team memberships only, in the fixed order above (a member can hold several)
+export function getTeams(groups: string[]): TeamGroup[] {
+  return TEAM_GROUPS.filter((t) => groups.includes(t));
 }
 
 // ===============================

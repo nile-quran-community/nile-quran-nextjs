@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { checkTokenValidity } from "@/actions/auth-actions";
 import { redirect } from "next/navigation";
 import GoalsPageClient from "@/components/Goals/GoalsPageClient";
+import { canEditGoals } from "@/lib/profile-types";
 
 export const metadata: Metadata = {
   title: "الأهداف",
@@ -15,7 +16,8 @@ export default async function GoalsPage() {
     redirect("/auth");
   }
 
-  const isAdmin = !!User.user.groups.includes("Admin");
+  // Not admins only — every group the API lets write goals (أمناء الخزنة, الإعلاميون)
+  const canEdit = canEditGoals(User.user.groups || []);
 
-  return <GoalsPageClient isAdmin={isAdmin} />;
+  return <GoalsPageClient canEdit={canEdit} />;
 }

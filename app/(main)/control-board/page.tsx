@@ -16,5 +16,5 @@ export default async function ControlPanelPage() {
     redirect("/auth");
   }
 
-  return <ControlPanelClient />;
+  return <ControlPanelClient currentUserId={User.user.id} />;
 }

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Tajawal } from "next/font/google";
 import { Search, CheckCircle2, CircleDashed } from "lucide-react";
 import { ACADEMIC_YEAR_OPTIONS, FACULTY_OPTIONS } from "@/lib/profile-fields";
-import { getRoles, getRoleLabel } from "@/lib/profile-types";
+import { getGroupLabel } from "@/lib/profile-types";
 import type { Member } from "@/actions/ControlBoard";
 
 const tajawal = Tajawal({ subsets: ["arabic"], weight: ["400", "500", "700"] });
@@ -80,11 +80,7 @@ export default function MembersTable({ members }: { members: Member[] }) {
                     {`${m.first_name} ${m.last_name}`.trim() || m.username}
                   </Link>
                 </td>
-                <td className="px-4 py-3 text-[#043F2E]/70">
-                  {getRoles(m.groups)
-                    .map((r) => getRoleLabel(r))
-                    .join("، ")}
-                </td>
+                <td className="px-4 py-3 text-[#043F2E]/70">{m.groups.map(getGroupLabel).join("، ")}</td>
                 <td className="px-4 py-3 text-[#043F2E]/70">
                   {m.faculty === "other" ? m.faculty_other || "—" : labelFor(FACULTY_OPTIONS, m.faculty)}
                 </td>
