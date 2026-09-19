@@ -4,8 +4,6 @@ import { useState, memo } from "react";
 
 import { Tajawal } from "next/font/google";
 import { Check, Minus, Plus, User, Users, X } from "lucide-react";
-import RoleBadge from "@/components/Profile/RoleBadge";
-import { getGroupLabel, getTeams, TEAM_GROUPS, type TeamGroup } from "@/lib/profile-types";
 
 const tajawal = Tajawal({ subsets: ["arabic"], weight: ["400", "500", "700"] });
 
@@ -43,7 +41,6 @@ type Props = {
   lastname: string;
   supervisor: string | null;
   supervisors: SupervisorOption[];
-  groups: string[];
   categories: Category[];
   draft: DraftEntry | undefined;
   isDirty: boolean;
@@ -51,7 +48,6 @@ type Props = {
   isActive: boolean;
   onCategoryDraftChange: (userId: number, categoryId: number, multiplier: number) => void;
   onSupervisorDraftChange: (userId: number, supervisor: string | null) => void;
-  onEditGroups: (userId: number) => void;
   variant: "desktop" | "mobile";
   isLast?: boolean;
 };
@@ -63,7 +59,6 @@ function UserRowComponent({
   lastname,
   supervisor,
   supervisors,
-  groups,
   categories,
   draft,
   isDirty,
@@ -71,7 +66,6 @@ function UserRowComponent({
   isActive,
   onCategoryDraftChange,
   onSupervisorDraftChange,
-  onEditGroups,
   variant,
   isLast,
 }: Props) {
@@ -100,11 +94,6 @@ function UserRowComponent({
     onSupervisorDraftChange(userId, e.target.value || null);
   };
 
-  // Groups are a property of the member, not of the week on screen, so they are
-  // saved on the spot from the modal rather than joining the weekly draft batch.
-  const groupsLine = <GroupsLine groups={groups} />;
-  const openGroups = () => onEditGroups(userId);
-
   const multiplierModal = multiplierEdit && (
     <MultiplierModal
       categoryName={multiplierEdit.name}
@@ -127,9 +116,6 @@ function UserRowComponent({
           supervisor={effectiveSupervisor}
           supervisors={supervisors}
           onSupervisorChange={handleSupervisorChange}
-          groupsLine={groupsLine}
-          onOpenGroups={openGroups}
-          groupsDisabled={disabled}
           userPoints={userPoints}
           categories={categories}
           effectiveMultiplier={effectiveMultiplier}
@@ -154,16 +140,8 @@ function UserRowComponent({
       {/* Avatar */}
       <UserAvatar initials={initials} size="sm" />
 
-      {/* Name — also the way into the member's groups. The points table is dense
-          enough without a column of its own, and a member's teams print under the
-          name only when they have any, so an ordinary row looks untouched. */}
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={openGroups}
-        aria-label={`مجموعات ${fullName}`}
-        className="w-[150px] shrink-0 min-w-0 -mx-1 px-1 py-0.5 rounded-lg text-start hover:bg-[#F7FBEA] transition-colors disabled:cursor-not-allowed cursor-pointer"
-      >
+      {/* Name */}
+      <div className="w-[150px] shrink-0 min-w-0">
         <p
           className={`${tajawal.className} text-sm font-bold text-[#043F2E] truncate`}
           title={fullName}
@@ -175,10 +153,9 @@ function UserRowComponent({
             الحساب معطل
           </p>
         )}
-        {groupsLine}
-      </button>
+      </div>
 
-      {/* Group / Supervisor */}
+      {/* Supervisor */}
       <div className="w-[120px] shrink-0 min-w-0 flex items-center gap-1.5">
         <Users className="w-3.5 h-3.5 text-[#043F2E]/40 shrink-0" strokeWidth={2.2} />
         <select
@@ -401,34 +378,6 @@ function MultiplierBadge({
 }
 
 // ============================
-// Groups — what the member belongs to, and the way into changing it. Teams lead
-// the summary (they are what differs between rows), with the member's plain role
-// behind them, so the cell always states the membership it lets you edit.
-// ============================
-function GroupsLine({ groups }: { groups: string[] }) {
-  // "Student" is every row on this board, so it says nothing here — the teams are
-  // what distinguishes one member from another. Nothing to say, nothing rendered.
-  const shown = [
-    ...getTeams(groups),
-    ...groups.filter((g) => g !== "Student" && !TEAM_GROUPS.includes(g as TeamGroup)),
-  ];
-  if (shown.length === 0) return null;
-
-  return (
-    <span className="flex items-center gap-1 min-w-0" title={shown.map(getGroupLabel).join(" · ")}>
-      <span className="min-w-0 truncate">
-        <RoleBadge group={shown[0]} size="sm" />
-      </span>
-      {shown.length > 1 && (
-        <span className={`${tajawal.className} shrink-0 text-[10px] font-bold text-[#043F2E]/50`}>
-          +{shown.length - 1}
-        </span>
-      )}
-    </span>
-  );
-}
-
-// ============================
 // Multiplier modal
 // ============================
 function MultiplierModal({
@@ -500,9 +449,6 @@ function MobileCard({
   supervisor,
   supervisors,
   onSupervisorChange,
-  groupsLine,
-  onOpenGroups,
-  groupsDisabled,
   userPoints,
   categories,
   effectiveMultiplier,
@@ -518,10 +464,6 @@ function MobileCard({
   supervisor: string | null;
   supervisors: SupervisorOption[];
   onSupervisorChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
-  groupsLine: React.ReactNode;
-  onOpenGroups: () => void;
-  /** Groups aren't weekly data, so a deactivated account's are still editable */
-  groupsDisabled: boolean;
   userPoints: number;
   categories: Category[];
   effectiveMultiplier: (categoryId: number) => number;
@@ -577,18 +519,6 @@ function MobileCard({
           {userPoints}
         </div>
       </div>
-
-      {/* Groups / NQC teams */}
-      <button
-        type="button"
-        disabled={groupsDisabled}
-        onClick={onOpenGroups}
-        className={`${tajawal.className} -mt-1 self-start flex items-center gap-1.5 text-xs font-medium text-[#043F2E]/50 rounded-lg px-2 py-1 -mx-2 hover:bg-white transition-colors disabled:opacity-50 cursor-pointer`}
-      >
-        <Users className="w-3 h-3 shrink-0" strokeWidth={2.2} />
-        المجموعات
-        {groupsLine}
-      </button>
 
       {/* Divider */}
       <div className="h-px bg-[#043F2E]/10" />

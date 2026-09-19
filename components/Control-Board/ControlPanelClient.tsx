@@ -323,10 +323,9 @@ export default function ControlPanelClient({ currentUserId }: { currentUserId?: 
     }
   };
 
-  const groupsEditUser =
-    data.users.find((u) => u.id === groupsEditId) ??
-    roster.find((u) => u.id === groupsEditId) ??
-    null;
+  // Opened from the teams tab, which works off the roster — the points table has
+  // nothing to do with group membership.
+  const groupsEditUser = roster.find((u) => u.id === groupsEditId) ?? null;
 
   const handleSaveGroups = async (groups: string[]) => {
     if (groupsEditId === null) return;
@@ -813,7 +812,6 @@ export default function ControlPanelClient({ currentUserId }: { currentUserId?: 
                       lastname={user.last_name}
                       supervisor={user.supervisor}
                       supervisors={supervisors}
-                      groups={user.groups || []}
                       categories={sortedCategories}
                       draft={drafts[user.id]}
                       isDirty={dirtyUserIds.has(user.id)}
@@ -821,7 +819,6 @@ export default function ControlPanelClient({ currentUserId }: { currentUserId?: 
                       isActive={user.is_active}
                       onCategoryDraftChange={handleCategoryDraftChange}
                       onSupervisorDraftChange={handleSupervisorDraftChange}
-                      onEditGroups={handleEditGroups}
                     />
                   ))}
                 </div>
@@ -840,7 +837,6 @@ export default function ControlPanelClient({ currentUserId }: { currentUserId?: 
                       lastname={user.last_name}
                       supervisor={user.supervisor}
                       supervisors={supervisors}
-                      groups={user.groups || []}
                       categories={data.categories}
                       draft={drafts[user.id]}
                       isDirty={dirtyUserIds.has(user.id)}
@@ -848,7 +844,6 @@ export default function ControlPanelClient({ currentUserId }: { currentUserId?: 
                       isActive={user.is_active}
                       onCategoryDraftChange={handleCategoryDraftChange}
                       onSupervisorDraftChange={handleSupervisorDraftChange}
-                      onEditGroups={handleEditGroups}
                     />
                   ))}
                 </div>
