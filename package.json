@@ -17,7 +17,7 @@
     "framer-motion": "^12.43.0",
     "jwt-decode": "^4.0.0",
     "lucide-react": "^0.546.0",
-    "next": "15.5.21",
+    "next": "15.5.24",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-hook-form": "^7.87.0",

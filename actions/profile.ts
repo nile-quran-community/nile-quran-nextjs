@@ -113,7 +113,7 @@ export async function getUserByUsername(username: string): Promise<FetchResult<A
     if (!token) throw new Error("No access token");
 
     const data = await fetchJson<{ results: ApiUser[] }>(
-      `${API_BASE}api/v1/users/?username=${encodeURIComponent(username)}`,
+      `${API_BASE}api/v1/users/?username_exact=${encodeURIComponent(username)}`,
       token,
     );
 
