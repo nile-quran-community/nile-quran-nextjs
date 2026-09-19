@@ -1,9 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getHijriMonthDays } from "@/lib/utils";
+import { getHijriWeekRange } from "@/lib/utils";
 import { cookies } from "next/headers";
-import { hijriToGregorian } from "@tabby_ai/hijri-converter";
 import { getCachedPointsCategories } from "./categories";
 
 const API_BASE = process.env.BASE_URL;
@@ -279,26 +278,7 @@ export async function getUserActivities(
     const access = cookieStore.get("access")?.value;
 
     if (!access) throw new Error("No access token found in cookies");
-    const monthDays = getHijriMonthDays(year, month);
-
-    let startHijriDay: number;
-    let endHijriDay: number;
-
-    if (weekIndex >= 1 && weekIndex <= 3) {
-      startHijriDay = (weekIndex - 1) * 7 + 1;
-      endHijriDay = weekIndex * 7;
-    } else if (weekIndex === 4) {
-      startHijriDay = 22;
-      endHijriDay = monthDays;
-    } else {
-      throw new Error("Invalid weekIndex");
-    }
-
-    const startDate = hijriToGregorian({ year, month, day: startHijriDay });
-    const endDate = hijriToGregorian({ year, month, day: endHijriDay });
-
-    const start = `${startDate.year}-${String(startDate.month).padStart(2, "0")}-${String(startDate.day).padStart(2, "0")}`;
-    const end = `${endDate.year}-${String(endDate.month).padStart(2, "0")}-${String(endDate.day).padStart(2, "0")}`;
+    const { start, end } = getHijriWeekRange(year, month, weekIndex);
 
     const query = `?date_after=${start}&date_before=${end}`;
     const response = await fetch(`${API_BASE}api/v1/users/${Id}/activities/${query}`, {
@@ -330,26 +310,7 @@ export async function getPoints(year: number, month: number, weekIndex: number) 
     const access = cookieStore.get("access")?.value;
 
     if (!access) throw new Error("No access token found in cookies");
-    const monthDays = getHijriMonthDays(year, month);
-
-    let startHijriDay: number;
-    let endHijriDay: number;
-
-    if (weekIndex >= 1 && weekIndex <= 3) {
-      startHijriDay = (weekIndex - 1) * 7 + 1;
-      endHijriDay = weekIndex * 7;
-    } else if (weekIndex === 4) {
-      startHijriDay = 22;
-      endHijriDay = monthDays;
-    } else {
-      throw new Error("Invalid weekIndex");
-    }
-
-    const startDate = hijriToGregorian({ year, month, day: startHijriDay });
-    const endDate = hijriToGregorian({ year, month, day: endHijriDay });
-
-    const start = `${startDate.year}-${String(startDate.month).padStart(2, "0")}-${String(startDate.day).padStart(2, "0")}`;
-    const end = `${endDate.year}-${String(endDate.month).padStart(2, "0")}-${String(endDate.day).padStart(2, "0")}`;
+    const { start, end } = getHijriWeekRange(year, month, weekIndex);
 
     const query = `?date_after=${start}&date_before=${end}`;
     const response = await fetch(`${API_BASE}api/v1/users/points/${query}`, {

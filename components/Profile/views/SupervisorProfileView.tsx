@@ -26,13 +26,20 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import StatTile from "../StatTile";
-import { toArabicDigits, formatHijriDate } from "@/lib/utils";
+import {
+  toArabicDigits,
+  formatHijriDate,
+  getHijriWeekQueryRange,
+  getTodayDateString,
+  sameHijriWeek,
+} from "@/lib/utils";
 import {
   addStudentActivity,
   getStudentActivities,
   deleteStudentActivity,
   updateStudentActivityCategory,
   updateStudentActivityMultiplier,
+  updateStudentActivityDate,
 } from "@/actions/profile";
 import {
   SUPERVISOR_MANAGED_CATEGORY_IDS,
@@ -117,7 +124,7 @@ function studentsCountLabel(n: number): string {
   return `${toArabicDigits(n)} طالبًا`;
 }
 
-export default function ModeratorProfileView({
+export default function SupervisorProfileView({
   students,
   categories,
   viewerIsAdmin = false,
@@ -514,8 +521,9 @@ function ActivitySheet({
   const [mode, setMode] = useState<SheetMode>("add");
   const [activities, setActivities] = useState<ActivityItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const [confirmingId, setConfirmingId] = useState<number | null>(null);
+  const [dateEdit, setDateEdit] = useState<{ id: number; date: string } | null>(null);
+  const [dateError, setDateError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<number | null>(null);
   const [isPending, startTransition] = useTransition();
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -537,8 +545,22 @@ function ActivitySheet({
   const isBusy = busyId !== null || isPending;
   busyRef.current = isBusy;
 
+  // Escape belongs to the innermost dialog: with the date picker open it closes
+  // that, not the whole sheet.
+  const dateEditRef = useRef(false);
+  dateEditRef.current = dateEdit !== null;
+
   const requestClose = () => {
     if (!busyRef.current) onClose();
+  };
+
+  // Each tab reads a different slice — this week for "تسجيل", the whole log for
+  // "تعديل" — so switching reloads rather than reusing the other tab's fetch.
+  const switchMode = (next: SheetMode) => {
+    if (next === mode) return;
+    setMode(next);
+    setActivities(null);
+    setError(null);
   };
 
   // The dialog takes focus on open, and the button that opened it gets focus back
@@ -550,16 +572,20 @@ function ActivitySheet({
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !busyRef.current) onClose();
+      if (e.key === "Escape" && !busyRef.current && !dateEditRef.current) onClose();
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onClose]);
 
+  // "تعديل" lists the whole history, so it walks every page. "تسجيل" only has to
+  // answer "is this week already recorded" — one week's window, not twenty round
+  // trips through the student's entire log.
   const loadActivities = useCallback(() => {
     setActivities(null);
     setError(null);
-    getStudentActivities(student.id).then((res) => {
+    const range = mode === "add" ? getHijriWeekQueryRange(getTodayDateString()) : undefined;
+    getStudentActivities(student.id, range).then((res) => {
       if (res.success && res.data) {
         setActivities(
           res.data
@@ -570,20 +596,37 @@ function ActivitySheet({
         setError(res.error || "تعذّر تحميل الأنشطة");
       }
     });
-  }, [student.id]);
+  }, [student.id, mode]);
 
-  // Only fetch the log when the reader actually asks to see it
+  // Loaded as soon as the sheet opens, not just on the "تعديل" tab: the record
+  // button needs to know whether this week's recitation already exists.
   useEffect(() => {
-    if (mode === "manage" && activities === null && !error) loadActivities();
-  }, [mode, activities, error, loadActivities]);
+    if (activities === null && !error) loadActivities();
+  }, [activities, error, loadActivities]);
+
+  // This week's record of the activity being recorded. Recitation and reading are
+  // separate acts a student may both do in one week, so only the selected one
+  // blocks the button — the other stays available.
+  //
+  // `sameHijriWeek` rather than a range comparison, because that is what the server
+  // uses: deciding membership two different ways is how the button ends up disabled
+  // for a week the server would have accepted, with no way forward for the supervisor.
+  const today = getTodayDateString();
+  const weekRecord =
+    activities?.find(
+      (a) => a.category === categoryId && sameHijriWeek(a.date.slice(0, 10), today),
+    ) ?? null;
+
+  // Until the log has loaded there is no answer to give, so recording waits rather
+  // than guessing. A load failure doesn't lock the button — the server re-checks
+  // anyway — it only costs the callout.
+  const weekUnknown = activities === null && !error;
 
   const handleRecord = () => {
     setError(null);
-    setNotice(null);
     startTransition(async () => {
       const res = await addStudentActivity(student.id, categoryId, multiplier);
       if (res.success) {
-        setNotice(`تم تسجيل ${selectedCategory?.name ?? "النشاط"} باسم ${fullName}`);
         // The next recitation is an ordinary one until said otherwise
         setMultiplier(1);
         setActivities(null);
@@ -596,7 +639,6 @@ function ActivitySheet({
 
   const handleChangeCategory = async (activityId: number, nextCategoryId: number) => {
     setError(null);
-    setNotice(null);
     setBusyId(activityId);
     try {
       const res = await updateStudentActivityCategory(student.id, activityId, nextCategoryId);
@@ -617,7 +659,6 @@ function ActivitySheet({
 
   const handleChangeMultiplier = async (activityId: number, nextMultiplier: number) => {
     setError(null);
-    setNotice(null);
     setBusyId(activityId);
     try {
       const res = await updateStudentActivityMultiplier(student.id, activityId, nextMultiplier);
@@ -636,9 +677,35 @@ function ActivitySheet({
     }
   };
 
+  const handleChangeDate = async (activityId: number, nextDate: string) => {
+    setError(null);
+    setDateError(null);
+    setBusyId(activityId);
+    try {
+      const res = await updateStudentActivityDate(student.id, activityId, nextDate);
+      if (res.success) {
+        setDateEdit(null);
+        setActivities((prev) =>
+          (prev ?? [])
+            .map((a) => (a.id === activityId ? { ...a, date: `${nextDate}T12:00:00.000Z` } : a))
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+        );
+        router.refresh();
+      } else {
+        // The picker stays open with the date still in it — it is behind the
+        // overlay that the error renders, and re-picking it is the supervisor's
+        // time for our failure
+        setDateError(res.error || "تعذّر تعديل التاريخ");
+      }
+    } catch {
+      setDateError("تعذّر الاتصال، حاول مرة أخرى");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   const handleDelete = async (activityId: number) => {
     setError(null);
-    setNotice(null);
     setBusyId(activityId);
     try {
       const res = await deleteStudentActivity(student.id, activityId);
@@ -726,7 +793,7 @@ function ActivitySheet({
         >
           <button
             type="button"
-            onClick={() => setMode("add")}
+            onClick={() => switchMode("add")}
             aria-pressed={mode === "add"}
             className={tabClass(mode === "add")}
           >
@@ -735,7 +802,7 @@ function ActivitySheet({
           </button>
           <button
             type="button"
-            onClick={() => setMode("manage")}
+            onClick={() => switchMode("manage")}
             aria-pressed={mode === "manage"}
             className={tabClass(mode === "manage")}
           >
@@ -762,20 +829,6 @@ function ActivitySheet({
               aria-hidden="true"
             />
             <span className={`${tajawal.className} text-xs text-[#9B3D2E]`}>{error}</span>
-          </div>
-        )}
-
-        {notice && (
-          <div
-            role="status"
-            className="flex items-center gap-2 rounded-xl bg-[#DEFF90] border border-[#9ADD00]/40 px-3 py-2.5"
-          >
-            <Check
-              className="w-4 h-4 text-[#043F2E] shrink-0"
-              strokeWidth={2.5}
-              aria-hidden="true"
-            />
-            <span className={`${tajawal.className} text-xs text-[#043F2E]`}>{notice}</span>
           </div>
         )}
 
@@ -847,10 +900,23 @@ function ActivitySheet({
               </p>
             </div>
 
+            {weekRecord && (
+              <p
+                role="status"
+                className={`${tajawal.className} flex items-start gap-2 rounded-xl bg-[#DEFF90] border border-[#9ADD00]/40 px-3 py-2.5 text-xs text-[#043F2E]`}
+              >
+                <Check className="w-4 h-4 shrink-0 mt-0.5" strokeWidth={2.5} aria-hidden="true" />
+                <span>
+                  سُجّل {selectedCategory?.name ?? "هذا النشاط"} لهذا الطالب هذا الأسبوع. اختر نشاطًا
+                  آخر، أو صحّح المسجَّل من تبويب «تعديل».
+                </span>
+              </p>
+            )}
+
             <button
               type="button"
               onClick={handleRecord}
-              disabled={isPending || !selectedCategory}
+              disabled={isPending || !selectedCategory || weekUnknown || weekRecord !== null}
               className={`${tajawal.className} h-12 rounded-xl bg-[#043F2E] text-white text-sm font-bold hover:bg-[#065f46] transition-colors disabled:opacity-50 flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#043F2E] focus-visible:ring-offset-2`}
             >
               {isPending ? (
@@ -902,8 +968,19 @@ function ActivitySheet({
                       >
                         {activityName}
                       </p>
-                      <p
-                        className={`${tajawal.className} text-[11px] text-[#043F2E]/60 flex items-center gap-1`}
+                      {/* The day it actually happened — a recitation heard on
+                          Tuesday and recorded on Thursday counts toward Tuesday's
+                          week, so the date the row already shows is the control */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDateError(null);
+                          setDateEdit({ id: act.id, date: act.date.slice(0, 10) });
+                        }}
+                        disabled={isBusy}
+                        aria-label={`تغيير تاريخ ${activityName}`}
+                        title="تغيير التاريخ"
+                        className={`${tajawal.className} -mx-1 px-1 py-0.5 rounded-md text-[11px] text-[#043F2E]/60 flex items-center gap-1 hover:bg-white hover:text-[#043F2E] transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#043F2E] focus-visible:ring-offset-2`}
                       >
                         <Calendar
                           className="w-3 h-3 shrink-0"
@@ -911,7 +988,12 @@ function ActivitySheet({
                           aria-hidden="true"
                         />
                         {activityDate}
-                      </p>
+                        <Pencil
+                          className="w-2.5 h-2.5 shrink-0 opacity-60"
+                          strokeWidth={2.4}
+                          aria-hidden="true"
+                        />
+                      </button>
                     </div>
 
                     {cat && (
@@ -1033,6 +1115,147 @@ function ActivitySheet({
             })}
           </div>
         )}
+      </div>
+
+      {dateEdit && (
+        <ActivityDateModal
+          date={dateEdit.date}
+          saving={busyId === dateEdit.id}
+          error={dateError}
+          onClose={() => {
+            if (busyId === null) {
+              setDateEdit(null);
+              setDateError(null);
+            }
+          }}
+          onSave={(next) => handleChangeDate(dateEdit.id, next)}
+        />
+      )}
+    </div>
+  );
+}
+
+// ============================
+// Activity date picker
+// ============================
+// A small dialog over the sheet rather than a second date line in every row: the
+// date is read far more often than it is corrected.
+function ActivityDateModal({
+  date,
+  saving,
+  error,
+  onClose,
+  onSave,
+}: {
+  date: string;
+  saving: boolean;
+  error: string | null;
+  onClose: () => void;
+  onSave: (date: string) => void;
+}) {
+  const [value, setValue] = useState(date);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  // The sheet stands down from Escape while this is open, so the exit it hands
+  // over has to exist here — otherwise a keyboard user has none at all
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !saving) onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [saving, onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-[#043F2E]/40 p-4"
+      // Without stopPropagation this click reaches the sheet's own backdrop
+      // underneath and closes the whole sheet along with the picker
+      onClick={(e) => {
+        e.stopPropagation();
+        if (!saving) onClose();
+      }}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="تاريخ النشاط"
+        dir="rtl"
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-[300px] bg-white rounded-3xl border border-[#043F2E]/10 shadow-lg p-5 flex flex-col gap-4"
+      >
+        <div className="flex items-center justify-between gap-2">
+          <h3 className={`${lalezar.className} text-lg text-[#043F2E] leading-tight`}>
+            تاريخ النشاط
+          </h3>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={saving}
+            aria-label="إغلاق"
+            className="w-8 h-8 shrink-0 rounded-lg flex items-center justify-center text-[#043F2E]/60 hover:bg-[#F7FBEA] hover:text-[#043F2E] transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#043F2E] focus-visible:ring-offset-2"
+          >
+            <X className="w-4 h-4" strokeWidth={2.2} aria-hidden="true" />
+          </button>
+        </div>
+
+        <input
+          ref={inputRef}
+          type="date"
+          value={value}
+          max={getTodayDateString()}
+          disabled={saving}
+          onChange={(e) => setValue(e.target.value)}
+          className={`${tajawal.className} h-11 px-3 rounded-xl bg-[#F7FBEA] border border-[#043F2E]/15 text-sm font-bold text-[#043F2E] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#043F2E] focus-visible:ring-offset-2 disabled:opacity-50`}
+        />
+
+        <p className={`${tajawal.className} text-[11px] text-[#043F2E]/60 leading-relaxed`}>
+          يُحتسب النشاط في الأسبوع الذي يقع فيه هذا التاريخ.
+        </p>
+
+        {error && (
+          <div
+            role="alert"
+            className="flex items-start gap-2 rounded-xl bg-[#F4E0D6] border border-[#9B3D2E]/30 px-3 py-2.5"
+          >
+            <AlertCircle
+              className="w-4 h-4 text-[#9B3D2E] shrink-0 mt-0.5"
+              strokeWidth={2.2}
+              aria-hidden="true"
+            />
+            <span className={`${tajawal.className} text-xs text-[#9B3D2E]`}>{error}</span>
+          </div>
+        )}
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => onSave(value)}
+            disabled={saving || !value || value === date}
+            className={`${tajawal.className} flex-1 h-11 rounded-xl bg-[#043F2E] text-white text-sm font-bold hover:bg-[#065f46] transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#043F2E] focus-visible:ring-offset-2`}
+          >
+            {saving ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2.5} aria-hidden="true" />
+                جارٍ الحفظ...
+              </>
+            ) : (
+              "حفظ"
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={saving}
+            className={`${tajawal.className} h-11 px-4 rounded-xl bg-[#F7FBEA] border border-[#043F2E]/15 text-[#043F2E] text-sm font-bold hover:bg-white transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#043F2E] focus-visible:ring-offset-2`}
+          >
+            إلغاء
+          </button>
+        </div>
       </div>
     </div>
   );
