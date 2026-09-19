@@ -1,11 +1,11 @@
 import {
   Target,
   Shield,
+  GraduationCap,
   BookOpen,
   Wallet,
   Video,
   Code2,
-  Search,
   Flame,
   Users,
   type LucideIcon,
@@ -168,7 +168,7 @@ export const GROUPS: Record<GroupName, GroupMeta> = {
     Icon: Target,
   },
   Supervisor: { label: "مشرف", collective: "المشرفون", Icon: Shield },
-  Student: { label: "طالب", collective: "الطلبة", Icon: BookOpen },
+  Student: { label: "طالب", collective: "الطلبة", Icon: GraduationCap },
   Treasurer: {
     label: "أمين خزنة",
     collective: "أمناء الخزنة",
@@ -194,7 +194,7 @@ export const GROUPS: Record<GroupName, GroupMeta> = {
     label: "باحث",
     collective: "البحث العلمي",
     description: "يهتم فريق البحث العلمي بالبحث المنهجي في القضايا المؤثرة على مجتمعنا.",
-    Icon: Search,
+    Icon: BookOpen,
   },
   Beast: {
     label: "وحش",
