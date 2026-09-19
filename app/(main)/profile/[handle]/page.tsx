@@ -22,6 +22,7 @@ import ProfileHeader from "@/components/Profile/ProfileHeader";
 import QuietMembersCard from "@/components/Profile/QuietMembersCard";
 import SectionHeading from "@/components/Profile/SectionHeading";
 import ProfileMetaInfo from "@/components/Profile/ProfileMetaInfo";
+import PersonalInfoSection from "@/components/Profile/PersonalInfoSection";
 import ProfileActivityList from "@/components/Profile/ProfileActivityList";
 import EditOwnProfile from "@/components/Profile/EditOwnProfile";
 import ProfileRoleTabs, { type ProfileRoleView } from "@/components/Profile/ProfileRoleTabs";
@@ -256,6 +257,8 @@ export default async function ProfilePage({
             )}
           </section>
 
+          <PersonalInfoSection userId={targetUser.id} fields={targetUser} />
+
           {quietMembers?.success && quietMembers.data && (
             <QuietMembersCard members={quietMembers.data} />
           )}
@@ -355,6 +358,10 @@ export default async function ProfilePage({
             visibility={visibility}
           />
         </section>
+
+        {/* Editable, not read-only; admin already has backend edit rights here.
+            Non-admin viewers don't get this section at all; it's private. */}
+        {viewerIsAdmin && <PersonalInfoSection userId={targetUser.id} fields={targetUser} />}
 
         {/* This member's month — the same Hijri month the rest of the product
             counts in, and open to every member rather than to a privileged few */}

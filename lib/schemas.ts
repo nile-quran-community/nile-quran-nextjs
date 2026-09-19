@@ -1,4 +1,9 @@
 import { z } from "zod";
+// Imported from libphonenumber-js directly (not react-phone-number-input).
+// This schema is evaluated on the server too, and react-phone-number-input's
+// entry point also bundles its React input component, which breaks server-side
+// evaluation. libphonenumber-js is the pure-JS library the input wraps.
+import { isValidPhoneNumber } from "libphonenumber-js";
 
 export const passwordSchema = z
   .string()
@@ -85,3 +90,71 @@ export const editProfileSchema = z
 export type LoginValues = z.infer<typeof loginSchema>;
 export type SignupValues = z.infer<typeof signupSchema>;
 export type EditProfileValues = z.infer<typeof editProfileSchema>;
+
+// ===============================
+// Community Profile ("complete your info") Form
+// ===============================
+// Mirrors User.is_profile_complete on the backend (users/models.py): every
+// field required except `skills`, with academic_status/faculty's "other" free
+// text and islamic_studies_source only required when the field they depend on
+// calls for them. The backend re-validates all of this independently — this
+// schema exists so a member sees the same message before submitting instead
+// of after.
+
+const requiredText = (message: string) => z.string().trim().min(1, message);
+
+export const profileInfoSchema = z
+  .object({
+    phone_number: z
+      .string({ error: "رقم الهاتف مطلوب" })
+      .min(1, "رقم الهاتف مطلوب")
+      .refine((v) => isValidPhoneNumber(v), "رقم الهاتف غير صالح"),
+    birth_date: requiredText("تاريخ الميلاد مطلوب"),
+    academic_status: requiredText("الحالة الدراسية مطلوبة"),
+    academic_status_other: z.string().trim(),
+    faculty: requiredText("الكلية مطلوبة"),
+    faculty_other: z.string().trim(),
+    academic_year: requiredText("السنة الدراسية مطلوبة"),
+    residence: requiredText("مكان الإقامة الحالي مطلوب"),
+    hometown: requiredText("الموطن الأصلي مطلوب"),
+    memorized_juz: z
+      .number({ error: "عدد الأجزاء المحفوظة مطلوب" })
+      .int()
+      .min(0, "عدد الأجزاء لا يقل عن 0")
+      .max(30, "عدد الأجزاء لا يتجاوز 30"),
+    tajweed_level: requiredText("مستوى إتقان التجويد مطلوب"),
+    has_islamic_studies: z.enum(["yes", "no"], {
+      error: "الإجابة على هذا السؤال مطلوبة",
+    }),
+    islamic_studies_source: z.string().trim(),
+    skills: z.string().trim(),
+  })
+  .check((ctx) => {
+    const v = ctx.value;
+    if (v.academic_status === "other" && !v.academic_status_other) {
+      ctx.issues.push({
+        code: "custom",
+        path: ["academic_status_other"],
+        message: "يرجى تحديد الحالة الدراسية",
+        input: v.academic_status_other,
+      });
+    }
+    if (v.faculty === "other" && !v.faculty_other) {
+      ctx.issues.push({
+        code: "custom",
+        path: ["faculty_other"],
+        message: "يرجى تحديد الكلية",
+        input: v.faculty_other,
+      });
+    }
+    if (v.has_islamic_studies === "yes" && !v.islamic_studies_source) {
+      ctx.issues.push({
+        code: "custom",
+        path: ["islamic_studies_source"],
+        message: "يرجى ذكر مصدر تلقي العلم الشرعي",
+        input: v.islamic_studies_source,
+      });
+    }
+  });
+
+export type ProfileInfoValues = z.infer<typeof profileInfoSchema>;

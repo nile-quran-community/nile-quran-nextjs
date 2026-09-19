@@ -1,3 +1,4 @@
+@import "react-phone-number-input/style.css";
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -119,4 +120,38 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+.PhoneInput {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 2.75rem;
+  padding: 0 1rem;
+  background: #f7fbea;
+  border: 1px solid rgba(4, 63, 46, 0.15);
+  border-radius: 1rem;
+  transition: border-color 0.15s ease;
+}
+.PhoneInput:focus-within {
+  background: white;
+  border-color: rgba(4, 63, 46, 0.4);
+}
+.PhoneInputCountry {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+.PhoneInputCountrySelectArrow {
+  color: rgba(4, 63, 46, 0.5);
+}
+.PhoneInputInput {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #043f2e;
+  font-size: 0.875rem;
+  font-weight: 500;
 }

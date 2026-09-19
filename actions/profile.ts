@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { gregorianToHijri, hijriToGregorian } from "@tabby_ai/hijri-converter";
 import { getHijriMonthDays } from "@/lib/utils";
 import { SUPERVISOR_MANAGED_CATEGORY_IDS } from "@/lib/profile-types";
+import type { ProfileFields } from "@/lib/profile-fields";
 import { getCachedPointsCategories } from "./categories";
 
 const API_BASE = process.env.BASE_URL;
@@ -41,7 +42,7 @@ function getCurrentHijriMonthRange(): { start: string; end: string } {
 // Types
 // ===============================
 
-interface ApiUser {
+interface ApiUser extends ProfileFields {
   id: number;
   username: string;
   email: string;
@@ -495,7 +496,7 @@ export async function updateUser(
     referrer?: string | null;
     groups?: string[];
     password?: string;
-  },
+  } & Partial<Omit<ProfileFields, "is_profile_complete">>,
 ): Promise<FetchResult<null>> {
   try {
     const token = await getToken();
@@ -516,16 +517,13 @@ export async function updateUser(
       let errorMsg = `تعذّر تحديث البيانات (${res.status})`;
       try {
         const errData = JSON.parse(text);
-        // DRF keys field errors by field name; permissions land in `detail`
-        errorMsg =
-          errData?.detail ||
-          errData?.email?.[0] ||
-          errData?.first_name?.[0] ||
-          errData?.last_name?.[0] ||
-          errData?.password?.[0] ||
-          errData?.referrer?.[0] ||
-          errData?.non_field_errors?.[0] ||
-          errorMsg;
+        // DRF keys field errors by field name and permissions land in `detail`;
+        // rather than naming every field (there are ~20 now), take whichever
+        // one the response actually contains.
+        const firstFieldError = Object.values(errData ?? {}).find(
+          (v): v is string[] => Array.isArray(v) && typeof v[0] === "string",
+        )?.[0];
+        errorMsg = errData?.detail || firstFieldError || errorMsg;
       } catch {
         // not JSON
       }
