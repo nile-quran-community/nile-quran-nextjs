@@ -1,26 +1,21 @@
 import { Tajawal } from "next/font/google";
-import { Crown, Shield, BookOpen } from "lucide-react";
-import type { RoleType } from "@/lib/profile-types";
-import { getRoleLabel } from "@/lib/profile-types";
+import type { GroupName } from "@/lib/profile-types";
+import { getGroupIcon, getGroupLabel } from "@/lib/profile-types";
 
 const tajawal = Tajawal({ subsets: ["arabic"], weight: ["400", "500", "700"] });
 
 interface Props {
-  role: RoleType;
+  group: GroupName | string;
   size?: "sm" | "md" | "lg";
 }
 
-// One quiet treatment for all three roles. Filled pills in three different
-// greens turned the row under the name into a strip of competing colour; a role
-// is a label, not a status worth shouting, so it reads as text with a mark.
-const roleConfig: Record<RoleType, { icon: React.ReactNode }> = {
-  Admin: { icon: <Crown className="w-3.5 h-3.5" strokeWidth={2.4} /> },
-  Supervisor: { icon: <Shield className="w-3.5 h-3.5" strokeWidth={2.4} /> },
-  Student: { icon: <BookOpen className="w-3.5 h-3.5" strokeWidth={2.4} /> },
-};
-
-export default function RoleBadge({ role, size = "md" }: Props) {
-  const cfg = roleConfig[role];
+// One quiet treatment for every group — the three roles and the NQC teams alike.
+// Filled pills in three different greens turned the row under the name into a
+// strip of competing colour; a role is a label, not a status worth shouting, so
+// it reads as text with a mark.
+export default function RoleBadge({ group, size = "md" }: Props) {
+  const Icon = getGroupIcon(group);
+  const iconSize = size === "lg" ? "w-4 h-4" : "w-3.5 h-3.5";
   const sizeClass =
     size === "sm" ? "text-[11px] gap-1" : size === "lg" ? "text-sm gap-2" : "text-xs gap-1.5";
 
@@ -29,9 +24,9 @@ export default function RoleBadge({ role, size = "md" }: Props) {
       className={`inline-flex items-center text-[#043F2E]/70 font-medium ${sizeClass} ${tajawal.className}`}
     >
       <span className="text-[#043F2E]/50" aria-hidden="true">
-        {cfg.icon}
+        <Icon className={iconSize} strokeWidth={2.4} />
       </span>
-      {getRoleLabel(role)}
+      {getGroupLabel(group)}
     </span>
   );
 }

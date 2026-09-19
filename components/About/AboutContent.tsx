@@ -1,23 +1,16 @@
 import { Lalezar, Tajawal } from "next/font/google";
 import { PageHero } from "@/components/ui/PageHero";
+import { GROUPS, type GroupName } from "@/lib/profile-types";
 import {
   BookOpen,
   Compass,
   BookMarked,
   Star,
-  RefreshCw,
   Globe,
   Users,
   CheckCircle,
   Handshake,
-  Heart,
-  GraduationCap,
   TrendingUp,
-  Target,
-  Code2,
-  Video,
-  Flame,
-  Search,
   Wallet,
   MapPin,
   MessagesSquare,
@@ -87,48 +80,16 @@ const VALUES: ValueItem[] = [
   },
 ];
 
-type TeamItem = {
-  name: string;
-  description: string;
-  Icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
-};
-
-const TEAMS: TeamItem[] = [
-  {
-    name: "الإداريون",
-    description:
-      "مسؤولون عن التأكد من تحقق رؤية المجتمع ورسالته وقيمه في أعماله، ومتابعة المشاريع والبحث العلمي.",
-    Icon: Target,
-  },
-  {
-    name: "المطورون",
-    description:
-      "مسؤولون عن تطوير كل ما يخدم المجتمع، وصناعة الموقع الإلكتروني والإشراف عليه وتحسينه.",
-    Icon: Code2,
-  },
-  {
-    name: "الإعلاميون",
-    description:
-      "يعملون على تحويل الأفكار إلى مواد مرئية جذابة، واستخدام مواقع التواصل الاجتماعي بصورة فعالة للتعريف بالمجتمع ونشر رسالته.",
-    Icon: Video,
-  },
-  {
-    name: "الوحوش",
-    description:
-      "مسؤولون عن تنظيم الفعاليات، والحرص على ظهورها بصورة جميلة ومرتبة ومنظمة، وابتكار المسابقات البدنية وغيرها من الأنشطة التي تشعل الحماس.",
-    Icon: Flame,
-  },
-  {
-    name: "البحث العلمي",
-    description: "يهتم فريق البحث العلمي بالبحث المنهجي في القضايا المؤثرة على مجتمعنا.",
-    Icon: Search,
-  },
-  {
-    name: "أمناء الخزنة",
-    description:
-      "مسؤولون عن جمع الصدقات والتبرعات والغرامات المتعلقة بمخالفة القواعد، وتنظيم الموارد المالية للمجتمع.",
-    Icon: Wallet,
-  },
+// The teams as the community introduces them. Order is this page's own call; the
+// names, descriptions and icons come from the group registry, so a rename lands
+// here without touching this file.
+const ABOUT_TEAMS: GroupName[] = [
+  "Admin",
+  "Developer",
+  "Media",
+  "Beast",
+  "Researcher",
+  "Treasurer",
 ];
 
 const VISION_GOALS = [
@@ -303,8 +264,8 @@ export default function AboutContent() {
           intro="مقرأة النيل ليست مجرد مجموعة للقراءة أو الحفظ؛ بل مجتمع يعمل بصورة منظمة من خلال فرق مختلفة، لكل منها دور في بناء المجتمع وتحقيق رؤيته."
         >
           <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3">
-            {TEAMS.map((team) => (
-              <TeamCard key={team.name} {...team} />
+            {ABOUT_TEAMS.map((group) => (
+              <TeamCard key={group} group={group} />
             ))}
           </div>
 
@@ -498,7 +459,9 @@ function ValueCard({ name, description, Icon }: ValueItem) {
 // ============================
 // 🟢 Team Card
 // ============================
-function TeamCard({ name, description, Icon }: TeamItem) {
+function TeamCard({ group }: { group: GroupName }) {
+  const { collective, description, Icon } = GROUPS[group];
+
   return (
     <div className="group bg-white hover:bg-[#F7FBEA] border border-[#043F2E]/10 rounded-2xl p-4 flex flex-col gap-2.5 transition-colors">
       <div className="flex items-center justify-between">
@@ -506,7 +469,7 @@ function TeamCard({ name, description, Icon }: TeamItem) {
           <Icon className="w-5 h-5" strokeWidth={2.2} />
         </div>
       </div>
-      <h3 className={`${lalezar.className} text-lg text-[#043F2E] leading-tight`}>{name}</h3>
+      <h3 className={`${lalezar.className} text-lg text-[#043F2E] leading-tight`}>{collective}</h3>
       <p className={`${tajawal.className} text-[13px] leading-[1.8] text-[#043F2E]/70 font-normal`}>
         {description}
       </p>

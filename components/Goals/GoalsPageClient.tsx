@@ -34,10 +34,10 @@ const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
 ];
 
 interface Props {
-  isAdmin: boolean;
+  canEdit: boolean;
 }
 
-export default function GoalsPageClient({ isAdmin }: Props) {
+export default function GoalsPageClient({ canEdit }: Props) {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -109,7 +109,7 @@ export default function GoalsPageClient({ isAdmin }: Props) {
       </PageHero>
 
       <div className="max-w-4xl mx-auto px-6 md:px-10 py-10 md:py-14 flex flex-col gap-4" dir="rtl">
-        {isAdmin && editing === null && (
+        {canEdit && editing === null && (
           <div className="flex justify-end">
             <button
               type="button"
@@ -122,7 +122,7 @@ export default function GoalsPageClient({ isAdmin }: Props) {
           </div>
         )}
 
-        {isAdmin && editing === "new" && (
+        {canEdit && editing === "new" && (
           <GoalForm onCancel={() => setEditing(null)} onSaved={handleSaved} />
         )}
 
@@ -182,7 +182,7 @@ export default function GoalsPageClient({ isAdmin }: Props) {
             <p className={`${tajawal.className} text-sm text-[#043F2E]/60 font-medium`}>
               {goals.length > 0
                 ? "لا توجد أهداف مطابقة لبحثك أو الفلتر المحدد"
-                : isAdmin
+                : canEdit
                   ? "أضف هدفاً جديداً ليظهر للطلاب في الصفحة الرئيسية"
                   : "لم تتم إضافة أي أهداف بعد"}
             </p>
@@ -190,7 +190,7 @@ export default function GoalsPageClient({ isAdmin }: Props) {
         ) : (
           <div className="flex flex-col gap-3">
             {filteredGoals.map((goal) =>
-              isAdmin && editing === goal.id ? (
+              canEdit && editing === goal.id ? (
                 <GoalForm
                   key={goal.id}
                   goal={goal}
@@ -201,7 +201,7 @@ export default function GoalsPageClient({ isAdmin }: Props) {
                 <GoalRow
                   key={goal.id}
                   goal={goal}
-                  isAdmin={isAdmin}
+                  canEdit={canEdit}
                   isConfirmingDelete={confirmingDeleteId === goal.id}
                   isDeleting={deletingId === goal.id}
                   onEdit={() => setEditing(goal.id)}
@@ -223,7 +223,7 @@ export default function GoalsPageClient({ isAdmin }: Props) {
 // ============================
 function GoalRow({
   goal,
-  isAdmin,
+  canEdit,
   isConfirmingDelete,
   isDeleting,
   onEdit,
@@ -232,7 +232,7 @@ function GoalRow({
   onConfirmDelete,
 }: {
   goal: Goal;
-  isAdmin: boolean;
+  canEdit: boolean;
   isConfirmingDelete: boolean;
   isDeleting: boolean;
   onEdit: () => void;
@@ -255,7 +255,7 @@ function GoalRow({
           )}
         </div>
 
-        {isAdmin &&
+        {canEdit &&
           (isConfirmingDelete ? (
             <div className="flex items-center gap-2 shrink-0">
               <button

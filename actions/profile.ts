@@ -524,6 +524,7 @@ export async function updateUser(
           errData?.last_name?.[0] ||
           errData?.password?.[0] ||
           errData?.referrer?.[0] ||
+          errData?.groups?.[0] ||
           errData?.non_field_errors?.[0] ||
           errorMsg;
       } catch {

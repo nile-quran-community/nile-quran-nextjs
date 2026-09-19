@@ -2,7 +2,7 @@ import { Lalezar, Tajawal } from "next/font/google";
 import { User, UserCheck } from "lucide-react";
 import Link from "next/link";
 import RoleBadge from "./RoleBadge";
-import { getRoles } from "@/lib/profile-types";
+import { getRoles, getTeams } from "@/lib/profile-types";
 
 const lalezar = Lalezar({ subsets: ["arabic"], weight: "400" });
 const tajawal = Tajawal({ subsets: ["arabic"], weight: ["400", "500", "700"] });
@@ -35,7 +35,8 @@ export default function ProfileHeader({
 }: Props) {
   const fullName = `${firstName} ${lastName}`.trim();
   const initials = `${firstName?.charAt(0) || ""}${lastName?.charAt(0) || ""}`.trim();
-  const roles = getRoles(groups);
+  // Role first, then the NQC teams the member serves on
+  const badges = [...getRoles(groups), ...getTeams(groups)];
 
   return (
     <header className="flex flex-col gap-4" dir="rtl">
@@ -45,9 +46,7 @@ export default function ProfileHeader({
             read as one product rather than two palettes. */}
         <div className="shrink-0 w-16 h-16 md:w-[72px] md:h-[72px] rounded-full bg-[#043F2E] flex items-center justify-center text-[#BEE663]">
           {initials ? (
-            <span className={`${tajawal.className} text-xl md:text-2xl font-bold`}>
-              {initials}
-            </span>
+            <span className={`${tajawal.className} text-xl md:text-2xl font-bold`}>{initials}</span>
           ) : (
             <User className="w-7 h-7" strokeWidth={2.2} />
           )}
@@ -65,8 +64,8 @@ export default function ProfileHeader({
             <span className={`${tajawal.className} text-sm text-[#043F2E]/60 font-medium`}>
               @{username}
             </span>
-            {roles.map((r) => (
-              <RoleBadge key={r} role={r} size="sm" />
+            {badges.map((g) => (
+              <RoleBadge key={g} group={g} size="sm" />
             ))}
           </div>
         </div>
@@ -80,7 +79,11 @@ export default function ProfileHeader({
           with a link on the name, rather than another bordered pill. */}
       {supervisor && (
         <p className={`${tajawal.className} flex items-center gap-1.5 text-sm text-[#043F2E]/60`}>
-          <UserCheck className="w-4 h-4 shrink-0 text-[#043F2E]/50" strokeWidth={2.2} aria-hidden="true" />
+          <UserCheck
+            className="w-4 h-4 shrink-0 text-[#043F2E]/50"
+            strokeWidth={2.2}
+            aria-hidden="true"
+          />
           المشرف
           <Link
             href={`/profile/${encodeURIComponent(supervisor.username)}`}
@@ -90,7 +93,6 @@ export default function ProfileHeader({
           </Link>
         </p>
       )}
-
     </header>
   );
 }
