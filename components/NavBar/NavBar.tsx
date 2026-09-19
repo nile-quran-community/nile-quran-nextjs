@@ -1,11 +1,13 @@
 import { Lalezar, Tajawal } from "next/font/google";
 import Link from "next/link";
+import { IdCard } from "lucide-react";
 import LogoutButton from "./LogoutButton";
 import { checkTokenValidity } from "@/actions/auth-actions";
 import { getInitials } from "@/lib/utils";
 
 import NavBarMobileMenu from "./NavBarMobileMenu";
 import NavLinks from "./NavLinks";
+import ProfileCompletionNag from "./ProfileCompletionNag";
 
 const lalezar = Lalezar({ subsets: ["arabic"], weight: "400" });
 const tajawal = Tajawal({
@@ -25,6 +27,9 @@ export default async function NavBar() {
   const User = await checkTokenValidity();
   const initials = getInitials(User?.user?.first_name, User?.user?.last_name);
   const isAdmin = !!User?.user?.groups?.includes("Admin");
+  // `is_profile_complete` is computed server-side (see users/models.py) — the
+  // one source of truth, never recomputed from the individual fields here.
+  const isProfileIncomplete = User?.isValid && User.user && User.user.is_profile_complete === false;
 
   return (
     <div className="bg-[#043F2E]">
@@ -52,6 +57,20 @@ export default async function NavBar() {
           <NavLinks isAdmin={isAdmin} />
         </div>
       </div>
+
+      {isProfileIncomplete && (
+        <>
+          {/* Persistent for the rest of the authed session. No dismiss button. */}
+          <Link
+            href={`/profile/${encodeURIComponent(User.user.username)}#personal-info`}
+            className={`${tajawal.className} flex items-center justify-center gap-2 h-9 px-4 bg-[#DEFF90] text-[#043F2E] text-xs font-bold hover:bg-[#9ADD00] transition-colors`}
+          >
+            <IdCard className="w-3.5 h-3.5" strokeWidth={2.4} />
+            بياناتك في الملف الشخصي غير مكتملة، أكملها الآن
+          </Link>
+          <ProfileCompletionNag username={User.user.username} userId={User.user.id} />
+        </>
+      )}
     </div>
   );
 }
