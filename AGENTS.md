@@ -17,13 +17,11 @@ The technology is a means to support the community, not the purpose itself.
 
 ### User Roles
 
-The platform has three primary roles:
-
-- **Student (طالب)** — follows a weekly Quran portion, completes memorization/recitation activities, attends or delivers reflections, participates in community activities, and earns points/achievements.
-- **Recitation Supervisor (مشرف تسميع)** — manages a recitation group, follows student progress, records recitation outcomes, and identifies students requiring follow-up.
-- **Administrator (مدير)** — manages members, groups, competitions, community activity, statistics, content, and platform configuration.
-
-The UI should reflect the user's role. Students need to understand **what they have done and what they should do next**; supervisors need actionable student follow-up; administrators need operational overview.
+| Role | Needs |
+|------|-------|
+| **Student (طالب)** | Understand what they have done and what to do next |
+| **Recitation Supervisor (مشرف تسميع)** | Actionable student follow-up |
+| **Administrator (مدير)** | Operational overview |
 
 ### Core Domain Concepts
 
@@ -37,7 +35,7 @@ Members may have a weekly Quran portion with separate:
 - Current Surah/Ayah
 - Progress toward the weekly target
 
-Keep Quran progress meaningful and understandable rather than exposing unnecessary metrics.
+Always keep Quran progress meaningful and understandable — never expose unnecessary metrics.
 
 #### Weekly Activities
 
@@ -49,49 +47,40 @@ Common activities include:
 - Preparing and delivering a reflection
 - Inviting another university student
 
-Activities should make clear **what happened, when it happened, whether it was completed, and how many points it contributed** when applicable.
+Activities must make clear **what happened, when it happened, whether it was completed, and how many points it contributed**.
 
 #### Points & Monthly Competition
 
 Points are used as a lightweight mechanism to encourage consistency through a monthly competition.
 
-| Category id | Action                               | Points |
-| ----------: | ------------------------------------ | -----: |
-|           4 | Memorized + recited weekly portion   |     +2 |
-|           3 | Recited without memorization         |     +1 |
-|           1 | Attended weekly reflection (`خاطرة`) |     +1 |
-|           2 | Prepared + delivered a reflection    |     +2 |
-|           5 | Invited a university student to join |     +1 |
-|           6 | Attended the team meeting            |     +1 |
+| Category id | Action | Points |
+| ----------: | ------ | -----: |
+| 4 | Memorized + recited weekly portion | +2 |
+| 3 | Recited without memorization | +1 |
+| 1 | Attended weekly reflection (`خاطرة`) | +1 |
+| 2 | Prepared + delivered a reflection | +2 |
+| 5 | Invited a university student to join | +1 |
+| 6 | Attended the team meeting | +1 |
 
-These are **domain rules**. Do not change point values, activity meanings, or labels in frontend code.
+**Domain rules:** Never change point values, activity meanings, or labels in frontend code.
 
-The category ids are the API's own (`/api/v1/users/points/categories/`) and are what the
-frontend keys on — a supervisor's recitation/reading scope, for instance, is ids 4 and 3.
-Read the labels and values from that endpoint rather than hard-coding them; the table above
-is the contract, not a substitute for the response.
+Category ids are the API's own (`/api/v1/users/points/categories/`). Read labels and values from that endpoint — never hard-code them; the table above is the contract, not a substitute for the response.
 
-When displaying points, provide context:
+When displaying points, always provide context:
 
 > Weekly reflection attended — **+1**
 
-Rather than displaying only:
+Never display only: **+1**
 
-> **+1**
-
-Competition features should remain motivational and community-oriented. Avoid making the product feel like a competitive game or leaderboard application.
+Competition features must remain motivational and community-oriented — never make the product feel like a competitive game.
 
 #### Achievements
 
-Achievements recognize meaningful participation and consistency, such as Quran progress, reflection participation, consistency, and community contribution.
-
-They should reinforce valuable community behavior rather than exist purely to increase engagement.
+Achievements recognize meaningful participation and consistency, such as Quran progress, reflection participation, consistency, and community contribution. They must reinforce valuable community behavior rather than exist purely to increase engagement.
 
 ### Important Domain Principle
 
-Points, rankings, achievements, roles, permissions, Quran assignments, and activity rules are **business/domain rules**.
-
-Frontend code should represent these rules accurately. Do not invent, reinterpret, or silently modify them.
+Points, rankings, achievements, roles, permissions, Quran assignments, and activity rules are **business/domain rules**. Frontend code must represent these rules accurately — never invent, reinterpret, or silently modify them.
 
 When choosing between two valid UX approaches, prefer the one that better supports members in staying **connected to the Quran, connected to one another, and consistent in meaningful action**.
 
@@ -100,14 +89,18 @@ When choosing between two valid UX approaches, prefer the one that better suppor
 Pages in the app:
 
 - `/` — home with monthly goal + leaderboard (any logged-in user)
+- `/about` — about page
 - `/control-board` — admin panel for adjusting student points (Admin only)
+- `/goals` — monthly goals page
+- `/profile` — own profile (redirects to `/profile/<handle>`)
+- `/profile/<handle>` — public profile by username
 - `/auth` — login + signup (public; the only crawlable page, since `/` redirects unauthenticated users here)
 
 ## 2. Tech Stack
 
 | Layer       | Tool                                                                        |
 | ----------- | --------------------------------------------------------------------------- |
-| Framework   | Next.js 15.5.21 (App Router, Turbopack, `output: "standalone"` for Docker)  |
+| Framework   | Next.js 15 (App Router, Turbopack, `output: "standalone"` for Docker)  |
 | UI          | React 19, TypeScript (strict)                                               |
 | Styling     | Tailwind CSS 4 (`@tailwindcss/postcss`) + `tw-animate-css`                  |
 | Primitives  | `@radix-ui/react-progress` (wrapped in `components/ui/progress.tsx`)        |
@@ -119,7 +112,7 @@ Pages in the app:
 | Class utils | `clsx` + `tailwind-merge` (via `cn()` in `lib/utils.ts`)                    |
 | Backend     | Django REST API at `process.env.BASE_URL` — schema at `/api/v1/schema/`     |
 
-**Package manager:** pnpm 11.14.0
+**Package manager:** pnpm (invoked through mise tasks — see §3)
 
 Notes:
 
@@ -129,12 +122,17 @@ Notes:
 ## 3. Commands
 
 ```bash
-pnpm dev          # next dev --turbopack
-pnpm build        # next build --turbopack (currently fails on /404 prerender — see Gotcha #9)
-pnpm start        # next start
-pnpm lint         # eslint
-npx tsc --noEmit  # type check (always run before finishing a task)
+mise run dev                 # next dev --turbopack
+mise run build               # next build --turbopack
+mise run start               # next start
+mise run lint                # oxlint (use --format flag for output format)
+mise run format              # oxfmt
+mise run typecheck           # tsc --noEmit
+mise run hooks               # pre-commit hooks
+mise run install             # pnpm install (alias: i)
 ```
+
+**Always run `mise run typecheck` before finishing any task.** Never skip this.
 
 ## 4. Design System
 
@@ -191,15 +189,15 @@ The two root layouts additionally load Geist/Geist_Mono (`["latin"]`) as CSS var
 - Form fields with `dir="auto"` on inputs handle mixed Arabic/English content correctly (usernames, emails)
 - Error/tooltip text rendered in an LTR page context must explicitly set `dir="rtl"` on the container
 
-### 4.6 Current state vs. standard (legacy debt — migrate when touching these files)
+### 4.6 Current state vs. Standard (legacy debt — migrate when touching these files)
 
 The standards above are the target. Parts of the existing codebase predate them:
 
-- **Font subsets** — `Auth/*` components correctly use `["arabic"]`, but `NavBar.tsx`, `NavBarMobileMenu.tsx`, `ControlPanelClient.tsx`, `userRow.tsx`, `PerformanceBoardClient.tsx`, and `MonthGoalClient.tsx` still use `["latin"]`. Switch them to `["arabic"]` when you edit them.
+- **Font subsets** — `Auth/*` components correctly use `["arabic"]`, but `NavBar.tsx`, `NavBarMobileMenu.tsx`, `ControlPanelClient.tsx`, `userRow.tsx`, `PerformanceBoardClient.tsx`, and `GoalsClient.tsx` still use `["latin"]`. Switch them to `["arabic"]` when you edit them.
 - **Off-palette greens in legacy code** (do not extend usage; migrate to tokens): `#EBFFBD` (Auth tabs), `#2C5234` (leaderboard heading), `#B4C197` / `#B5CF7C` (leaderboard bars), `#E6EECD` (leaderboard nav buttons), `#E6F0E9` (mobile menu text).
 - **Tailwind default colors** — `PerformanceBoardClient.tsx` error/empty/skeleton states use `gray-*`, `red-50/200/800`, `blue-600/700`, and `text-red-400`. These violate the palette; restyle with the Error tokens when touched.
 - **Emoji comments** — `ControlPanelClient.tsx` uses 🟢 in section comments. Not user-facing, but clean up if editing.
-- **`next/image` for decoration** — `MonthGoalClient.tsx`, `NavBarMobileMenu.tsx`, `ControlPanelClient.tsx` use `next/image` for decorative assets, contrary to Gotcha #3. The auth page (`app/(auth)/auth/page.tsx`) shows the preferred plain `<img>` pattern.
+- **`next/image` for decoration** — `GoalsClient.tsx`, `NavBarMobileMenu.tsx`, `ControlPanelClient.tsx` use `next/image` for decorative assets, contrary to Gotcha #3. The auth page (`app/(auth)/auth/page.tsx`) shows the preferred plain `<img>` pattern.
 
 ## 5. File Structure
 
@@ -212,32 +210,52 @@ app/
     layout.tsx          # <html lang="en"> (do NOT change) + NavBar + base SEO metadata
                         # (title template "%s | مقرأة النيل", description, keywords, OpenGraph)
     page.tsx            # home (leaderboard + goal); metadata: noindex
+    about/
+      page.tsx          # about page
     control-board/
       page.tsx          # admin panel; page guard + metadata: noindex
+    goals/
+      page.tsx          # monthly goals page
+    profile/
+      page.tsx          # own profile (redirects to /profile/<handle>)
+      [handle]/
+        loading.tsx     # profile skeleton
+        page.tsx        # public profile by username
   globals.css           # Tailwind 4 import + shadcn theme vars (mostly unused)
   favicon.ico
   robots.ts             # allow all crawlers, disallow /control-board
 
 components/
+  About/                # AboutContent.tsx
   Auth/                 # Auth.tsx (login/signup tab switch), LoginForm.tsx, SignUpForm.tsx, InfoTooltip.tsx
   Control-Board/        # ControlPanelClient.tsx (month/week nav, module-level category cache), userRow.tsx
+  Goals/                # GoalsPageClient.tsx
   Home/                 # DashboardContainer.tsx (client orchestrator: Hijri month state + data fetching),
-                        # PerformanceBoardClient.tsx (bar chart + month nav), MonthGoalClient.tsx (goal card)
-  NavBar/               # NavBar.tsx (server component, role-aware links), NavBarMobileMenu.tsx, LogoutButton.tsx
-  ui/                   # progress.tsx (Radix wrapper with custom `className2` indicator prop), spinner.tsx
+                        # PerformanceBoardClient.tsx (bar chart + month nav), GoalsClient.tsx (goal card)
+  NavBar/               # NavBar.tsx (server component, role-aware links), NavBarMobileMenu.tsx,
+                        # LogoutButton.tsx, NavLinks.tsx, navLinkItems.ts
+  Profile/              # EditOwnProfile.tsx, ProfileActivityList.tsx, ProfileHeader.tsx,
+                        # ProfileMetaInfo.tsx, ProfileRoleTabs.tsx, QuietMembersCard.tsx,
+                        # RoleBadge.tsx, SectionHeading.tsx, StatTile.tsx,
+                        # views/StudentProfileView.tsx, views/SupervisorProfileView.tsx
+  ui/                   # PageHero.tsx, progress.tsx (Radix wrapper), spinner.tsx
 
 actions/
   auth-actions.ts       # login, signup, logout, checkTokenValidity (auto-refreshes access token internally)
+  categories.ts         # getCategories (shared category cache helper)
   ControlBoard.ts       # getUsers, getUsersWithDetails, getWeekData, getPoints, getCategories,
                         # getUserActivities, addUserActivity, updateUserActivity, deleteUserActivity
   PerformanceBoard.ts   # getLeaderboardData, getUserDetails
   goal.ts               # getGoalOfTheMonth
+  profile.ts            # getProfileByHandle, updateOwnProfile
 
 lib/
   utils.ts              # cn, getHijriMonth, toArabicDigits, getHijriMonthDays, formatDate (currently unused), WeekRange
   user.ts               # Login (named export), createUser (default export), getUserRole
   types.ts              # SignupErrors, SignupFormValues, SignupFormState
+  profile-types.ts      # Profile-related TypeScript types
   auth.ts               # destroySession — dead code, never imported (see Gotcha #11)
+  week-helpers.check.mts # Week-range helper tests (node --test)
 
 public/
   abstract.png          # desktop decorative background (auth page)
@@ -246,14 +264,23 @@ public/
   ArrowLeft.png         # control-board week navigation
   Arrowright.png        # control-board week navigation
   Mask.png / Mask2.png  # control-board decorations
+  logo.jpeg             # brand logo
   opengraph-image.png   # static OG image (1200×630), referenced from both root layouts
 
 # Config files
 next.config.ts          # output: "standalone" (Docker deployment)
 components.json         # shadcn config
 tsconfig.json           # strict, path alias @/* → ./*
-mise.toml / mise.local.toml  # toolchain pinning
-Dockerfile
+mise.toml / mise.local.toml / mise.lock  # toolchain pinning
+Dockerfile / .dockerignore
+package.json / pnpm-lock.yaml / pnpm-workspace.yaml
+postcss.config.mjs
+eslint.config.mjs / .oxlintrc.json
+.oxfmtrc.json
+.pre-commit-config.yaml
+.github/workflows/     # publish.yml, release.yml
+.releaserc.yml
+README.md
 ```
 
 ## 6. Code Patterns
@@ -357,7 +384,7 @@ Forms use the LTR page context with `items-end` for right-alignment:
 
 For RTL form contexts, swap to `items-start` + `placeholder:text-start` to keep right-alignment.
 
-### 6.5a Form error styling
+### 6.6 Form error styling
 
 Form errors use the **Error** + **Error surface** tokens (`#9B3D2E` and `#F4E0D6`). Three surfaces:
 
@@ -420,7 +447,7 @@ hasError
 }
 ```
 
-### 6.6 Server action (auth-gated fetcher)
+### 6.7 Server action (auth-gated fetcher)
 
 ```ts
 "use server";
@@ -442,7 +469,7 @@ Backend endpoints currently in use: `auth/` (login), `auth/refresh/`, `api/v1/us
 
 Note: `DashboardContainer` and `ControlPanelClient` are **client components that call these server actions directly** from event handlers/effects — that is the established data-flow pattern in this codebase (no route handlers, no SWR).
 
-### 6.7 Hijri date handling
+### 6.8 Hijri date handling
 
 ```ts
 import { gregorianToHijri, hijriToGregorian } from "@tabby_ai/hijri-converter";
@@ -468,7 +495,7 @@ toArabicDigits(123); // "١٢٣"
 const days = getHijriMonthDays(year, month);
 ```
 
-### 6.8 API response shape (DRF pagination)
+### 6.9 API response shape (DRF pagination)
 
 Most endpoints return paginated lists:
 
@@ -478,7 +505,7 @@ Most endpoints return paginated lists:
 
 Always read `.results`, never the raw response.
 
-### 6.9 Page guard
+### 6.10 Page guard
 
 ```ts
 // app/(main)/control-board/page.tsx
@@ -494,7 +521,7 @@ export default async function ControlPanelPage() {
 }
 ```
 
-### 6.10 Render conditions for data-driven components
+### 6.11 Render conditions for data-driven components
 
 ```tsx
 // 1. Loading — skeleton matching real layout
@@ -510,7 +537,7 @@ const total = items?.reduce((s, u) => s + (u.points || 0), 0) ?? 0;
 const max = items.length > 0 ? Math.max(...items.map((u) => u.points)) : 0;
 ```
 
-### 6.11 Responsive layout
+### 6.12 Responsive layout
 
 - Mobile-first, single column
 - `sm:` (640px+) — tablet, 2 columns
@@ -518,7 +545,7 @@ const max = items.length > 0 ? Math.max(...items.map((u) => u.points)) : 0;
 - `max-sm:` — mobile-only override
 - Use `flex` + `items-start` (not `stretch`) when children have different heights to prevent unwanted stretching (e.g., the goal card next to the leaderboard)
 
-### 6.12 SEO metadata
+### 6.13 SEO metadata
 
 - `app/(main)/layout.tsx` owns the base metadata: `title.template` is `"%s | مقرأة النيل"`, plus description, keywords, and OpenGraph (`locale: "ar_EG"`, `siteName: "مقرأة النيل"`).
 - `app/(auth)/auth/layout.tsx` is a **separate root layout** — it does NOT inherit the template, so it sets its own full title/description. `/auth` is the only public, crawlable page; keep its metadata descriptive of the platform and cause.
@@ -543,7 +570,7 @@ export const metadata: Metadata = {
 
 2. **Tab order in RTL** — adding `dir="rtl"` to a form makes Tab move right-to-left, which is correct for Arabic. But it flips the visual alignment of `items-end`/`placeholder:text-end`. If you only want RTL tab order, accept the visual flip and swap to `items-start`/`placeholder:text-start`.
 
-3. **Image hydration** — `next/image` with `fill` adds browser-only `data--h-b*` attributes during hydration. For decorative images, use plain `<img>` with explicit `style` instead (as done in `app/(auth)/auth/page.tsx`). Note: `MonthGoalClient`, `NavBarMobileMenu`, and `ControlPanelClient` still use `next/image` for decoration — legacy debt.
+3. **Image hydration** — `next/image` with `fill` adds browser-only `data--h-b*` attributes during hydration. For decorative images, use plain `<img>` with explicit `style` instead (as done in `app/(auth)/auth/page.tsx`). Note: `GoalsClient`, `NavBarMobileMenu`, and `ControlPanelClient` still use `next/image` for decoration — legacy debt.
 
 4. **`<html lang>`** — both root layouts use `lang="en"` without `dir`. This is intentional for the current RTL handling pattern (using `items-end` + `placeholder:text-end` in an LTR context). **Do not change this** unless you refactor the entire form layout.
 
@@ -555,15 +582,13 @@ export const metadata: Metadata = {
 
 8. **Empty state for tables with < N items** — always use a fixed grid with invisible placeholders so the layout doesn't collapse. E.g., the top-3 podium always has 3 cells.
 
-9. **`pnpm build` fails on `/404` prerender** — there is no root `app/layout.tsx` (both layouts live inside route groups), so Next.js's built-in 404 page has no `<html>` provider and the build exits with `<Html> should not be imported outside of pages/_document`. This is pre-existing and unrelated to page-level changes. Fixing it requires an architectural decision (a shared root layout vs. the experimental `global-not-found` convention).
+9. **No `phone_number` field** — the backend `User` schema does NOT include `phone_number`, despite the legacy interface field in `actions/PerformanceBoard.ts:16`. Don't rely on it.
 
-10. **No `phone_number` field** — the backend `User` schema does NOT include `phone_number`, despite the legacy interface field in `actions/PerformanceBoard.ts:16`. Don't rely on it.
+10. **`lib/auth.ts` is dead code** — `destroySession()` is never imported anywhere (logout lives in `actions/auth-actions.ts`), and it even checks for a nonexistent `auth-token` cookie. Delete it or fix it, but don't build on it.
 
-11. **`lib/auth.ts` is dead code** — `destroySession()` is never imported anywhere (logout lives in `actions/auth-actions.ts`), and it even checks for a nonexistent `auth-token` cookie. Delete it or fix it, but don't build on it.
+11. **`searchParams` read synchronously** — `app/(auth)/auth/page.tsx` types `searchParams` as a plain object and reads `searchParams.mode` directly. Next.js 15 makes `searchParams` a Promise; this works today only because the page is dynamic, but it will warn/fail if the page is ever prerendered. Await it (`const { mode } = await searchParams`) when touching the page.
 
-12. **`searchParams` read synchronously** — `app/(auth)/auth/page.tsx` types `searchParams` as a plain object and reads `searchParams.mode` directly. Next.js 15 makes `searchParams` a Promise; this works today only because the page is dynamic, but it will warn/fail if the page is ever prerendered. Await it (`const { mode } = await searchParams`) when touching the page.
-
-13. **Token refresh is automatic but hidden** — `checkTokenValidity()` silently refreshes an expired access token via `auth/refresh/` using the `refresh` cookie. Don't add a second refresh mechanism; reuse this function.
+12. **Token refresh is automatic but hidden** — `checkTokenValidity()` silently refreshes an expired access token via `auth/refresh/` using the `refresh` cookie. Don't add a second refresh mechanism; reuse this function.
 
 ## 8. Things NOT to do
 
@@ -573,7 +598,7 @@ export const metadata: Metadata = {
 - ❌ Use emoji as UI icons
 - ❌ Use `glassmorphism`, `backdrop-blur`, flashy gradients
 - ❌ Use gaming-style animations (bouncy, springy)
-- ❌ Skip type-checking (`npx tsc --noEmit`) before finishing a task
+- ❌ Skip type-checking (`mise run typecheck`) before finishing a task
 - ❌ Add `// eslint-disable` without a comment explaining why
 - ❌ Change the `<html lang>` in `app/(main)/layout.tsx` or `app/(auth)/auth/layout.tsx` without coordinating a full RTL refactor
 - ❌ Remove `robots: { index: false }` from authenticated pages, or make `/control-board` crawlable in `app/robots.ts`
