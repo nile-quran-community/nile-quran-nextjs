@@ -18,10 +18,7 @@ export type ProfileRoleView = "student" | "supervisor";
 
 const TAB_ORDER: ProfileRoleView[] = ["student", "supervisor"];
 
-const TAB_META: Record<
-  ProfileRoleView,
-  { label: string; icon: typeof BookOpen }
-> = {
+const TAB_META: Record<ProfileRoleView, { label: string; icon: typeof BookOpen }> = {
   student: { label: "لوحة الطالب", icon: BookOpen },
   supervisor: { label: "لوحة المشرف", icon: Shield },
 };
@@ -33,11 +30,7 @@ interface Props {
   supervisorPanel: React.ReactNode;
 }
 
-export default function ProfileRoleTabs({
-  initialView,
-  studentPanel,
-  supervisorPanel,
-}: Props) {
+export default function ProfileRoleTabs({ initialView, studentPanel, supervisorPanel }: Props) {
   const [view, setView] = useState<ProfileRoleView>(initialView);
   const uid = useId();
   const tabRefs = useRef<Partial<Record<ProfileRoleView, HTMLButtonElement | null>>>({});
@@ -52,11 +45,7 @@ export default function ProfileRoleTabs({
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       params.set("view", key);
-      window.history.replaceState(
-        null,
-        "",
-        `${window.location.pathname}?${params.toString()}`,
-      );
+      window.history.replaceState(null, "", `${window.location.pathname}?${params.toString()}`);
     }
   };
 
@@ -114,9 +103,7 @@ export default function ProfileRoleTabs({
               }}
               onClick={() => select(key)}
               className={`${tajawal.className} h-12 md:h-11 inline-flex items-center justify-center gap-2 rounded-xl text-sm font-bold transition-colors motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#043F2E] focus-visible:ring-offset-2 focus-visible:ring-offset-[#F7FBEA] ${
-                isActive
-                  ? "bg-[#043F2E] text-white shadow-sm"
-                  : "text-[#043F2E] hover:bg-white/70"
+                isActive ? "bg-[#043F2E] text-white shadow-sm" : "text-[#043F2E] hover:bg-white/70"
               }`}
             >
               <Icon className="w-4 h-4 shrink-0" strokeWidth={2.2} />

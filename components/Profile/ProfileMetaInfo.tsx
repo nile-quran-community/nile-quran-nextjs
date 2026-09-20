@@ -87,7 +87,9 @@ export default function ProfileMetaInfo({
               <span className={`${tajawal.className} text-[11px] font-medium text-[#043F2E]/60`}>
                 {item.label}
               </span>
-              <span className={`${tajawal.className} text-sm font-bold text-[#043F2E] truncate ${item.linkHref ? "group-hover:underline" : ""}`}>
+              <span
+                className={`${tajawal.className} text-sm font-bold text-[#043F2E] truncate ${item.linkHref ? "group-hover:underline" : ""}`}
+              >
                 {item.value}
               </span>
             </div>

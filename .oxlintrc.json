@@ -1,0 +1,6 @@
+{
+  "plugins": ["typescript", "eslint", "oxc", "node", "react", "nextjs"],
+  "env": {
+    "builtin": true
+  }
+}

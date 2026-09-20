@@ -41,7 +41,9 @@ export default function SectionHeading({
           {title}
         </Heading>
         {sub && (
-          <p className={`${tajawal.className} text-[11px] text-[#043F2E]/60 leading-tight truncate`}>
+          <p
+            className={`${tajawal.className} text-[11px] text-[#043F2E]/60 leading-tight truncate`}
+          >
             {sub}
           </p>
         )}
