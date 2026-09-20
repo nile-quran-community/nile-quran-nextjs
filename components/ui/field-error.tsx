@@ -12,6 +12,7 @@ export default function FieldError({ id, message }: { id?: string; message?: str
   return (
     <p
       id={id}
+      dir="auto"
       role="alert"
       className={`${tajawal.className} flex items-center gap-1.5 text-xs text-[#9B3D2E] font-medium`}
     >
