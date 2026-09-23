@@ -273,7 +273,7 @@ export async function getAllMembers(): Promise<
     if (!access) throw new Error("No access token found in cookies");
 
     const members: Member[] = [];
-    let url: string | null = `${API_BASE}api/v1/users/`;
+    let url: string | null = `${API_BASE}api/v1/users/?ordering=first_name,last_name`;
     let guard = 0;
 
     while (url && guard < 20) {
