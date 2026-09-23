@@ -6,23 +6,53 @@ NODE_ENV = "{{ env.NODE_ENV | default(value='development') }}"
 
 [tools]
 # NOTE: Node
-node = "lts"
-pnpm = "latest"
+node = "24"
+pnpm = "11.14.0"
 # NOTE: Formatters and linters
-oxfmt = "latest"
-oxlint = "latest"
+oxfmt = "0.42.0"
+oxlint = "1.57.0"
 # NOTE: Utils
-prek = "latest"
+prek = "0.5.3"
 
 [tasks.install]
 description = "Install dependencies with pnpm"
 alias = "i"
 run = "pnpm install"
 
+[tasks.build]
+description = "Build the Next.js app for production"
+depends = ["install"]
+run = "pnpm run build"
+
 [tasks.dev]
 description = "Run dev script in package.json"
 depends = ["install"]
 run = "pnpm run dev"
+
+[tasks.start]
+description = "Start the production Next.js server"
+depends = ["install"]
+run = "pnpm run start"
+
+[tasks.lint]
+description = "Lint the whole project"
+usage = '''
+flag "-f --format <format>" {
+  help "Output format"
+  choices "default" "github" "gitlab" "json" "junit" "checkstyle" "stylish" "unix"
+  default "default"
+}
+'''
+run = "oxlint -f {{ usage.format }}"
+
+[tasks.format]
+description = "Format the whole project"
+run = "oxfmt"
+
+[tasks.typecheck]
+description = "Type-check the project with TypeScript"
+depends = ["install"]
+run = "npx tsc --noEmit"
 
 [tasks.hooks]
 description = "Run pre-commit hooks"

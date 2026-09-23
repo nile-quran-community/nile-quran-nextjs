@@ -3,10 +3,7 @@ import { BellRing, Check, PhoneCall } from "lucide-react";
 import Link from "next/link";
 import SectionHeading from "./SectionHeading";
 import { toArabicDigits } from "@/lib/utils";
-import {
-  INACTIVITY_ALERT_WEEKS,
-  INACTIVITY_NOTICE_WEEKS,
-} from "@/lib/profile-types";
+import { INACTIVITY_ALERT_WEEKS, INACTIVITY_NOTICE_WEEKS } from "@/lib/profile-types";
 import type { QuietMember } from "@/actions/profile";
 
 const lalezar = Lalezar({ subsets: ["arabic"], weight: "400" });
@@ -64,7 +61,11 @@ export default function QuietMembersCard({ members }: { members: QuietMember[] }
           {lapsed.length > 0 && (
             <div className="flex flex-col gap-2.5">
               <div className="flex items-center gap-2">
-                <PhoneCall className="w-4 h-4 text-[#9B3D2E] shrink-0" strokeWidth={2.2} aria-hidden="true" />
+                <PhoneCall
+                  className="w-4 h-4 text-[#9B3D2E] shrink-0"
+                  strokeWidth={2.2}
+                  aria-hidden="true"
+                />
                 <h3 className={`${lalezar.className} text-base text-[#9B3D2E] leading-none`}>
                   يحتاجون تواصلًا
                 </h3>
@@ -98,7 +99,11 @@ export default function QuietMembersCard({ members }: { members: QuietMember[] }
           {quiet.length > 0 && (
             <div className="flex flex-col gap-2.5">
               <div className="flex items-center gap-2">
-                <BellRing className="w-4 h-4 text-[#043F2E]/60 shrink-0" strokeWidth={2.2} aria-hidden="true" />
+                <BellRing
+                  className="w-4 h-4 text-[#043F2E]/60 shrink-0"
+                  strokeWidth={2.2}
+                  aria-hidden="true"
+                />
                 <h3 className={`${lalezar.className} text-base text-[#043F2E] leading-none`}>
                   للعلم فقط
                 </h3>

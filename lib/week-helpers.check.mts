@@ -25,7 +25,16 @@ assert.throws(() => getHijriWeekRange(1447, 3, 5));
 
 // Buckets: 1-7, 8-14, 15-21, 22-to-month-end. Day 29/30 is week 4, never a week 5.
 for (let m = 1; m <= 12; m++) {
-  for (const [d, wi] of [[1, 1], [7, 1], [8, 2], [14, 2], [15, 3], [21, 3], [22, 4], [29, 4]] as const) {
+  for (const [d, wi] of [
+    [1, 1],
+    [7, 1],
+    [8, 2],
+    [14, 2],
+    [15, 3],
+    [21, 3],
+    [22, 4],
+    [29, 4],
+  ] as const) {
     assert.equal(
       getHijriWeekRangeForDate(iso(1447, m, d)).start,
       getHijriWeekRange(1447, m, wi).start,
