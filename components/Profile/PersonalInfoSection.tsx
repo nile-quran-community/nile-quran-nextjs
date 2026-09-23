@@ -109,10 +109,14 @@ function Tile({
   icon,
   label,
   value,
+  valueDir,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
+  /** The phone number needs "ltr". Inside this section's RTL context, an
+    unmarked "+201..." puts the + on the wrong side. */
+  valueDir?: "ltr" | "rtl";
 }) {
   return (
     <div className="flex items-center gap-3 bg-[#F7FBEA] rounded-2xl border border-[#043F2E]/8 px-4 py-3">
@@ -126,7 +130,10 @@ function Tile({
         <span className={`${tajawal.className} text-[11px] font-medium text-[#043F2E]/60`}>
           {label}
         </span>
-        <span className={`${tajawal.className} text-sm font-bold text-[#043F2E] truncate`}>
+        <span
+          dir={valueDir}
+          className={`${tajawal.className} text-sm font-bold text-[#043F2E] truncate ${valueDir === "ltr" ? "text-end" : ""}`}
+        >
           {value}
         </span>
       </div>
@@ -136,7 +143,12 @@ function Tile({
 
 function ReadOnlyGrid({ fields: f }: { fields: ProfileFields }) {
   const items = [
-    { icon: <Phone className="w-4 h-4" strokeWidth={2.2} />, label: "رقم الهاتف", value: f.phone_number },
+    {
+      icon: <Phone className="w-4 h-4" strokeWidth={2.2} />,
+      label: "رقم الهاتف",
+      value: f.phone_number,
+      valueDir: "ltr" as const,
+    },
     { icon: <Cake className="w-4 h-4" strokeWidth={2.2} />, label: "تاريخ الميلاد", value: f.birth_date ?? "" },
     {
       icon: <GraduationCap className="w-4 h-4" strokeWidth={2.2} />,
@@ -192,7 +204,13 @@ function ReadOnlyGrid({ fields: f }: { fields: ProfileFields }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2" dir="rtl">
       {items.map((item) => (
-        <Tile key={item.label} icon={item.icon} label={item.label} value={item.value} />
+        <Tile
+          key={item.label}
+          icon={item.icon}
+          label={item.label}
+          value={item.value}
+          valueDir={"valueDir" in item ? item.valueDir : undefined}
+        />
       ))}
     </div>
   );
