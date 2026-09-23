@@ -6,7 +6,7 @@ import ControlPanelClient from "@/components/Control-Board/ControlPanelClient";
 export const metadata: Metadata = {
   title: "لوحة التحكم",
   description:
-    "لوحة تحكم المشرفين في مقرأة النيل لإدارة نقاط الطلاب ومتابعة أنشطة الحفظ والتسميع والخواطر الأسبوعية.",
+    "لوحة تحكم المدراء في مقرأة النيل لإدارة نقاط الطلاب وتفعيل الحسابات ومتابعة بيانات الأعضاء.",
   robots: { index: false, follow: false },
 };
 

@@ -15,9 +15,11 @@ import {
 // Profile Types & Visibility Rules
 // ===============================
 
+import type { ProfileFields } from "./profile-fields";
+
 export type RoleType = "Admin" | "Supervisor" | "Student";
 
-export interface UserProfile {
+export interface UserProfile extends ProfileFields {
   id: number;
   username: string;
   email: string;

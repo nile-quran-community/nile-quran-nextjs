@@ -1,19 +1,17 @@
 "use client";
 import { Tajawal } from "next/font/google";
-import { useActionState } from "react";
-import { AlertCircle, Lock, User as UserIcon } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Lock, User as UserIcon } from "lucide-react";
 import { login } from "@/actions/auth-actions";
+import { loginSchema, type LoginValues } from "@/lib/schemas";
 import { Spinner } from "../ui/spinner";
+import FieldError from "../ui/field-error";
+
 const tajawal = Tajawal({
   subsets: ["arabic"],
   weight: "700",
 });
-interface FormState {
-  errors: {
-    email: string | undefined;
-    [key: string]: string | undefined;
-  };
-}
 
 function inputClass(hasError: boolean) {
   return [
@@ -25,19 +23,39 @@ function inputClass(hasError: boolean) {
 }
 
 export default function LoginForm() {
-  const initialState: FormState = { errors: { email: undefined } };
-  const [formState, formAction, isPending] = useActionState(login, initialState);
-  // Login errors are generic ("invalid credentials") — the backend doesn't
-  // tell us which field is wrong, so highlight both together.
-  const hasLoginError = Object.values(formState.errors).some(Boolean);
+  const {
+    register,
+    handleSubmit,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { username: "", password: "" },
+  });
+
+  // A rejected login names no field; the backend deliberately won't say which
+  // half was wrong, so it marks both inputs and speaks once, above the button.
+  const badCredentials = !!errors.root;
+
+  const onSubmit = handleSubmit(async (values) => {
+    // A successful login redirects from the server action and never returns
+    const result = await login(values);
+    for (const [field, message] of Object.entries(result?.errors ?? {})) {
+      setError(field === "general" ? "root" : (field as keyof LoginValues), { message });
+    }
+  });
+
   return (
     <form
       id="auth-form"
-      action={formAction}
+      onSubmit={onSubmit}
+      noValidate
       className={`${tajawal.className} px-20 py-5 flex flex-col gap-5 max-sm:px-8`}
     >
       <div className="flex flex-col gap-3 items-end">
-        <label className="text-[#043F2E] text-[20px] max-sm:text-[16px]">اسم المستخدم</label>
+        <label htmlFor="username" className="text-[#043F2E] text-[20px] max-sm:text-[16px]">
+          اسم المستخدم
+        </label>
         <div className="relative w-full">
           <UserIcon
             className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#043F2E]/60 pointer-events-none"
@@ -46,16 +64,21 @@ export default function LoginForm() {
           <input
             type="text"
             id="username"
-            name="username"
             placeholder="اسم المستخدم"
             dir="auto"
-            required
-            className={inputClass(hasLoginError)}
+            autoComplete="username"
+            className={inputClass(!!errors.username || badCredentials)}
+            aria-invalid={!!errors.username || badCredentials}
+            aria-describedby={errors.username ? "username-error" : undefined}
+            {...register("username")}
           />
         </div>
+        <FieldError id="username-error" message={errors.username?.message} />
       </div>
       <div className="flex flex-col gap-3 items-end">
-        <label className="text-[#043F2E] text-[20px] max-sm:text-[16px]">كلمة السر</label>
+        <label htmlFor="password" className="text-[#043F2E] text-[20px] max-sm:text-[16px]">
+          كلمة السر
+        </label>
         <div className="relative w-full">
           <Lock
             className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#043F2E]/60 pointer-events-none"
@@ -64,36 +87,24 @@ export default function LoginForm() {
           <input
             type="password"
             id="password"
-            name="password"
-            required
             placeholder="كلمة السر"
             dir="auto"
-            className={inputClass(hasLoginError)}
+            autoComplete="current-password"
+            className={inputClass(!!errors.password || badCredentials)}
+            aria-invalid={!!errors.password || badCredentials}
+            aria-describedby={errors.password ? "password-error" : undefined}
+            {...register("password")}
           />
         </div>
+        <FieldError id="password-error" message={errors.password?.message} />
       </div>
-      {/* ERRORS */}
-      <ul dir="rtl" className="list-none p-0 m-0 text-right w-full flex flex-col gap-2">
-        {Object.entries(formState.errors).map(
-          ([key, message]) =>
-            message && (
-              <li
-                key={key}
-                role="alert"
-                className="flex items-center gap-1.5 text-sm text-[#9B3D2E] font-medium"
-              >
-                <AlertCircle className="w-3.5 h-3.5 shrink-0" strokeWidth={2.4} />
-                <span>{message}</span>
-              </li>
-            ),
-        )}
-      </ul>
+      <FieldError message={errors.root?.message} />
       <button
-        disabled={isPending}
+        disabled={isSubmitting}
         type="submit"
         className="rounded-[7px] flex justify-center items-center w-full bg-[#BEE663] h-14 max-sm:h-11 font-extrabold text-[20px] text-[#043F2E] cursor-pointer"
       >
-        {isPending ? <Spinner /> : "تسجيل الدخول"}
+        {isSubmitting ? <Spinner /> : "تسجيل الدخول"}
       </button>
     </form>
   );

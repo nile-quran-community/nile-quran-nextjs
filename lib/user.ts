@@ -22,9 +22,13 @@ export async function Login(username: string, password: string) {
 
     if (!response.ok) {
       if (response.status === 404 || response.status === 401) {
+        // simplejwt answers byte-identically for a wrong password and for a
+        // correct one on an account awaiting activation deliberately, so that
+        // nobody can probe which usernames exist.
         return {
           errors: {
-            email: "تعذر التحقق من الهوية، يرجى التأكد من اسم المستخدم وكلمة المرور.",
+            email:
+              "تعذر تسجيل الدخول. تأكد من اسم المستخدم وكلمة المرور، أو أن حسابك ما زال بانتظار تفعيل المشرف.",
           },
         };
       }
@@ -140,9 +144,13 @@ export async function getUserRole(token: string) {
 
     if (!response.ok) {
       if (response.status === 404 || response.status === 401) {
+        // simplejwt answers byte-identically for a wrong password and for a
+        // correct one on an account awaiting activation deliberately, so that
+        // nobody can probe which usernames exist.
         return {
           errors: {
-            email: "تعذر التحقق من الهوية، يرجى التأكد من اسم المستخدم وكلمة المرور.",
+            email:
+              "تعذر تسجيل الدخول. تأكد من اسم المستخدم وكلمة المرور، أو أن حسابك ما زال بانتظار تفعيل المشرف.",
           },
         };
       }

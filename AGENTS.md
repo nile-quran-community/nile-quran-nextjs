@@ -23,6 +23,8 @@ The technology is a means to support the community, not the purpose itself.
 | **Recitation Supervisor (مشرف تسميع)** | Actionable student follow-up |
 | **Administrator (مدير)** | Operational overview |
 
+A member can also belong to one or more **NQC teams** alongside their role — `Treasurer`, `Media`, `Developer`, `Researcher`, `Beast` (backend `settings.GROUP_PERMISSIONS`, frontend `TEAM_GROUPS` in `lib/profile-types.ts`). Roles and teams both live in the same `user.groups` array from the API; `getPrimaryRole`/`getRoles` extract the three roles, `getTeams` extracts team membership. Every group's label, icon, and description is defined once in the `GROUPS` map (`lib/profile-types.ts`) — render a group via `getGroupLabel`/`getGroupIcon`, never a hand-written switch.
+
 ### Core Domain Concepts
 
 #### Quran Progress
@@ -78,6 +80,14 @@ Competition features must remain motivational and community-oriented — never m
 
 Achievements recognize meaningful participation and consistency, such as Quran progress, reflection participation, consistency, and community contribution. They must reinforce valuable community behavior rather than exist purely to increase engagement.
 
+#### Community Profile
+
+Beyond activity tracking, every member has a **community profile** — phone, birth date, faculty, academic year, Quran memorization progress, tajweed level, residence, prior Islamic studies, skills, etc. (backend `User` model fields, mirrored in `lib/profile-fields.ts` as `ProfileFields`). None of it is required at signup; the backend computes `is_profile_complete` as a model property (one definition, never recomputed on the frontend).
+
+- **`components/Profile/PersonalInfoSection.tsx`** renders the read-only summary and the editable form (RHF + zod, schema in `lib/schemas.ts`). It takes an `isOwnProfile` prop: on the member's own incomplete profile it opens straight into the form (the nudge); on anyone else's it always opens read-only and always offers a way to cancel back out, regardless of completeness. Default the prop to `true` and pass `false` explicitly wherever an admin can land on someone else's profile — don't assume "own profile" behavior is safe just because the component works when tested against your own account.
+- **The nag** (`components/NavBar/ProfileCompletionNag.tsx` + a banner in `NavBar.tsx`) applies to every role, not just Students — a Supervisor or Admin with an incomplete profile gets nagged too. The modal is a native `<dialog>` (focus trap + Escape + top-layer for free), dismissal tracked per-user in `sessionStorage` (known limitation: this resets per browser tab, not per login).
+- **Admin oversight** lives in `components/Control-Board/MembersTable.tsx` (the "الأعضاء" tab in `ControlPanelClient.tsx`) and reuses `PersonalInfoSection` on the profile page itself for editing — there's no separate admin edit UI. The backend already grants Admins edit rights on any member's profile fields (Django `CanModifyUser` + the `change_user` permission); the frontend doesn't need its own permission gate, only the `isOwnProfile` UX toggle above.
+
 ### Important Domain Principle
 
 Points, rankings, achievements, roles, permissions, Quran assignments, and activity rules are **business/domain rules**. Frontend code must represent these rules accurately — never invent, reinterpret, or silently modify them.
@@ -108,6 +118,8 @@ Pages in the app:
 | Icons       | `lucide-react`                                                              |
 | Animation   | `framer-motion` (use sparingly)                                             |
 | Date/Hijri  | `@tabby_ai/hijri-converter`                                                 |
+| Forms       | `react-hook-form` + `zod` + `@hookform/resolvers` — canonical for every form; see §6.5 |
+| Phone input | `react-phone-number-input` (UI) + `libphonenumber-js` (validation) — **not interchangeable**, see Gotcha #13 |
 | Auth        | JWT in `httpOnly` cookies (`access` + `refresh`), decoded with `jwt-decode` |
 | Class utils | `clsx` + `tailwind-merge` (via `cn()` in `lib/utils.ts`)                    |
 | Backend     | Django REST API at `process.env.BASE_URL` — schema at `/api/v1/schema/`     |
@@ -133,6 +145,13 @@ mise run install             # pnpm install (alias: i)
 ```
 
 **Always run `mise run typecheck` before finishing any task.** Never skip this.
+
+**Testing an admin/backend-dependent flow end-to-end** (not just `tsc`/lint) needs a live Django backend, since server actions call it directly — there's no mock layer:
+
+1. Backend is a separate repo, `nile-quran-django`, checked out wherever your local setup puts it. `rm -f dev.sqlite && mise run migrate` for a fresh DB, then run the dev server with `DJANGO_ALLOWED_HOSTS` set explicitly (the default is empty) — e.g. `DJANGO_ALLOWED_HOSTS="localhost,127.0.0.1" uv run python src/manage.py runserver 8000`.
+2. Create test accounts through `uv run python src/manage.py shell` (`User.objects.create_user(...)`, `.groups.add(Group.objects.get(name="Admin"))`) rather than the signup form — new signups are inactive until an admin activates them, and `is_active=True` is a required kwarg you'd otherwise miss.
+3. Run this Next.js app with `BASE_URL=http://localhost:8000/` (already the `.env.local` default) — check that port `3000` is actually free first, another process (yours or a stray one) is often already sitting on it; run on another port explicitly rather than fighting it: `./node_modules/.bin/next dev --turbopack -p 3001`.
+4. Verify in a real browser against these two local servers, not by reading the diff — a change can type-check and look right while still being wrong at runtime (RTL direction bugs, a viewer-context prop left at its default, a conflict-merge that silently dropped a branch).
 
 ## 4. Design System
 
@@ -186,7 +205,9 @@ The two root layouts additionally load Geist/Geist_Mono (`["latin"]`) as CSS var
 - Set `dir="rtl"` on the root container of any Arabic page/component
 - Use logical properties where it matters: `text-start`/`text-end`, `ms-*`/`me-*`
 - `lucide-react` chevron icons need to be swapped for RTL: `ChevronRight` for "next", `ChevronLeft` for "prev" in Arabic context
-- Form fields with `dir="auto"` on inputs handle mixed Arabic/English content correctly (usernames, emails)
+- **In a `dir="rtl"` flex row, JSX/DOM order runs right-to-left**: the *first* child renders rightmost, the *last* child renders leftmost. This is the opposite of LTR intuition and easy to get backwards — if a design calls for something to always be "the leftmost tab/button," make it the last element in JSX, not the first.
+- `dir="auto"` on a plain text-entry input (name, email, referrer) is fine — it lets mixed Arabic/English content align itself. **Don't use it on an input that sits next to a fixed-position icon** (e.g. a search box with an absolutely-positioned `<Search>` icon): typing a query that starts with a Latin character (a username) flips the whole input to LTR mid-typing, pulling the text away from the icon. Leave `dir` unset there and let it inherit the ancestor's `dir="rtl"` instead — compare the (correct) points-table search box in `ControlPanelClient.tsx` against the search box in `MembersTable.tsx` for the same input styled two ways.
+- A value that's inherently LTR (phone numbers, in particular) needs an explicit `dir="ltr"` wherever it's displayed inside RTL context, or the leading `+`/digits render in the wrong order. Pair it with `text-end` so it still aligns to the same edge as the rest of the row.
 - Error/tooltip text rendered in an LTR page context must explicitly set `dir="rtl"` on the container
 
 ### 4.6 Current state vs. Standard (legacy debt — migrate when touching these files)
@@ -228,32 +249,49 @@ app/
 components/
   About/                # AboutContent.tsx
   Auth/                 # Auth.tsx (login/signup tab switch), LoginForm.tsx, SignUpForm.tsx, InfoTooltip.tsx
-  Control-Board/        # ControlPanelClient.tsx (month/week nav, module-level category cache), userRow.tsx
+                        # (both forms: react-hook-form + zod, schemas from lib/schemas.ts)
+  Control-Board/        # ControlPanelClient.tsx — 4 tabs: جدول النقاط / المجموعات / الأعضاء / قيد التفعيل
+                        # (order matters in this RTL layout — see §4.5), month/week nav,
+                        # module-level category cache; userRow.tsx; MembersTable.tsx (search + filter
+                        # + sortable-by-API table, admin-only)
   Goals/                # GoalsPageClient.tsx
   Home/                 # DashboardContainer.tsx (client orchestrator: Hijri month state + data fetching),
                         # PerformanceBoardClient.tsx (bar chart + month nav), GoalsClient.tsx (goal card)
-  NavBar/               # NavBar.tsx (server component, role-aware links), NavBarMobileMenu.tsx,
+  NavBar/               # NavBar.tsx (server component, role-aware links + profile-completion banner),
+                        # NavBarMobileMenu.tsx, ProfileCompletionNag.tsx (nag modal, see §1 Community Profile),
                         # LogoutButton.tsx, NavLinks.tsx, navLinkItems.ts
-  Profile/              # EditOwnProfile.tsx, ProfileActivityList.tsx, ProfileHeader.tsx,
+  Profile/              # EditOwnProfile.tsx, PersonalInfoSection.tsx (community profile form/summary,
+                        # see §1), ProfileActivityList.tsx, ProfileHeader.tsx,
                         # ProfileMetaInfo.tsx, ProfileRoleTabs.tsx, QuietMembersCard.tsx,
                         # RoleBadge.tsx, SectionHeading.tsx, StatTile.tsx,
                         # views/StudentProfileView.tsx, views/SupervisorProfileView.tsx
-  ui/                   # PageHero.tsx, progress.tsx (Radix wrapper), spinner.tsx
+  ui/                   # PageHero.tsx, progress.tsx (Radix wrapper), spinner.tsx, field-error.tsx
+                        # (shared RHF error display, see §6.6)
 
 actions/
   auth-actions.ts       # login, signup, logout, checkTokenValidity (auto-refreshes access token internally)
   categories.ts         # getCategories (shared category cache helper)
-  ControlBoard.ts       # getUsers, getUsersWithDetails, getWeekData, getPoints, getCategories,
-                        # getUserActivities, addUserActivity, updateUserActivity, deleteUserActivity
+  ControlBoard.ts       # getUsers, getAllMembers (walks full pagination, admin-only, ?ordering=
+                        # first_name,last_name — sort server-side, never client-side), getPoints,
+                        # getCategories, getUserActivities, addUserActivity, updateUserActivity,
+                        # deleteUserActivity, updateUserSupervisor, updateUserActiveStatus
   PerformanceBoard.ts   # getLeaderboardData, getUserDetails
   goal.ts               # getGoalOfTheMonth
-  profile.ts            # getProfileByHandle, updateOwnProfile
+  profile.ts            # getUserByUsername, getUserProfile, getUserPointsForMonth, getCirclePeers,
+                        # getStudentRank, getQuietMembers, getSupervisedStudents, updateUser (generic
+                        # field name/value payload — also used for the community profile fields, see §6.6),
+                        # getStudentActivities + per-activity update/move/delete, getProfileCategories
 
 lib/
   utils.ts              # cn, getHijriMonth, toArabicDigits, getHijriMonthDays, formatDate (currently unused), WeekRange
   user.ts               # Login (named export), createUser (default export), getUserRole
-  types.ts              # SignupErrors, SignupFormValues, SignupFormState
-  profile-types.ts      # Profile-related TypeScript types
+  schemas.ts            # zod schemas for every form (login, signup, edit-profile, community profile) —
+                        # the one place validation rules live; forms just wire zodResolver to these
+  profile-fields.ts     # ProfileFields type + the *_OPTIONS value/label arrays for every choice field
+                        # (mirrors backend TextChoices — keep them in sync by hand, there's no codegen)
+  profile-types.ts      # RoleType/GroupName, GROUPS map (label/icon/description per role+team),
+                        # getGroupLabel/getGroupIcon/getRoles/getTeams, getVisibility (profile field
+                        # visibility rules), UserProfile (extends ProfileFields)
   auth.ts               # destroySession — dead code, never imported (see Gotcha #11)
   week-helpers.check.mts # Week-range helper tests (node --test)
 
@@ -362,9 +400,30 @@ className = "bg-[#043F2E] text-white shadow-sm";
 className = "text-[#043F2E] hover:bg-white/50";
 ```
 
-### 6.5 Form input (auth)
+### 6.5 Form input — react-hook-form + zod (canonical, every form)
 
-Forms use the LTR page context with `items-end` for right-alignment:
+Every form in the app is `react-hook-form` bound to a `zod` schema from `lib/schemas.ts`, submitted with `handleSubmit`, errors read off `formState.errors` and rendered with the shared `<FieldError />` (`components/ui/field-error.tsx`). Don't hand-roll validation, manual `useState` error objects, or `useActionState` for a new form — add a schema to `lib/schemas.ts` and follow this shape:
+
+```tsx
+const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<Values>({
+  resolver: zodResolver(someSchema),
+  defaultValues: { /* ... */ },
+});
+
+const onSubmit = handleSubmit(async (values) => {
+  const res = await someServerAction(values);
+  // ...
+});
+
+<form onSubmit={onSubmit} noValidate>
+  <input {...register("fieldName")} className={inputClass(!!errors.fieldName)} />
+  <FieldError message={errors.fieldName?.message} />
+</form>
+```
+
+`noValidate` is required — otherwise the browser's native validation UI (unstyled, LTR, untranslated) fires before zod gets a chance to. A field that needs a non-`<input>` control (the phone number's country-code picker, a `<select>`) still goes through the same `register`/`Controller`/`errors` wiring — see `PersonalInfoForm` in `PersonalInfoSection.tsx` for a `Controller`-backed example (`PhoneInputField` from `react-phone-number-input/react-hook-form`).
+
+The input markup itself is unchanged from before the RHF migration — LTR page context, `items-end` for right-alignment:
 
 ```tsx
 <div className="flex flex-col gap-3 items-end">
@@ -377,32 +436,23 @@ Forms use the LTR page context with `items-end` for right-alignment:
     <input
       dir="auto"
       className="bg-white w-full h-14 max-sm:h-11 rounded-[7px] border border-[#043F2E] placeholder:text-end pr-11 pl-5 focus:placeholder:opacity-0"
+      {...register("fieldName")}
     />
   </div>
 </div>
 ```
 
-For RTL form contexts, swap to `items-start` + `placeholder:text-start` to keep right-alignment.
+For RTL form contexts, swap to `items-start` + `placeholder:text-start` to keep right-alignment. See §4.5 for when `dir="auto"` is (and isn't) the right call.
 
 ### 6.6 Form error styling
 
-Form errors use the **Error** + **Error surface** tokens (`#9B3D2E` and `#F4E0D6`). Three surfaces:
-
-**Field error** (under an input, in the same RTL flex as the label):
+Form errors use the **Error** + **Error surface** tokens (`#9B3D2E` and `#F4E0D6`). Prefer the shared `<FieldError message={errors.fieldName?.message} />` over hand-writing this markup — it already renders exactly this:
 
 ```tsx
-{
-  state.errors.firstName && (
-    <div
-      dir="rtl"
-      className={`${tajawal.className} flex items-center gap-1.5 text-xs text-[#9B3D2E] font-medium`}
-      role="alert"
-    >
-      <AlertCircle className="w-3.5 h-3.5 shrink-0" strokeWidth={2.4} />
-      <span>{state.errors.firstName}</span>
-    </div>
-  );
-}
+<p role="alert" className={`${tajawal.className} flex items-center gap-1.5 text-xs text-[#9B3D2E] font-medium`}>
+  <AlertCircle className="w-3.5 h-3.5 shrink-0" strokeWidth={2.4} />
+  <span>{message}</span>
+</p>
 ```
 
 **Invalid input border** — the input class flips to `border-[#9B3D2E]` and the focus state also flips to `focus:border-[#9B3D2E]` so the border stays red while focused:
@@ -445,6 +495,16 @@ hasError
     </div>
   );
 }
+```
+
+**Extracting a DRF error message generically** — a server action that PATCHes a growing object (like `updateUser`, which now covers ~20 fields across the profile + community-profile forms) shouldn't enumerate every possible field name to find the error. DRF keys field errors by field name and puts permission/object-level errors in `detail`; take whichever one is actually present instead of naming them all:
+
+```ts
+const errData = JSON.parse(text);
+const firstFieldError = Object.values(errData ?? {}).find(
+  (v): v is string[] => Array.isArray(v) && typeof v[0] === "string",
+)?.[0];
+errorMsg = errData?.detail || firstFieldError || errorMsg;
 ```
 
 ### 6.7 Server action (auth-gated fetcher)
@@ -589,6 +649,10 @@ export const metadata: Metadata = {
 11. **`searchParams` read synchronously** — `app/(auth)/auth/page.tsx` types `searchParams` as a plain object and reads `searchParams.mode` directly. Next.js 15 makes `searchParams` a Promise; this works today only because the page is dynamic, but it will warn/fail if the page is ever prerendered. Await it (`const { mode } = await searchParams`) when touching the page.
 
 12. **Token refresh is automatic but hidden** — `checkTokenValidity()` silently refreshes an expired access token via `auth/refresh/` using the `refresh` cookie. Don't add a second refresh mechanism; reuse this function.
+
+13. **`react-phone-number-input`'s entry point bundles its React component, even for logic-only imports** — importing `isValidPhoneNumber` (or any other pure validation export) from `react-phone-number-input` or `react-phone-number-input/min`/`/max`/`/core` also pulls in the `<PhoneInput>` class component, because they all ship from the same file. That's fine in a client component, but `lib/schemas.ts` is also imported by `"use server"` action files, so it gets evaluated in the Server Actions module graph — a different, more restricted context than normal SSR — where the bundled class component crashes with `Super expression must either be null or a function` and takes the whole page down with it (this happened, took down `/auth` with a 500). **Import validation logic from `libphonenumber-js` directly** (the pure-JS library the component itself wraps); reserve `react-phone-number-input` imports for actual `"use client"` components.
+
+14. **A component defaulting to "nudge the owner" behavior needs an explicit viewer-context prop** — `PersonalInfoSection`'s auto-open-into-edit-mode (and its no-cancel-button) made sense for a member looking at their own incomplete profile, but silently carried over when an admin opened someone else's — dropping them into an edit form for a stranger's data with no way out. If you build a component that changes behavior based on "is this mine," give it an explicit prop (`isOwnProfile`) rather than inferring it from data that happens to be true in the common case; default it to the owner behavior, but pass the override everywhere the component can render for someone other than the signed-in user.
 
 ## 8. Things NOT to do
 
