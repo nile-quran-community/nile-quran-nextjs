@@ -52,7 +52,6 @@ export default function MembersTable({ members }: { members: Member[] }) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="ابحث بالاسم أو اسم المستخدم"
-            dir="auto"
             className={`${tajawal.className} w-full h-12 pr-11 pl-4 bg-[#F7FBEA] border border-[#043F2E]/15 rounded-2xl text-[#043F2E] placeholder:text-[#043F2E]/40 focus:outline-none focus:border-[#043F2E]/40 focus:bg-white transition-colors text-sm font-medium`}
           />
         </div>
