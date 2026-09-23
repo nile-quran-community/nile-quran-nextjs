@@ -640,6 +640,18 @@ export default function ControlPanelClient({ currentUserId }: { currentUserId?: 
           </button>
           <button
             type="button"
+            onClick={() => setTab("members")}
+            className={`${tajawal.className} px-4 h-10 rounded-xl text-sm font-bold transition-colors cursor-pointer ${
+              tab === "members"
+                ? "bg-[#043F2E] text-white shadow-sm"
+                : "text-[#043F2E] hover:bg-white/50"
+            }`}
+          >
+            الأعضاء
+          </button>
+          {/* Always keep this tab last */}
+          <button
+            type="button"
             onClick={() => setTab("pending")}
             className={`${tajawal.className} flex items-center gap-1.5 px-4 h-10 rounded-xl text-sm font-bold transition-colors cursor-pointer ${
               tab === "pending"
@@ -654,17 +666,6 @@ export default function ControlPanelClient({ currentUserId }: { currentUserId?: 
                 className="w-2 h-2 rounded-full bg-[#9B3D2E]"
               />
             )}
-          </button>
-          <button
-            type="button"
-            onClick={() => setTab("members")}
-            className={`${tajawal.className} px-4 h-10 rounded-xl text-sm font-bold transition-colors cursor-pointer ${
-              tab === "members"
-                ? "bg-[#043F2E] text-white shadow-sm"
-                : "text-[#043F2E] hover:bg-white/50"
-            }`}
-          >
-            الأعضاء
           </button>
         </div>
 
