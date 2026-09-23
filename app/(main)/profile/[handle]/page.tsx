@@ -365,7 +365,9 @@ export default async function ProfilePage({
 
         {/* Editable, not read-only; admin already has backend edit rights here.
             Non-admin viewers don't get this section at all; it's private. */}
-        {viewerIsAdmin && <PersonalInfoSection userId={targetUser.id} fields={targetUser} />}
+        {viewerIsAdmin && (
+          <PersonalInfoSection userId={targetUser.id} fields={targetUser} isOwnProfile={false} />
+        )}
 
         {/* This member's month — the same Hijri month the rest of the product
             counts in, and open to every member rather than to a privileged few */}

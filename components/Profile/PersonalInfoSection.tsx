@@ -45,16 +45,21 @@ function labelFor(options: readonly { value: string; label: string }[], value: s
 interface Props {
   userId: number;
   fields: ProfileFields;
+  /** Whether the viewer is the member themself, as opposed to an admin looking
+   * someone else's profile up. Only an incomplete *own* profile opens straight
+   * into the form. An admin should land on the (possibly empty) read-only
+   * view first, not get dropped into editing a stranger's data. */
+  isOwnProfile?: boolean;
 }
 
 /**
  * The community-profile questions (faculty, Quran progress, tajweed level, …)
  * collected once after signup. Read-only summary by default; "تعديل" swaps in
- * the form. Opens on the form directly when the profile is still incomplete.
- * This is also where the nag banner/modal send a member.
+ * the form. On the member's own profile, opens on the form directly while
+ * incomplete. This is also where the nag banner/modal send a member.
  */
-export default function PersonalInfoSection({ userId, fields }: Props) {
-  const [isEditing, setIsEditing] = useState(!fields.is_profile_complete);
+export default function PersonalInfoSection({ userId, fields, isOwnProfile = true }: Props) {
+  const [isEditing, setIsEditing] = useState(isOwnProfile && !fields.is_profile_complete);
 
   return (
     <section
@@ -67,7 +72,13 @@ export default function PersonalInfoSection({ userId, fields }: Props) {
           id="personal-info-heading"
           icon={<IdCard className="w-4 h-4" strokeWidth={2.2} />}
           title="بيانات إضافية"
-          sub={fields.is_profile_complete ? undefined : "أكمل بياناتك ليتعرف عليك مجتمعك"}
+          sub={
+            fields.is_profile_complete
+              ? undefined
+              : isOwnProfile
+                ? "أكمل بياناتك ليتعرف عليك مجتمعك"
+                : "هذا العضو لم يكمل بياناته بعد"
+          }
         />
         {!isEditing && (
           <button
@@ -81,7 +92,12 @@ export default function PersonalInfoSection({ userId, fields }: Props) {
       </div>
 
       {isEditing ? (
-        <PersonalInfoForm userId={userId} fields={fields} onDone={() => setIsEditing(false)} />
+        <PersonalInfoForm
+          userId={userId}
+          fields={fields}
+          isOwnProfile={isOwnProfile}
+          onDone={() => setIsEditing(false)}
+        />
       ) : (
         <ReadOnlyGrid fields={fields} />
       )}
@@ -168,7 +184,7 @@ function ReadOnlyGrid({ fields: f }: { fields: ProfileFields }) {
   if (items.length === 0) {
     return (
       <p className={`${tajawal.className} text-sm text-[#043F2E]/60`}>
-        لم تُضَف أي بيانات بعد — اضغط &quot;تعديل&quot; للبدء.
+        لم تُضَف أي بيانات بعد. اضغط &quot;تعديل&quot; للبدء.
       </p>
     );
   }
@@ -185,10 +201,12 @@ function ReadOnlyGrid({ fields: f }: { fields: ProfileFields }) {
 function PersonalInfoForm({
   userId,
   fields: f,
+  isOwnProfile,
   onDone,
 }: {
   userId: number;
   fields: ProfileFields;
+  isOwnProfile: boolean;
   onDone: () => void;
 }) {
   const router = useRouter();
@@ -470,7 +488,10 @@ function PersonalInfoForm({
             </>
           )}
         </button>
-        {f.is_profile_complete && (
+        {/* No bail-out on a member's own incomplete profile; that's the one
+            nudge this form is for. An admin editing someone else's can always
+            back out, complete or not. */}
+        {(f.is_profile_complete || !isOwnProfile) && (
           <button
             type="button"
             onClick={onDone}
