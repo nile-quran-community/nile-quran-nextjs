@@ -5,13 +5,25 @@ import Link from "next/link";
 import { Tajawal } from "next/font/google";
 import { Search, CheckCircle2, CircleDashed } from "lucide-react";
 import { ACADEMIC_YEAR_OPTIONS, FACULTY_OPTIONS } from "@/lib/profile-fields";
-import { getGroupLabel } from "@/lib/profile-types";
 import type { Member } from "@/actions/ControlBoard";
 
 const tajawal = Tajawal({ subsets: ["arabic"], weight: ["400", "500", "700"] });
 
 function labelFor(options: readonly { value: string; label: string }[], value: string): string {
   return options.find((o) => o.value === value)?.label ?? "—";
+}
+
+// Age in full years as of today. Birthdays that haven't happened yet this year
+// don't count, so a straight year subtraction alone would be off by one.
+function calculateAge(birthDate: string): number {
+  const birth = new Date(birthDate);
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const hadBirthdayThisYear =
+    today.getMonth() > birth.getMonth() ||
+    (today.getMonth() === birth.getMonth() && today.getDate() >= birth.getDate());
+  if (!hadBirthdayThisYear) age--;
+  return age;
 }
 
 export default function MembersTable({ members }: { members: Member[] }) {
@@ -62,7 +74,7 @@ export default function MembersTable({ members }: { members: Member[] }) {
           <thead>
             <tr className={`${tajawal.className} text-xs font-bold text-[#043F2E]/50 border-b border-[#043F2E]/8`}>
               <th className="text-start px-4 py-3">الاسم</th>
-              <th className="text-start px-4 py-3">الأدوار</th>
+              <th className="text-start px-4 py-3">تاريخ الميلاد</th>
               <th className="text-start px-4 py-3">الكلية</th>
               <th className="text-start px-4 py-3">السنة الدراسية</th>
               <th className="text-start px-4 py-3">رقم الهاتف</th>
@@ -80,7 +92,9 @@ export default function MembersTable({ members }: { members: Member[] }) {
                     {`${m.first_name} ${m.last_name}`.trim() || m.username}
                   </Link>
                 </td>
-                <td className="px-4 py-3 text-[#043F2E]/70">{m.groups.map(getGroupLabel).join("، ")}</td>
+                <td className="px-4 py-3 text-[#043F2E]/70">
+                  {m.birth_date ? `${m.birth_date} (${calculateAge(m.birth_date)} سنة)` : "—"}
+                </td>
                 <td className="px-4 py-3 text-[#043F2E]/70">
                   {m.faculty === "other" ? m.faculty_other || "—" : labelFor(FACULTY_OPTIONS, m.faculty)}
                 </td>
