@@ -40,7 +40,7 @@ const VALUES: ValueItem[] = [
   },
   {
     name: "مركزية الوحي",
-    description: "نجعل الوحي أساسًا لفهم الحياة والعمل.",
+    description: "نجعل الوحي أساسًا لفهم الحياة.",
     Icon: Compass,
   },
   {
