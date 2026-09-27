@@ -64,19 +64,19 @@ const VALUES: ValueItem[] = [
     Icon: Users,
   },
   {
-    name: "الصدق والإخلاص",
-    description: "نصدق مع الله ومع أنفسنا ومع إخواننا.",
-    Icon: CheckCircle,
-  },
-  {
     name: "الرحمة والتعاون",
-    description: "نتراحم ونتعاون على البر والتقوى.",
+    description: "نتراحم ونتناصح بلطف ونتذاكر بجد.",
     Icon: Handshake,
   },
   {
     name: "علو الهمة والعمل",
-    description: "نرفع هممنا ونحوّل إيماننا إلى عمل نافع.",
+    description: "نحوّل إيماننا إلى عمل متقن نتفانا فيه.",
     Icon: TrendingUp,
+  },
+  {
+    name: "الصدق والإخلاص",
+    description: "نصدق مع الله ومع أنفسنا ومع إخواننا.",
+    Icon: CheckCircle,
   },
 ];
 
@@ -231,8 +231,8 @@ export default function AboutContent() {
             <MeetingCard
               Icon={MapPin}
               title="حضوريًا"
-              subtitle="جامعة النيل"
-              description="يجتمع الأعضاء بصورة مباشرة، وتقام الأنشطة والفعاليات الحضورية."
+              subtitle="٦ أكتوبر"
+              description="يجتمع الأعضاء بصورة شبه شهرية، وتقام الأنشطة والفعاليات الحضورية."
             />
             <MeetingCard
               Icon={MessagesSquare}
