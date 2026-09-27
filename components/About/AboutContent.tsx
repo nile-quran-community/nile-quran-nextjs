@@ -70,7 +70,7 @@ const VALUES: ValueItem[] = [
   },
   {
     name: "علو الهمة والعمل",
-    description: "نحوّل إيماننا إلى عمل متقن نتفانا فيه.",
+    description: "نحوّل إيماننا إلى عمل متقن نتفانى فيه.",
     Icon: TrendingUp,
   },
   {
