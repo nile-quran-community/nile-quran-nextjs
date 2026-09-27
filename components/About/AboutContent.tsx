@@ -238,6 +238,7 @@ export default function AboutContent() {
               Icon={MessagesSquare}
               title="افتراضيًا"
               subtitle="منصة Discord"
+              url="https://discord.gg/K9as4g4PFj"
               description="تستمر الصحبة والتواصل والأنشطة بين أعضاء المجتمع عبر الإنترنت."
             />
           </div>
@@ -485,11 +486,13 @@ function MeetingCard({
   title,
   subtitle,
   description,
+  url,
 }: {
   Icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
   title: string;
   subtitle: string;
   description: string;
+  url?: string;
 }) {
   return (
     <div className="bg-[#F7FBEA] rounded-2xl border border-[#043F2E]/10 p-5 flex flex-col gap-3">
@@ -502,7 +505,20 @@ function MeetingCard({
         >
           {title}
         </span>
-        <h3 className={`${lalezar.className} text-xl text-[#043F2E] leading-tight`}>{subtitle}</h3>
+        <h3 className={`${lalezar.className} text-xl text-[#043F2E] leading-tight`}>
+          {url ? (
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline decoration-[#BEE663] decoration-2 underline-offset-4 hover:text-[#065f46] transition-colors"
+            >
+              {subtitle}
+            </a>
+          ) : (
+            subtitle
+          )}
+        </h3>
       </div>
       <p
         className={`${tajawal.className} text-[14px] leading-[1.85] text-[#043F2E]/75 font-normal`}
