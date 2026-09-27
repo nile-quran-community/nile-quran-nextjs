@@ -154,6 +154,21 @@ export default function AboutContent() {
       {/* 🟢 Content */}
       {/* ============================ */}
       <div className="max-w-4xl mx-auto px-6 md:px-10 py-10 md:py-14 flex flex-col gap-6">
+        {/* Intro video */}
+        <Section eyebrow="تعريف" title="تعرّف علينا">
+          <div className="aspect-video overflow-hidden rounded-2xl border border-[#043F2E]/10 bg-[#043F2E]">
+            <iframe
+              src="https://www.youtube-nocookie.com/embed/aRJiApwJbKU"
+              title="تعريف بمجتمع مقرأة النيل"
+              allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              referrerPolicy="strict-origin-when-cross-origin"
+              allowFullScreen
+              loading="lazy"
+              className="w-full h-full"
+            />
+          </div>
+        </Section>
+
         {/* Why */}
         <Section eyebrow="الفلسفة" title="لماذا مجتمع مقرأة النيل؟">
           <div className="flex flex-col gap-4">
