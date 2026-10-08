@@ -284,37 +284,6 @@ export default function AboutContent() {
               <TeamCard key={group} group={group} />
             ))}
           </div>
-
-          {/* Treasury callout */}
-          <div
-            className={`mt-5 rounded-2xl border-2 border-[#BEE663] bg-gradient-to-l from-[#BEE663]/15 to-transparent p-5 md:p-6 flex flex-col gap-3`}
-          >
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-[#043F2E] text-[#BEE663] flex items-center justify-center">
-                <Wallet className="w-4 h-4" strokeWidth={2.4} />
-              </div>
-              <h4 className={`${lalezar.className} text-lg text-[#043F2E]`}>أمناء الخزنة</h4>
-            </div>
-            <p
-              className={`${tajawal.className} text-[14px] md:text-[15px] leading-[1.9] text-[#043F2E]/85 font-normal`}
-            >
-              مسؤولون عن جمع الصدقات والتبرعات والغرامات المتعلقة بمخالفة القواعد، وتنظيم الموارد
-              المالية للمجتمع.
-            </p>
-            <div className="mt-1 flex flex-col gap-1.5 bg-white/70 rounded-xl p-4 border border-[#043F2E]/10">
-              <span
-                className={`${tajawal.className} text-[11px] font-bold text-[#043F2E]/60 uppercase tracking-wider`}
-              >
-                مثال على قواعد المجتمع
-              </span>
-              <p
-                className={`${tajawal.className} text-[15px] leading-[1.85] text-[#043F2E] font-medium`}
-              >
-                يُغَرَّم من يتحدث بلغة أجنبية أثناء الخاطرة{" "}
-                <span className="text-[#043F2E] font-bold">20 جنيهًا عن كل كلمة</span>.
-              </p>
-            </div>
-          </div>
         </Section>
 
         {/* Mission */}
