@@ -40,7 +40,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="">
-      <body className={`antialiased min-h-screen w-screen bg-[#EBF0EB]`}>{children}</body>
+      {/* Browser extensions (ColorZilla, Tayamun, ...) inject attributes on <body> before
+          hydration; suppress attribute-mismatch warnings on this element only. */}
+      <body
+        suppressHydrationWarning
+        className={`antialiased min-h-screen w-screen bg-[#EBF0EB]`}
+      >
+        {children}
+      </body>
     </html>
   );
 }
