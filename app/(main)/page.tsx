@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import DashboardContainer from "@/components/Home/DashboardContainer";
 import { getLeaderboardData } from "@/actions/PerformanceBoard";
 import { getCurrentGoals } from "@/actions/goal";
+import { getAnnouncements } from "@/actions/announcements";
 import { getPreviousHijriMonth } from "@/lib/utils";
 import { gregorianToHijri } from "@tabby_ai/hijri-converter";
 
@@ -31,10 +32,11 @@ export default async function Home() {
   });
   const prevMonth = getPreviousHijriMonth(hijriToday.year, hijriToday.month);
 
-  const [currentResult, previousResult, goalsResult] = await Promise.all([
+  const [currentResult, previousResult, goalsResult, newsResult] = await Promise.all([
     getLeaderboardData(hijriToday.year, hijriToday.month),
     getLeaderboardData(prevMonth.year, prevMonth.month),
     getCurrentGoals(),
+    getAnnouncements({ live: true, ordering: "-publish_at" }),
   ]);
 
   // The API returns Students only, pre-sorted by points, so these ranks align
@@ -54,6 +56,8 @@ export default async function Home() {
         initialLeaderboardData={currentResult.success ? currentResult.data : []}
         initialPreviousRanks={previousRanks}
         goals={goalsResult.success ? goalsResult.data : []}
+        // null (not []) when the fetch failed, so the card can tell "failed" from "no news yet"
+        announcements={newsResult.success ? newsResult.data.results.slice(0, 3) : null}
       />
     </div>
   );

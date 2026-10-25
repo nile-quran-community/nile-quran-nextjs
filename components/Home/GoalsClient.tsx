@@ -15,7 +15,7 @@ interface Props {
 
 export default function GoalsClient({ goals }: Props) {
   return (
-    <div className="w-full lg:w-[360px] xl:w-[400px] lg:shrink-0 lg:mt-[88px]" dir="rtl">
+    <div className="w-full" dir="rtl">
       <section className="bg-white rounded-3xl border border-[#043F2E]/10 shadow-sm p-5 md:p-7 flex flex-col gap-4">
         <div className="flex items-center gap-3">
           <div className="shrink-0 w-10 h-10 rounded-xl bg-[#043F2E] text-[#BEE663] flex items-center justify-center">
