@@ -92,6 +92,33 @@ export type SignupValues = z.infer<typeof signupSchema>;
 export type EditProfileValues = z.infer<typeof editProfileSchema>;
 
 // ===============================
+// Announcement editor
+// ===============================
+// Limits mirror the backend (title 255, content 4096 — Discord's embed cap). `summary` is
+// optional on the API but required here: it is what a link card shows to people who are not
+// logged in, so an announcement should never go out without one.
+export const announcementSchema = z
+  .object({
+    type: z.string().min(1, "نوع الخبر مطلوب"),
+    title: z.string().trim().min(1, "العنوان مطلوب").max(255, "العنوان طويل جدًا"),
+    summary: z
+      .string()
+      .trim()
+      .min(1, "الوصف المختصر مطلوب")
+      .max(200, "يجب ألا يتجاوز الوصف المختصر 200 حرف"),
+    content: z.string().trim().min(1, "المحتوى مطلوب").max(4096, "المحتوى طويل جدًا (4096 حرفًا)"),
+    publishMode: z.enum(["draft", "now", "schedule"]),
+    publishAt: z.string(),
+  })
+  .superRefine(({ publishMode, publishAt }, ctx) => {
+    if (publishMode === "schedule" && !publishAt) {
+      ctx.addIssue({ code: "custom", path: ["publishAt"], message: "اختر موعد النشر" });
+    }
+  });
+
+export type AnnouncementValues = z.infer<typeof announcementSchema>;
+
+// ===============================
 // Community Profile ("complete your info") Form
 // ===============================
 // Mirrors User.is_profile_complete on the backend (users/models.py): every

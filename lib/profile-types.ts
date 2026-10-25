@@ -226,6 +226,14 @@ export function canEditGoals(groups: string[]): boolean {
   return GOAL_EDITOR_GROUPS.some((g) => groups.includes(g));
 }
 
+// Same idea for announcements: the groups granted add/change/delete_announcement. Drafts
+// stay private to their author on the API side no matter who is an editor.
+export const ANNOUNCEMENT_EDITOR_GROUPS: GroupName[] = ["Admin", "Media"];
+
+export function canEditAnnouncements(groups: string[]): boolean {
+  return ANNOUNCEMENT_EDITOR_GROUPS.some((g) => groups.includes(g));
+}
+
 // Team memberships only, in the fixed order above (a member can hold several)
 export function getTeams(groups: string[]): TeamGroup[] {
   return TEAM_GROUPS.filter((t) => groups.includes(t));
