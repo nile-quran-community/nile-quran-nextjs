@@ -102,6 +102,8 @@ Pages in the app:
 - `/about` — about page
 - `/control-board` — admin panel for adjusting student points (Admin only)
 - `/goals` — monthly goals page
+- `/news` — announcements list (any logged-in member); `/news/<id>` — one announcement: members get the full body, **anyone else gets a public teaser** (title + summary + link preview only)
+- `/news/editor`, `/news/editor/new`, `/news/editor/<id>` — write and manage announcements (Admin or Media only)
 - `/profile` — own profile (redirects to `/profile/<handle>`)
 - `/profile/<handle>` — public profile by username
 - `/auth` — login + signup (public; the only crawlable page, since `/` redirects unauthenticated users here)
@@ -255,6 +257,10 @@ components/
                         # module-level category cache; userRow.tsx; MembersTable.tsx (search + filter
                         # + sortable-by-API table, admin-only)
   Goals/                # GoalsPageClient.tsx
+  News/                 # announcements: AnnouncementCard, LatestNews (home card), NewsListClient,
+                        # AnnouncementArticle (member article + logged-out teaser), ArticleBody
+                        # (Markdown renderer), AnnouncementEditor (RHF + zod form), EditorList,
+                        # DeleteButton, ShareButtons, Pattern (site calligraphy, stands in for cover images)
   Home/                 # DashboardContainer.tsx (client orchestrator: Hijri month state + data fetching),
                         # PerformanceBoardClient.tsx (bar chart + month nav), GoalsClient.tsx (goal card)
   NavBar/               # NavBar.tsx (server component, role-aware links + profile-completion banner),
@@ -279,6 +285,8 @@ actions/
                         # deleteUserActivity, updateUserSupervisor, updateUserActiveStatus
   PerformanceBoard.ts   # getLeaderboardData, getUserDetails
   goal.ts               # getGoalOfTheMonth
+  announcements.ts      # getAnnouncements/getAnnouncement, getAnnouncementPreview (no auth header —
+                        # the public teaser), getTypeOptions (DRF OPTIONS), create/update/delete
   profile.ts            # getUserByUsername, getUserProfile, getUserPointsForMonth, getCirclePeers,
                         # getStudentRank, getQuietMembers, getSupervisedStudents, updateUser (generic
                         # field name/value payload — also used for the community profile fields, see §6.6),
@@ -291,6 +299,8 @@ lib/
                         # the one place validation rules live; forms just wire zodResolver to these
   profile-fields.ts     # ProfileFields type + the *_OPTIONS value/label arrays for every choice field
                         # (mirrors backend TextChoices — keep them in sync by hand, there's no codegen)
+  announcements.ts      # pure helpers (mentions → names, safeNextPath, publish-time conversion,
+                        # bylines, post-save messages); announcements.check.mts runs them under plain node
   profile-types.ts      # RoleType/GroupName, GROUPS map (label/icon/description per role+team),
                         # getGroupLabel/getGroupIcon/getRoles/getTeams, getVisibility (profile field
                         # visibility rules), UserProfile (extends ProfileFields)
@@ -306,6 +316,9 @@ public/
   Mask.png / Mask2.png  # control-board decorations
   logo.jpeg             # brand logo
   opengraph-image.png   # static OG image (1200×630), referenced from both root layouts
+  og-pattern.png        # 1200×630 crop of abstract.png's dark calligraphy, background of the
+                        # generated per-announcement OG image (see Gotcha #15)
+  fonts/Lalezar-Regular.ttf # OFL; only used by the generated OG image (next/og can't use next/font)
 
 # Config files
 next.config.ts          # output: "standalone" (Docker deployment)
@@ -527,7 +540,7 @@ export async function getSomething(year: number, month: number) {
 }
 ```
 
-Backend endpoints currently in use: `auth/` (login), `auth/refresh/`, `api/v1/users/`, `api/v1/users/me`, `api/v1/users/{id}/`, `api/v1/users/points/`, `api/v1/users/points/categories/`, `api/v1/users/{id}/activities/` (+ `POST/DELETE` on activities).
+Backend endpoints currently in use: `auth/` (login), `auth/refresh/`, `api/v1/users/`, `api/v1/users/me`, `api/v1/users/{id}/`, `api/v1/users/points/`, `api/v1/users/points/categories/`, `api/v1/users/{id}/activities/` (+ `POST/DELETE` on activities), `api/v1/announcements/` (CRUD + `OPTIONS` for the type labels), `api/v1/announcements/{id}/preview/` (public, no login).
 
 Note: `DashboardContainer` and `ControlPanelClient` are **client components that call these server actions directly** from event handlers/effects — that is the established data-flow pattern in this codebase (no route handlers, no SWR).
 
@@ -614,6 +627,7 @@ const max = items.length > 0 ? Math.max(...items.map((u) => u.points)) : 0;
 - Every page exports its own `metadata` with at least a `title`. Authenticated/admin pages must keep `robots: { index: false, follow: false }` (see `/` and `/control-board`).
 - `app/robots.ts` allows all crawlers and disallows `/control-board`.
 - Both root layouts set `metadataBase` to `https://nile-quran-community.com` so the `og:image` (and any future static assets) resolve to absolute URLs. `NEXT_PUBLIC_SITE_URL` overrides this for local/preview builds.
+- `/news/[id]` is the exception to "everything under `(main)` needs a login": it builds its metadata from the public preview endpoint and has its own generated image at `/news/<id>/og` (`og/route.tsx`, declared explicitly in `generateMetadata`), so a link unfurls for crawlers that aren't logged in. It is still `noindex`.
 - OG image lives at `public/opengraph-image.png` (1200×630, branded) and is referenced from both root layouts' `openGraph.images` (URL + width + height + alt). It serves as the fallback for all routes (every layout declares it). `metadataBase` resolves the URL to an absolute `https://nile-quran-community.com/...`.
 
 ```tsx
@@ -655,6 +669,11 @@ export const metadata: Metadata = {
 13. **`react-phone-number-input`'s entry point bundles its React component, even for logic-only imports** — importing `isValidPhoneNumber` (or any other pure validation export) from `react-phone-number-input` or `react-phone-number-input/min`/`/max`/`/core` also pulls in the `<PhoneInput>` class component, because they all ship from the same file. That's fine in a client component, but `lib/schemas.ts` is also imported by `"use server"` action files, so it gets evaluated in the Server Actions module graph — a different, more restricted context than normal SSR — where the bundled class component crashes with `Super expression must either be null or a function` and takes the whole page down with it (this happened, took down `/auth` with a 500). **Import validation logic from `libphonenumber-js` directly** (the pure-JS library the component itself wraps); reserve `react-phone-number-input` imports for actual `"use client"` components.
 
 14. **A component defaulting to "nudge the owner" behavior needs an explicit viewer-context prop** — `PersonalInfoSection`'s auto-open-into-edit-mode (and its no-cancel-button) made sense for a member looking at their own incomplete profile, but silently carried over when an admin opened someone else's — dropping them into an edit form for a stranger's data with no way out. If you build a component that changes behavior based on "is this mine," give it an explicit prop (`isOwnProfile`) rather than inferring it from data that happens to be true in the common case; default it to the owner behavior, but pass the override everywhere the component can render for someone other than the signed-in user.
+
+15. **`/news/[id]` renders for logged-out visitors, so it must never fetch the body for them** — it calls `getAnnouncement` (full, authenticated) only when `checkTokenValidity()` says the visitor is logged in, and `getAnnouncementPreview` (public: id, type, title, summary, publish date) otherwise. `NavBar` therefore copes with no session (login link instead of the account controls, no member links). Don't add anything member-only to that page without checking which branch it's in. Login returns the visitor via `/auth?next=/news/<id>`; `next` goes through `safeNextPath` (same-site paths only) both on the page and again in the `login` action.
+
+16. **The link-preview image is rendered with `satori` + `@resvg/resvg-js` directly, not `next/og`, by one shared function** — Next 15.5 bundles Satori 0.15, which ignores `direction: rtl` and sizes Arabic runs as if unjoined while drawing the joined forms (uneven word gaps, reversed word order). Current Satori (0.63+) lays text out with HarfBuzz, so `app/(main)/news/_og/card.tsx` (`renderCard`, the only place the card is laid out) just sets `direction: "rtl"` on the root and gets joined letters, right-to-left wrapping and correct mixed Arabic/digits/Latin; resvg turns the SVG into a PNG. A workaround that reshaped text into presentation forms by hand (`arabic-persian-reshaper`) was tried first and left joining artifacts; don't revive it. Notes: the route sets `box-sizing: border-box` on the root (current Satori is content-box, so 100% + padding overflows), the title is a `display: block` with `lineClamp: 3` (clamping only works on a block), and `next.config.ts` lists `@resvg/resvg-js` and `satori` in `serverExternalPackages` (a native binary and wasm files can't be bundled; Docker's `pnpm install` on Alpine pulls the musl binary). Two routes call `renderCard`: the public `/news/[id]/og` (published announcements, from the public preview) and the editors-only `/news/editor/og?title=&type=&date=` (403 for anyone else, `no-store`), which `AnnouncementEditor` shows as the live "link card" preview from the form's current values, so the preview can't drift from the real image. Other constraints: the image is a route handler, not the `opengraph-image` file convention, because that convention's URL came out as `http://localhost:<port>` in the metadata and ignored `metadataBase`, leaving crawlers an unreachable image; `satori` does not read `file:` URLs and `app/` source isn't in the Docker runner, so assets are read with `fs` from `public/`; the background is the pre-cropped `public/og-pattern.png` (a `background-size: 300%` crop of `abstract.png` leaked its lime corners in). When Next is upgraded to a release bundling a current Satori, `next/og`'s `ImageResponse` could replace this.
+17. **Announcement bodies are written for Discord** — `ArticleBody` renders them as Markdown with no raw HTML and no images, and keeps single line breaks (`whitespace-pre-line`) because the monthly leaderboard post has verse in it. `<@discord_id>` pings are replaced (`replaceMentions`) by a link to the member's profile, `[name](/profile/<username>)`, using the API's `mentions` map, which is best effort: only people whose Discord ID the backend holds are in it. An ID it doesn't know reads "عضو" as plain text, never the raw ID. `ArticleBody` opens site paths in the same tab and everything else in a new one. Drafts are private to their author on the API side: another editor (even an Admin) gets a 404 for them, which the editor pages pass straight through as `notFound()`. The raw `last_error` on a failed delivery is sent to Admins only (the API drops it for other editors), so `Delivery.last_error` is optional: everyone sees the friendly "failed after N attempts" line, and only Admins get the collapsed technical details.
 
 ## 8. Things NOT to do
 
