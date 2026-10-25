@@ -14,9 +14,15 @@ interface Props {
   pending?: boolean;
   /** Referrer's username, from an invite link */
   referrer?: string;
+  /** Where to go after logging in, e.g. the article the visitor came from */
+  next?: string;
 }
 
-export default function AuthForm({ mode, pending, referrer }: Props) {
+export default function AuthForm({ mode, pending, referrer, next }: Props) {
+  // Switching tabs must not forget where the visitor was headed
+  const tabHref = (target: string) =>
+    `/auth/?mode=${target}${next ? `&next=${encodeURIComponent(next)}` : ""}`;
+
   return (
     <div className="w-full max-w-[630px] flex z-30 flex-col items-center justify-center h-full">
       <p className={`text-[54px] text-[#043F2E] max-sm:text-[38px] ${lalezar.className}`}>
@@ -25,7 +31,7 @@ export default function AuthForm({ mode, pending, referrer }: Props) {
       <div className="w-full rounded-2xl border border-[#043F2E] bg-[#F7FBEA] overflow-hidden">
         <div className={`w-full flex ${tajawal.className}`}>
           <Link
-            href={"/auth/?mode=signup"}
+            href={tabHref("signup")}
             className={`w-1/2 h-[75px] max-sm:h-[60px] max-sm:font-extrabold ${
               mode === "signup" ? "bg-[#043F2E] text-[#EBFFBD]" : "bg-[#EBFFBD] text-[#043F2E]"
             } border-b border-[#043F2E] cursor-pointer flex justify-center items-center`}
@@ -33,7 +39,7 @@ export default function AuthForm({ mode, pending, referrer }: Props) {
             إنشاء حساب
           </Link>
           <Link
-            href={"/auth/?mode=login"}
+            href={tabHref("login")}
             className={`w-1/2 ${
               mode === "login" ? "bg-[#043F2E] text-[#EBFFBD]" : "bg-[#EBFFBD] text-[#043F2E]"
             } h-[75px] max-sm:h-[60px] max-sm:font-extrabold border-b border-[#043F2E] cursor-pointer flex justify-center items-center`}
@@ -53,7 +59,7 @@ export default function AuthForm({ mode, pending, referrer }: Props) {
             </span>
           </div>
         )}
-        {mode === "login" ? <LoginForm /> : <SignUpForm referrer={referrer} />}
+        {mode === "login" ? <LoginForm next={next} /> : <SignUpForm referrer={referrer} />}
       </div>
     </div>
   );

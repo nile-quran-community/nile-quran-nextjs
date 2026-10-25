@@ -8,6 +8,7 @@ import { cache } from "react";
 import { jwtDecode, JwtPayload } from "jwt-decode";
 import type { ZodError } from "zod";
 import { loginSchema, signupSchema, type LoginValues, type SignupValues } from "@/lib/schemas";
+import { safeNextPath } from "@/lib/announcements";
 
 const API_BASE = process.env.BASE_URL;
 
@@ -25,7 +26,10 @@ const COOKIE_OPTIONS = {
 // that belongs to no single field.
 export type FormErrors = Record<string, string>;
 
-export async function login(values: LoginValues): Promise<{ errors: FormErrors } | undefined> {
+export async function login(
+  values: LoginValues,
+  next?: string,
+): Promise<{ errors: FormErrors } | undefined> {
   // The browser already checks these, but a server action is a public endpoint sooo
   const parsed = loginSchema.safeParse(values);
   if (!parsed.success) {
@@ -49,7 +53,8 @@ export async function login(values: LoginValues): Promise<{ errors: FormErrors }
   await cookieStore.set(COOKIE_NAME1, existingUser.access, COOKIE_OPTIONS);
   await cookieStore.set(COOKIE_NAME2, existingUser.refresh, COOKIE_OPTIONS);
 
-  redirect("/");
+  // `next` arrives from the browser, so it is re-checked here, not trusted from the page
+  redirect(safeNextPath(next));
 }
 
 // zod reports every failing rule; the forms show one message per field, so keep the first

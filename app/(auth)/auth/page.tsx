@@ -3,17 +3,18 @@ import Abstract from "@/public/abstract.png";
 import AbstractMob from "@/public/abstract mob.svg";
 import { redirect } from "next/navigation";
 import { checkTokenValidity } from "@/actions/auth-actions";
+import { safeNextPath } from "@/lib/announcements";
 
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ mode?: string; pending?: string; referrer?: string }>;
+  searchParams: Promise<{ mode?: string; pending?: string; referrer?: string; next?: string }>;
 }) {
   const User = await checkTokenValidity();
+  const { mode, pending, referrer, next } = await searchParams;
   if (User.isValid) {
-    redirect("/");
+    redirect(safeNextPath(next));
   }
-  const { mode, pending, referrer } = await searchParams;
   const formMode = mode || "login";
   // A blank or whitespace-only value would lock an empty referrer field
   const invitedBy = referrer?.trim() || undefined;
@@ -52,7 +53,7 @@ export default async function Page({
             }}
           />
         </div>
-        <Auth mode={formMode} pending={pending === "1"} referrer={invitedBy} />
+        <Auth mode={formMode} pending={pending === "1"} referrer={invitedBy} next={next} />
       </div>
     </div>
   );
