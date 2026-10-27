@@ -1,6 +1,6 @@
-import { LIBRARY_CATEGORIES, LIBRARY_ITEMS, TELEGRAM_CHANNEL } from "./library-data";
+import { LIBRARY_CATEGORIES, LIBRARY_ITEMS } from "./library-data";
 
-export { LIBRARY_CATEGORIES, LIBRARY_ITEMS, TELEGRAM_CHANNEL };
+export { LIBRARY_CATEGORIES, LIBRARY_ITEMS };
 
 export type LibraryType = "playlist" | "book" | "site" | "program";
 export type LibraryCategoryId = (typeof LIBRARY_CATEGORIES)[number]["id"];
@@ -8,7 +8,6 @@ export type LibraryCategoryId = (typeof LIBRARY_CATEGORIES)[number]["id"];
 export interface LibraryLink {
   label: string;
   url: string;
-  private?: boolean;
 }
 
 export interface LibraryPurchase {
@@ -22,7 +21,7 @@ export interface LibraryItem {
   type: LibraryType;
   url: string | null;
   categories: readonly LibraryCategoryId[];
-  text: string;
+  description: string;
   author?: string;
   cover?: string;
   download?: readonly LibraryLink[];
@@ -45,24 +44,13 @@ const TYPE_LABEL: Record<LibraryType, string> = {
   program: "برنامج",
 };
 
-const LINK_LABEL: Record<LibraryType, string> = {
-  playlist: "مشاهدة السلسلة",
-  book: "عرض الكتاب",
-  site: "فتح الموقع",
-  program: "فتح البرنامج",
-};
-
 export function libraryTypeLabel(type: LibraryType): string {
   return TYPE_LABEL[type];
 }
 
-export function libraryLinkLabel(type: LibraryType): string {
-  return LINK_LABEL[type];
-}
-
 export function linkActionLabel(url: string): string {
   if (/youtu\.?be|youtube\.com/i.test(url)) return "شاهد";
-  if (/goodreads\.com|archive\.org|t\.me/i.test(url)) return "اقرأ الكتاب";
+  if (/goodreads\.com/i.test(url)) return "صفحة الكتاب على Goodreads";
   return "انتقل للموقع";
 }
 
@@ -76,12 +64,8 @@ export function youtubePlaylistId(url: string | null): string | null {
   return match?.[1] ?? null;
 }
 
-export function usesPrivateChannel(item: LibraryItem): boolean {
-  return item.download?.some((link) => link.private) ?? false;
-}
-
-// Search ignores raw URLs. Alef variants, ta marbuta, and alef maqsura fold together,
-// and tashkeel is stripped, so a typed query still hits the original message.
+// Search matches the title and section labels only — not the description.
+// Alef variants, ta marbuta, and alef maqsura fold together, and tashkeel is stripped.
 export function normalizeLibraryQuery(value: string): string {
   return value
     .toLowerCase()
@@ -108,17 +92,9 @@ export function filterLibraryItems(
     if (!needle) return true;
 
     const threadLabels = item.categories.map((id) => libraryCategoryLabel(id)).join(" ");
-    const haystack = normalizeLibraryQuery(`${item.title} ${threadLabels} ${item.text}`);
+    const haystack = normalizeLibraryQuery(`${item.title} ${threadLabels}`);
     return haystack.includes(needle);
   });
-}
-
-export function libraryExcerpt(text: string): string {
-  return text
-    .replace(/https?:\/\/\S+/g, " ")
-    .replace(/@everyone/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
 }
 
 export function getLibraryItem(id: string): LibraryItem | undefined {

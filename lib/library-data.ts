@@ -1,10 +1,5 @@
-// Static copy of the community library. Message text stays verbatim.
+// Static copy of the community library. Each item has a short written description.
 // Threads are filters. Type is a cross-thread tag, not a thread.
-export const TELEGRAM_CHANNEL = {
-  invite: "https://t.me/+S6gyO92-YHE-mMPs",
-  note: "قناة تلجرام خاصة — يلزم الانضمام أولًا للتحميل",
-} as const;
-
 export const LIBRARY_CATEGORIES = [
   {
     id: "aqeedah",
@@ -52,7 +47,8 @@ export const LIBRARY_ITEMS = [
     url: "https://www.youtube.com/playlist?list=PLrZGP8WiSiAUxJIYNzJmqy_IDuInri3sJ",
     cover: "https://i.ytimg.com/vi/qzRnVfaZEmA/hqdefault.jpg",
     categories: ["aqeedah"],
-    text: "https://youtube.com/playlist?list=PLrZGP8WiSiAUxJIYNzJmqy_IDuInri3sJ",
+    description:
+      "سلسلة مرئية يشرح فيها الدكتور راتب النابلسي معاني أسماء الله الحسنى وأثرها في حياة المسلم.",
   },
   {
     id: "aqeedah-alaqaid-almabla",
@@ -61,7 +57,7 @@ export const LIBRARY_ITEMS = [
     url: "https://www.youtube.com/playlist?list=PLSUcSqxe9RhwgiU3RCyePYbf3sUwLgpXc",
     cover: "https://i.ytimg.com/vi/oP-Kk0PVeFE/hqdefault.jpg",
     categories: ["aqeedah"],
-    text: "https://youtube.com/playlist?list=PLSUcSqxe9RhwgiU3RCyePYbf3sUwLgpXc",
+    description: "سلسلة مرئية في العقيدة والثبات عند البلاء.",
   },
   {
     id: "aqeedah-alfiqh-akbar",
@@ -70,7 +66,7 @@ export const LIBRARY_ITEMS = [
     url: "https://www.youtube.com/playlist?list=PLsf2FZwVKc8gnfoxpmv1mmY0-lv5kHv8a",
     cover: "https://i.ytimg.com/vi/3sIm8tgUitU/hqdefault.jpg",
     categories: ["aqeedah"],
-    text: "https://youtube.com/playlist?list=PLsf2FZwVKc8gnfoxpmv1mmY0-lv5kHv8a\n\nتعليق عاطف: سلسلة طيبة مختصرة في العقيدة مهمة لكل مسلم",
+    description: "شرح مرئي مختصر لكتاب «الفقه الأكبر» في العقيدة للشيخ أحمد القاضي.",
   },
   {
     id: "aqeedah-rihla-alyqin",
@@ -79,7 +75,8 @@ export const LIBRARY_ITEMS = [
     url: "https://www.youtube.com/playlist?list=PL56IcDjrf3YJr__TEOJ2UOv3jCzht1_yc",
     cover: "https://i.ytimg.com/vi/tePvGHNP5Gw/hqdefault.jpg",
     categories: ["aqeedah", "fikr"],
-    text: "https://youtube.com/playlist?list=PL56IcDjrf3YJr__TEOJ2UOv3jCzht1_yc\n\nتعليق عاطف: سلسلة رحلة اليقين | د إياد قنيبي سلسلة جميلة وقيّمة والجهد المبذول فيها كبير.. من ثمرات السلسلة: ترسيخ الإيمان بالله عز وجل، بناء التفكير الناقد، وغيرها من الفوائد. أنهيتها منذ فترة ولله الحمد لكن لم أشاهد كل الملحقات في نهاية السلسلة",
+    description:
+      "سلسلة الدكتور إياد قنيبي في ترسيخ الإيمان بالله عز وجل وبناء التفكير الناقد.",
   },
   {
     id: "aqeedah-names-of-allah-en",
@@ -88,7 +85,7 @@ export const LIBRARY_ITEMS = [
     url: "https://youtube.com/playlist?list=PLSFZjjKC3qPYGLinbi1XurRSC3izxodtC",
     cover: "https://i.ytimg.com/vi/7LyoBs9SCYc/hqdefault.jpg",
     categories: ["aqeedah"],
-    text: "https://youtube.com/playlist?list=PLSFZjjKC3qPYGLinbi1XurRSC3izxodtC\n\nمتوائم مع العصر",
+    description: "سلسلة بالإنجليزية عن أسماء الله وصفاته.",
   },
   {
     id: "quran-altajweed",
@@ -97,7 +94,7 @@ export const LIBRARY_ITEMS = [
     url: "https://www.youtube.com/playlist?list=PLJi21Zen45zQ-p3e38-Wb94LhDKIZ7sac",
     cover: "https://i.ytimg.com/vi/H6WTnSZ6G-0/hqdefault.jpg",
     categories: ["quran"],
-    text: "https://youtube.com/playlist?list=PLJi21Zen45zQ-p3e38-Wb94LhDKIZ7sac",
+    description: "شرح مرئي لكتاب «التجويد المصوَّر».",
   },
   {
     id: "quran-tafsir-albaqarah",
@@ -106,7 +103,7 @@ export const LIBRARY_ITEMS = [
     url: "https://www.youtube.com/playlist?list=PLnpYU8_AiEPeQRMu7ON4GnoPBkbgwkju6",
     cover: "https://i.ytimg.com/vi/FUlAj34_3tk/hqdefault.jpg",
     categories: ["quran"],
-    text: "https://youtube.com/playlist?list=PLnpYU8_AiEPeQRMu7ON4GnoPBkbgwkju6",
+    description: "دروس في تفسير سورة البقرة للدكتور أحمد عبد المنعم.",
   },
   {
     id: "fikr-tasees-wiay",
@@ -115,7 +112,8 @@ export const LIBRARY_ITEMS = [
     url: "https://www.youtube.com/playlist?list=PL9hkk6GeaGBfx5sWy5wWOAdJTEfHnxhGk",
     cover: "https://i.ytimg.com/vi/ei9FVKHZxxM/hqdefault.jpg",
     categories: ["fikr"],
-    text: "https://youtube.com/playlist?list=PL9hkk6GeaGBfx5sWy5wWOAdJTEfHnxhGk",
+    description:
+      "المستوى الأول من دورة تأسيس وعي المسلم المعاصر للمهندس أيمن عبد الرحيم.",
   },
   {
     id: "fikr-leadership",
@@ -124,7 +122,7 @@ export const LIBRARY_ITEMS = [
     url: "https://explore.bayyinahtv.com/leadership/",
     cover: "https://explore.bayyinahtv.com/wp-content/uploads/2025/08/Leadership.jpg",
     categories: ["fikr"],
-    text: "https://explore.bayyinahtv.com/leadership/\n\nمن أذكياء العجم",
+    description: "برنامج تدريبي في القيادة تقدّمه منصة بينة.",
   },
   {
     id: "fikr-alamr-bilmaroof",
@@ -133,7 +131,7 @@ export const LIBRARY_ITEMS = [
     url: "https://youtube.com/playlist?list=PLt07FKgO5jxjDZ6tQI5d76IIkTpjssbm5",
     cover: "https://i.ytimg.com/vi/w1Q4Kvf3S7o/hqdefault.jpg",
     categories: ["fikr"],
-    text: "https://youtube.com/playlist?list=PLt07FKgO5jxjDZ6tQI5d76IIkTpjssbm5\n\nشعيرة الأمر بالمعروف والنهي عن المنكر",
+    description: "سلسلة مرئية في شعيرة الأمر بالمعروف والنهي عن المنكر.",
   },
   {
     id: "nafsi-sawiyat-almumin",
@@ -142,7 +140,7 @@ export const LIBRARY_ITEMS = [
     url: "https://youtube.com/playlist?list=PLZmiPrHYOIsS5j5KXnB8xMbSjy_7KYbCq",
     cover: "https://i.ytimg.com/vi/PONJtmfMSqI/hqdefault.jpg",
     categories: ["nafsi"],
-    text: "https://youtube.com/playlist?list=PLZmiPrHYOIsS5j5KXnB8xMbSjy_7KYbCq",
+    description: "جلسات شبابية إيمانية تربوية.",
   },
   {
     id: "nafsi-lafat-alqabd",
@@ -151,7 +149,7 @@ export const LIBRARY_ITEMS = [
     url: "https://youtube.com/playlist?list=PL1B4LPaEGJi6IZ3a6nLWeBomT6WMDtRZx",
     cover: "https://i.ytimg.com/vi/iKNB4UUYP4s/hqdefault.jpg",
     categories: ["nafsi"],
-    text: "https://youtube.com/playlist?list=PL1B4LPaEGJi6IZ3a6nLWeBomT6WMDtRZx",
+    description: "سلسلة تعليقات على رسالة «لفتة الكبد إلى نصيحة الولد» للشيخ سالم القحطاني.",
   },
   {
     id: "nafsi-lazim-tatharrur",
@@ -160,7 +158,7 @@ export const LIBRARY_ITEMS = [
     url: "https://www.youtube.com/playlist?list=PLSFJcWy6euuAZPTasEUJRSrKEp85h6HPY",
     cover: "https://i.ytimg.com/vi/agFMbV32JIc/hqdefault.jpg",
     categories: ["nafsi"],
-    text: "سلسلة لازم تتحرر: ١- التحرر من الغفلة https://youtu.be/agFMbV32JIc ٢- التحرر من التفاهة https://youtu.be/DdxrQV_bkkY ٣- التحرر من سلوك القطيع https://youtu.be/f8croUJLd3Y ٤- التحرر من العادة https://youtu.be/-W6ijtUgXiU",
+    description: "سلسلة قصيرة عن التحرر من الغفلة والتفاهة وسلوك القطيع والعادة.",
   },
   {
     id: "nafsi-maa-nafsi",
@@ -169,7 +167,7 @@ export const LIBRARY_ITEMS = [
     url: "https://www.youtube.com/playlist?list=PLvGpI5t1gJ8QJzbA7fP4Iq6XtumVZ2sY6",
     cover: "https://i.ytimg.com/vi/jn04TL3-kmA/hqdefault.jpg",
     categories: ["nafsi"],
-    text: "https://www.youtube.com/playlist?list=PLvGpI5t1gJ8QJzbA7fP4Iq6XtumVZ2sY6\n\nتعليق عبد الهادي: مهمة جدًا الجلسات دي ورائعة أنصح الجميع إنه يسمعها ويطبق اللي فيها بالذات إن احنا داخلين على رمضان ودي فرصة حلوة إن الواحد يختلي بنفسه وجزاك الله خيرًا يا حلمي على المادة الجميلة اللي انت باعتها",
+    description: "برنامج مرئي في تزكية النفس ومحاسبتها.",
   },
   {
     id: "nafsi-kitab-alrqaq",
@@ -178,7 +176,7 @@ export const LIBRARY_ITEMS = [
     url: "https://youtube.com/playlist?list=PLVI2IpoLyJcuF-RMu7iKDpQE8cR-2CQNz",
     cover: "https://i.ytimg.com/vi/2mAfXM5xrxM/hqdefault.jpg",
     categories: ["nafsi"],
-    text: "https://youtube.com/playlist?list=PLVI2IpoLyJcuF-RMu7iKDpQE8cR-2CQNz\n\nتعليق هيبة: فيها بعض مصطلحات علم الحديث لكن هتفيد العوام -زي حالاتي- عادي",
+    description: "شرح مرئي لكتاب «الرقائق» للشيخ أبي إسحاق الحويني.",
   },
   {
     id: "nafsi-idarat-aldhunub",
@@ -187,7 +185,7 @@ export const LIBRARY_ITEMS = [
     url: "https://youtube.com/playlist?list=PLx0X2AeI2PnpOcDSvGaNmSL_sa7vInmpI",
     cover: "https://i.ytimg.com/vi/YJuCefiglj0/hqdefault.jpg",
     categories: ["nafsi"],
-    text: 'https://youtube.com/playlist?list=PLx0X2AeI2PnpOcDSvGaNmSL_sa7vInmpI\n\nتعليق عاطف: سلسلة مختصرة طيبة نافعة بعنوان "إدارة الذنوب" للدكتور أيمن خليل البلوي، وعرفتها من خلال دكتور إياد قنيبي -حفظهما الله-. أنصحكم جميعًا بمشاهدتها.. متوسط مدة المقطع من ٣-٤ دقائق تقريبًا.',
+    description: "سلسلة مقاطع قصيرة في التعامل مع الذنوب للدكتور أيمن خليل البلوي.",
   },
   {
     id: "nafsi-aldai-waldawa",
@@ -197,13 +195,12 @@ export const LIBRARY_ITEMS = [
     cover:
       "https://m.media-amazon.com/images/S/compressed.photo.goodreads.com/books/1485643891i/18697877.jpg",
     categories: ["nafsi"],
-    text: "https://www.goodreads.com/book/show/18697877\n\nكتاب الداء والدواء لابن القيم",
+    description: "كتاب ابن القيم في أضرار الذنوب والمعاصي وعلاجها.",
     author: "ابن القيم",
     download: [
       {
-        label: "تلجرام",
-        url: "https://t.me/c/1269314107/218103",
-        private: true,
+        label: "المكتبة الوقفية",
+        url: "https://waqfeya.net/books/%D8%A7%D9%84%D8%AF%D8%A7%D8%A1-%D9%88%D8%A7%D9%84%D8%AF%D9%88%D8%A7%D8%A1-%D8%A7%D9%84%D8%AC%D9%88%D8%A7%D8%A8-%D8%A7%D9%84%D9%83%D8%A7%D9%81%D9%8A-%D9%84%D9%85%D9%86-%D8%B3%D8%A3%D9%84-%D8%B9%D9%86-%D8%A7%D9%84%D8%AF%D9%88%D8%A7%D8%A1-%D8%A7%D9%84%D8%B4%D8%A7%D9%81%D9%8A-%D8%B7-%D9%85%D8%AC%D9%85%D8%B9-%D8%A7%D9%84%D9%81%D9%82%D9%87-2a455b1814cf4637b278817367706d7d",
       },
     ],
     purchase: [
@@ -217,17 +214,16 @@ export const LIBRARY_ITEMS = [
     id: "nafsi-ulu-alhimma",
     title: "علو الهمة",
     type: "book",
-    url: null,
+    url: "https://www.goodreads.com/book/show/6036099",
     cover:
       "https://assets.wuiltstore.com/cltvzta5m0qyu01ma4hytgl2x__D8_B9_D9_84_D9_88__D8_A7_D9_84_D9_87_D9_85_D8_A9.jpeg",
     categories: ["nafsi"],
-    text: "تمَّ الانتهاء من قراءة الكتاب بحمد الله وهو مليء بالقصص والعبر المحفزة والملهمة لكل من سلك طريق هامَّتُه الثريا.\n\nومتاح للاستعارة الآن",
+    description: "كتاب يجمع قصصًا وعبرًا محفّزة على علو الهمة وطلب المعالي.",
     author: "محمد بن أحمد بن إسماعيل المقدم",
     download: [
       {
-        label: "تلجرام",
-        url: "https://t.me/c/1269314107/234813",
-        private: true,
+        label: "المكتبة الوقفية",
+        url: "https://www.waqfeya.net/books/%D8%B9%D9%84%D9%88-%D8%A7%D9%84%D9%87%D9%85%D8%A9-bb9eb875a6bf4fb6b3534bf56e7c6bff",
       },
     ],
     purchase: [
@@ -244,7 +240,7 @@ export const LIBRARY_ITEMS = [
     url: "https://www.amgadsamir.com/course/preparing-for-ramadan",
     cover: "https://www.amgadsamir.com/lovable-uploads/user_uploaded_logo.png",
     categories: ["nafsi"],
-    text: "https://www.amgadsamir.com/course/preparing-for-ramadan\n\nتعليق زياد الشاذلي: تجميعة دروس الشيخ أمجد سمير للإستعداد لرمضان اللهم بلغنا رمضانات عديدة واجعلنا فيها من العتقاء المقبولين أجمعين يارب",
+    description: "تجميعة دروس الشيخ أمجد سمير في الاستعداد لشهر رمضان.",
   },
   {
     id: "nafsi-awaab",
@@ -253,7 +249,7 @@ export const LIBRARY_ITEMS = [
     url: "https://youtube.com/playlist?list=PLqnKkbKGG8UlTLIKyU_9xjIBm60a6pbI5",
     cover: "https://i.ytimg.com/vi/DZsZk1wlsLg/hqdefault.jpg",
     categories: ["nafsi"],
-    text: "https://youtube.com/playlist?list=PLqnKkbKGG8UlTLIKyU_9xjIBm60a6pbI5\n\nبعض الناس يكفيك صوته ليرق قلبك.. في دقائق قصيرة الشيخ وجدان يبدع",
+    description: "سلسلة مقاطع قصيرة مؤثرة بصوت الشيخ وجدان العلي.",
   },
   {
     id: "nafsi-sawaed-alikhaa",
@@ -262,7 +258,7 @@ export const LIBRARY_ITEMS = [
     url: "https://www.youtube.com/playlist?list=PLzcVlbOZYy6q0Yl-xR3TJ_NLMwTeL9F6A",
     cover: "https://i.ytimg.com/vi/BCO9wzYLbjc/hqdefault.jpg",
     categories: ["nafsi"],
-    text: "https://www.youtube.com/playlist?list=PLzcVlbOZYy6q0Yl-xR3TJ_NLMwTeL9F6A\n\nموسم سواعد الإخاء عن موضوع الصلاة كان أكثر من رائع",
+    description: "الموسم الحادي عشر من برنامج سواعد الإخاء، رمضان 2023، عن موضوع الصلاة.",
   },
   {
     id: "nafsi-secrets-of-salah",
@@ -271,7 +267,7 @@ export const LIBRARY_ITEMS = [
     url: "https://www.youtube.com/playlist?list=PLQ02IYL5pmhFgND4Tyy5cTYenOKK_QFj5",
     cover: "https://i.ytimg.com/vi/MZOOLHMIzTk/hqdefault.jpg",
     categories: ["nafsi"],
-    text: "https://www.youtube.com/playlist?list=PLQ02IYL5pmhFgND4Tyy5cTYenOKK_QFj5\n\nالسلسلة دي برده جميلة",
+    description: "سلسلة بالإنجليزية عن أسرار الصلاة ومعانيها.",
   },
   {
     id: "nafsi-ashhur-alkabair",
@@ -280,23 +276,18 @@ export const LIBRARY_ITEMS = [
     url: "https://youtube.com/playlist?list=PL1i_D1Vw3d5Ph7IdYEUCsVTfBk4PGEQAF",
     cover: "https://i.ytimg.com/vi/mOnv6qiOX8s/hqdefault.jpg",
     categories: ["nafsi"],
-    text: "https://youtube.com/playlist?list=PL1i_D1Vw3d5Ph7IdYEUCsVTfBk4PGEQAF\n\nالحمد لله بفضل الله انتهيت من هذه السلسلة الطيبة وأنصحكم أن تسمعوها يا شباب.. صدقوني هتستفادوا كثيرًا إن شاء الله ﴿الَّذينَ يَجْتَنِبُونَ كَبائِرَ الْإِثْمِ وَالْفَوَاحِشَ إِلَّا اللَّمَمَ إِنَّ رَبَّكَ وَاسِعُ الْمَغْفِرَةُ هُوَ أَعْلَمُ بِكُمْ إِذْ أَنْشَأَكُمْ مِنَ الْأَرْضِ وَإِذْ أَنْتُمْ أَجِنَّةٌ فِي بُطُونِ أُمَّهَاتِكُمْ فَلَا تُزَكِّوا أَنْفُسَكُمْ هُوَ أَعْلَمُ بِمَنْ اتَّقَى﴾ [النجم: ٣٢]",
+    description: "سلسلة مرئية في بيان أشهر الكبائر والتحذير منها.",
   },
   {
     id: "nafsi-alhashashah",
     title: "الهشاشة النفسية: لماذا أصبحنا أضعف وأكثر عرضة للكسر؟",
     type: "book",
-    url: null,
+    url: "https://www.goodreads.com/book/show/50633911",
     cover: "/library-covers/alhashashah.jpg",
     categories: ["nafsi"],
-    text: "@everyone\n\nكتاب غاية غاية غاية في الأهمية لجيلنا\n\nأنصح الجميع أن يقرأه",
+    description:
+      "كتاب إسماعيل عرفة يحلل ظاهرة الهشاشة النفسية لدى الشباب ويقدّم حلولًا عملية لتقوية النفس.",
     author: "إسماعيل عرفة",
-    download: [
-      {
-        label: "archive.org",
-        url: "https://archive.org/details/library-elhamma-10112021",
-      },
-    ],
     purchase: [
       {
         store: "عصير الكتب",
@@ -312,13 +303,12 @@ export const LIBRARY_ITEMS = [
     cover:
       "https://assets.asfar.io/uploads/2022/05/15231428/break-your-fetish-naguib-alhilali-alqimari.jpg",
     categories: ["nafsi"],
-    text: "غني بالفوائد والرقائق في موضوع مهم",
+    description: "كتاب مجدي الهلالي في داء العجب: أسبابه وعلاجه.",
     author: "مجدي الهلالي",
     download: [
       {
-        label: "تلجرام",
-        url: "https://t.me/c/1269314107/272202",
-        private: true,
+        label: "المكتبة الشاملة",
+        url: "https://shamela.ws/book/36328",
       },
     ],
     purchase: [
@@ -335,7 +325,7 @@ export const LIBRARY_ITEMS = [
     url: "https://www.youtube.com/playlist?list=PLA36CD40AF4FC4A7A",
     cover: "https://i.ytimg.com/vi/yafyGvEBzYs/hqdefault.jpg",
     categories: ["akhira"],
-    text: "https://www.youtube.com/playlist?list=PLA36CD40AF4FC4A7A",
+    description: "سلسلة «الوعد الحق» للدكتور عمر عبد الكافي عن أحوال الآخرة.",
   },
   {
     id: "tarikh-alaimma-alarbaa",
@@ -344,7 +334,7 @@ export const LIBRARY_ITEMS = [
     url: "https://www.youtube.com/playlist?list=PLHJHnMgllLIMiIlnUiLORMGd64kf8nHfg",
     cover: "https://i.ytimg.com/vi/B-5ZgfbbmF4/hqdefault.jpg",
     categories: ["tarikh"],
-    text: "https://youtube.com/playlist?list=PLHJHnMgllLIMiIlnUiLORMGd64kf8nHfg",
+    description: "سلسلة عن سير الأئمة الأربعة للشيخ نواف السالم.",
   },
   {
     id: "tarikh-qasas-alanbia",
@@ -353,7 +343,7 @@ export const LIBRARY_ITEMS = [
     url: "https://www.youtube.com/playlist?list=PLbDRORmj0gyevDGklUqlVqkxhulsF6IDq",
     cover: "https://i.ytimg.com/vi/G41XJo_Z-OM/hqdefault.jpg",
     categories: ["tarikh"],
-    text: "https://youtube.com/playlist?list=PLbDRORmj0gyevDGklUqlVqkxhulsF6IDq",
+    description: "الموسم الثاني من سلسلة قصص الأنبياء.",
   },
   {
     id: "tarikh-kartoon-ulumah",
@@ -362,7 +352,7 @@ export const LIBRARY_ITEMS = [
     url: "https://www.youtube.com/playlist?list=PL1GARIOTjfQce6UIxyBEdwe7Ioq_1GDPC",
     cover: "https://i.ytimg.com/vi/7tuSFE23PU0/hqdefault.jpg",
     categories: ["tarikh"],
-    text: "https://youtube.com/playlist?list=PL1GARIOTjfQce6UIxyBEdwe7Ioq_1GDPC\n\nتعليق حلمي: روعة.. التحفظ فقط على الموسيقى",
+    description: "سلسلة كرتونية تعرّف بعلماء المسلمين.",
   },
   {
     id: "tarikh-altajrib-alislahiyyah",
@@ -371,7 +361,8 @@ export const LIBRARY_ITEMS = [
     url: "https://www.youtube.com/playlist?list=PLZmiPrHYOIsR2NrqHDrgiyml043rtRLwS",
     cover: "https://i.ytimg.com/vi/sNG9-U3lu0k/hqdefault.jpg",
     categories: ["tarikh"],
-    text: "https://youtube.com/playlist?list=PLZmiPrHYOIsR2NrqHDrgiyml043rtRLwS\n\nتعليق عبد العظيم: من أجمل ما سمعت في فهم التجارب الإصلاحية السابقة وما أدت إليه علي أرض الواقع من إيجابيات وسلبيات والاستفادة منها وتجنب ما وقع منها من سلبيات في سبيل الإصلاح القادم بإذن الله ويحبذا لو سُمعت بعد دورة تأسيس وعي المسلم المعاصر",
+    description:
+      "سلسلة تعرض التجارب الإصلاحية في العصر الحديث وما أدّت إليه من إيجابيات وسلبيات.",
   },
   {
     id: "tarikh-safina-hayah",
@@ -380,7 +371,7 @@ export const LIBRARY_ITEMS = [
     url: "https://www.youtube.com/playlist?list=PLZbyN8Td38XjD5TIn3f_2VDRRmmtdZvj8",
     cover: "https://i.ytimg.com/vi/jwEUCY5iqbc/hqdefault.jpg",
     categories: ["tarikh"],
-    text: "https://youtube.com/playlist?list=PLZbyN8Td38XjD5TIn3f_2VDRRmmtdZvj8\n\nتعليق هيبة: من أجمل السلاسل تسمع قصة حياة عالم و تتعلم من حياته الصدق مع الله و الصبر و الأدب و حاجات كتير",
+    description: "برنامج يروي ترجمة الشيخ أبي إسحاق الحويني — رمضان 1441.",
   },
   {
     id: "tarikh-qasas-assahaba",
@@ -389,7 +380,7 @@ export const LIBRARY_ITEMS = [
     url: "https://www.youtube.com/playlist?list=PL1i_D1Vw3d5ON4r03awUn6gPbgpCgb9xl",
     cover: "https://i.ytimg.com/vi/sdIeEh0q5Jw/hqdefault.jpg",
     categories: ["tarikh"],
-    text: "https://youtube.com/playlist?list=PL1i_D1Vw3d5ON4r03awUn6gPbgpCgb9xl\n\nتعليق عاطف: سلسلة رائعة رضي الله عن صحابة رسول الله صلى الله عليه وسلم وجمعنا بهم في جنات النعيم",
+    description: "سلسلة في قصص الصحابة رضي الله عنهم.",
   },
   {
     id: "tarikh-maa-assahaba",
@@ -398,7 +389,7 @@ export const LIBRARY_ITEMS = [
     url: "https://www.youtube.com/playlist?list=PLPpTjhQlbIsxk3UexuN4P4Ji_csmUEgxP",
     cover: "https://i.ytimg.com/vi/xuS4sHVUwvY/hqdefault.jpg",
     categories: ["tarikh"],
-    text: "https://youtube.com/playlist?list=PLPpTjhQlbIsxk3UexuN4P4Ji_csmUEgxP\n\nتعليق هيبة: سلسة جميلة جدا بردوا ,مختلفة عن سلسة الشيخ علاء . بيتكلم عن ال10 المبشرين بالجنة على وجه الخصوص",
+    description: "سلسلة عن العشرة المبشرين بالجنة رضي الله عنهم.",
   },
   {
     id: "tarikh-swar-alsahaba",
@@ -408,18 +399,13 @@ export const LIBRARY_ITEMS = [
     cover:
       "https://m.media-amazon.com/images/S/compressed.photo.goodreads.com/books/1235249242i/6280282.jpg",
     categories: ["tarikh"],
-    text: "https://www.goodreads.com/book/show/6280282\n\nكتاب صور من حياة الصحابة",
+    description:
+      "كتاب عبد الرحمن رأفت الباشا يسرد مواقف من حياة الصحابة رضي الله عنهم بأسلوب أدبي مؤثر.",
     author: "عبد الرحمن رأفت الباشا",
     download: [
       {
-        label: "تلجرام — الجزء الأول",
-        url: "https://t.me/c/1269314107/276275",
-        private: true,
-      },
-      {
-        label: "تلجرام — الجزء الثاني",
-        url: "https://t.me/c/1269314107/276276",
-        private: true,
+        label: "المكتبة الوقفية",
+        url: "https://waqfeya.net/books/%D8%B5%D9%88%D8%B1-%D9%85%D9%86-%D8%AD%D9%8A%D8%A7%D8%A9-%D8%A7%D9%84%D8%B5%D8%AD%D8%A7%D8%A8%D8%A9-c44ca0d68aed4304888d82233b984fab",
       },
     ],
     purchase: [
@@ -440,7 +426,7 @@ export const LIBRARY_ITEMS = [
     url: "https://www.youtube.com/playlist?list=PL1i_D1Vw3d5PStIM5Rv29cfbKJGmtt4S8",
     cover: "https://i.ytimg.com/vi/4b42YbHztDE/hqdefault.jpg",
     categories: ["tarikh"],
-    text: "https://www.youtube.com/playlist?list=PL1i_D1Vw3d5PStIM5Rv29cfbKJGmtt4S8\n\nتعليق عاطف: الحمد لله أنهيت سلسلة ودورة تعلمت من يوسف عليه السلام للبشمهندس علاء حامد سلسلة رائعة أنصحكم تتفرجوا عليها صلوات الله وسلامه على نبينا يوسف ونبينا محمد ﷺ",
+    description: "سلسلة في الدروس المستفادة من قصة يوسف عليه السلام للمهندس علاء حامد.",
   },
   {
     id: "tarikh-maaishat-alanbia",
@@ -449,7 +435,7 @@ export const LIBRARY_ITEMS = [
     url: "https://www.youtube.com/playlist?list=PLKd_OPEHWrqjsl4caUzMDTw9wxCZdBN5c",
     cover: "https://i.ytimg.com/vi/6h0nllQAKIE/hqdefault.jpg",
     categories: ["tarikh"],
-    text: "https://youtube.com/playlist?list=PLKd_OPEHWrqjsl4caUzMDTw9wxCZdBN5c\n\nتعليق إبراهيم السيد: كل الحروف وإن حبّرتها عجزت عن وصف مشاعري خلال هذه السلسلة المباركة.. ليتني بكل واحد منكم أحرص أن يشاهدها ويرتع في هذا الروض.. أحلى ما استمتعت به هو أن الهدف ليس سرد القصة وهي معروفة - في الغالب- بل الوقوف على معنى جديد فيها وعكسه على الواقع وربطه به ورصد مشاعر ودواخل النفس.. كنت أتابعها خلال ذهابي وإيابي من المعهد وكنت أرجو امتداد الطريق. الحمدلله على إتمامها أنصح وبقوة",
+    description: "سلسلة تقف عند معانٍ جديدة في قصص الأنبياء والصالحين وتربطها بالواقع.",
   },
   {
     id: "tarikh-why-i-chose-islam",
@@ -458,7 +444,7 @@ export const LIBRARY_ITEMS = [
     url: "https://www.youtube.com/playlist?list=PLlZazEh_c4nQAuNEK529I8ej-CCjPlfMN",
     cover: "https://i.ytimg.com/vi/yXCMU72z0Ms/hqdefault.jpg",
     categories: ["tarikh"],
-    text: "https://youtube.com/playlist?list=PLlZazEh_c4nQAuNEK529I8ej-CCjPlfMN\n\nمنعش إذا تعرفت على شخص غير مسلم، أعتقد ترشيح سلسلة زي دي هتكون فكرة ممتازة بإذن الله",
+    description: "سلسلة بالإنجليزية يروي فيها مسلمون جدد قصص اختيارهم للإسلام.",
   },
   {
     id: "zawaj-sharh-hadith-um-zara",
@@ -467,7 +453,7 @@ export const LIBRARY_ITEMS = [
     url: "https://www.youtube.com/playlist?list=PLIi5nfiD0RbM7q2uByq3qdjI7kY6Mxqbu",
     cover: "https://i.ytimg.com/vi/ArPIjbhgSZE/hqdefault.jpg",
     categories: ["zawaj"],
-    text: "شرح حديث ام زرع 1) https://youtu.be/ArPIjbhgSZE 2) https://youtu.be/YGLt22AgNW4 3) https://youtu.be/7zljutT8dCk 4) https://youtu.be/o1_NkQxgTQg",
+    description: "شرح مرئي لحديث أم زرع في أربع حلقات.",
   },
   {
     id: "zawaj-durra-tahayyati",
@@ -476,7 +462,7 @@ export const LIBRARY_ITEMS = [
     url: "https://www.youtube.com/playlist?list=PLMPqxr1nu2Zev1kdVu7VqZpJuXVT65Z-f",
     cover: "https://i.ytimg.com/vi/cOaNyCNhmW8/hqdefault.jpg",
     categories: ["zawaj"],
-    text: "https://youtube.com/playlist?list=PLMPqxr1nu2Zev1kdVu7VqZpJuXVT65Z-f\n\nدورة مهمة جدا عن الزواج ياشباب فيها معلومات كتير بديهية بس محتاجين نرتبها في ذهننا + فيه أحكام شرعية متعلقة بالخطوبة والزواج غايبة عن معظمنا رزقنا الله جميعا الزوجات الصالحات يارب",
+    description: "دورة تأهيلية للحياة الزوجية تتناول أساسياتها وأحكام الخطوبة والزواج.",
   },
   {
     id: "zawaj-mafateeh-alijahd",
@@ -485,7 +471,7 @@ export const LIBRARY_ITEMS = [
     url: "https://www.youtube.com/playlist?list=PLibExGvOUe8FkxcLjr4xH-AMjDObJG2un",
     cover: "https://i.ytimg.com/vi/7pc2XjzPv8w/hqdefault.jpg",
     categories: ["zawaj"],
-    text: "https://www.youtube.com/playlist?list=PLibExGvOUe8FkxcLjr4xH-AMjDObJG2un\n\nتعليق زياد الشاذلي: دي قائمة مجمعة لينا كلنا ممكن الشاف محتوى مفيد أو سلسلة مفيدة في قضية الإعداد للزواج والبيت المسلم يضيفها في السلسلة المجمعة Let's make a playlist together. Join to add videos: مفاتيح الإعداد للزواج وبناء بيت مسلم يرضى الله",
+    description: "قائمة تشغيل جماعية تجمع محتوى مفيدًا في الإعداد للزواج وبناء بيت مسلم.",
   },
   {
     id: "zawaj-falsafat-alusra",
@@ -495,14 +481,9 @@ export const LIBRARY_ITEMS = [
     cover:
       "https://m.media-amazon.com/images/S/compressed.photo.goodreads.com/books/1625046622i/58459269.jpg",
     categories: ["zawaj"],
-    text: "https://www.goodreads.com/book/show/58459269\n\nكتاب يركز على الصورة الكبيرة",
+    description:
+      "كتاب علاء عبد الحميد يناقش فلسفة الإسلام عن الزواج والارتباط والصورة الكبرى للأسرة.",
     author: "علاء عبد الحميد",
-    download: [
-      {
-        label: "تلجرام — قناة عامة",
-        url: "https://t.me/Book_cr2/54556",
-      },
-    ],
     purchase: [
       {
         store: "دار دوّن",
@@ -517,7 +498,7 @@ export const LIBRARY_ITEMS = [
     url: "https://youtube.com/playlist?list=PLm9098u1wQ--pj-JxFiPRXZCvUDYbHtSI",
     cover: "https://i.ytimg.com/vi/5IdpIgRNNv8/hqdefault.jpg",
     categories: ["zawaj"],
-    text: "https://youtube.com/playlist?list=PLm9098u1wQ--pj-JxFiPRXZCvUDYbHtSI",
+    description: "سلسلة بالإنجليزية للدكتور أمجد قورشه عن بناء أسرة قوية وسعيدة.",
   },
   {
     id: "seera-alseera-alnabawiyya",
@@ -526,7 +507,7 @@ export const LIBRARY_ITEMS = [
     url: "https://www.youtube.com/playlist?list=PL1i_D1Vw3d5MJuAkduJ6TaiGEVac6GePK",
     cover: "https://i.ytimg.com/vi/DH0vF7DsiE8/hqdefault.jpg",
     categories: ["seera"],
-    text: "https://www.youtube.com/playlist?list=PL1i_D1Vw3d5MJuAkduJ6TaiGEVac6GePK\n\nتعليق يوسف فتحي: الحمدلله الذي أتم علينا هذه النعمة، سلسلة السيرة لعلاء حامد قد اكتملت، سلسلة أكثر من رائعة أنصح بها بشدة.",
+    description: "سلسلة متكاملة في السيرة النبوية للمهندس علاء حامد.",
   },
   {
     id: "seera-alyawm-alnabawi",
@@ -536,15 +517,8 @@ export const LIBRARY_ITEMS = [
     cover:
       "https://m.media-amazon.com/images/S/compressed.photo.goodreads.com/books/1584638830i/13102122.jpg",
     categories: ["seera"],
-    text: 'https://www.goodreads.com/en/book/show/13102122\n\nتجديد عهدٍ بخير سيرة لخير إنسان بهجة ولذة ضبط حياتك على سنة جديدة وأبرز ما ألهمني فيه أن أكبر الإنجازات على وجه الأرض ومدار التاريخ كانت من شخص عفوي بسيط متواضع، لم يكن ليُشعر أحدًا أنه ذو جاه "مهم"/"مشغول"، ولم يكن ليَشعر معه أحد أن الخطب جلل.. بل هين لين سهل أجود الناس.. قريب من الناس صلى الله عليه وسلم',
+    description: "كتاب عبد الوهاب الطريري يستخرج من هدي النبي ﷺ برنامجًا عمليًا ليوم المسلم.",
     author: "عبد الوهاب الطريري",
-    download: [
-      {
-        label: "تلجرام",
-        url: "https://t.me/c/1269314107/283550",
-        private: true,
-      },
-    ],
     purchase: [
       {
         store: "دار المعالي",
@@ -559,7 +533,7 @@ export const LIBRARY_ITEMS = [
     url: "https://www.youtube.com/playlist?list=PL1i_D1Vw3d5PUJK-u7dpPimaYECXnPp3i",
     cover: "https://i.ytimg.com/vi/I4uZxRTgJIY/hqdefault.jpg",
     categories: ["hadith"],
-    text: "https://youtube.com/playlist?list=PL1i_D1Vw3d5PUJK-u7dpPimaYECXnPp3i\n\nتعليق عاطف: الحمد لله اللطيف الودود انتهت هذه السلسلة، وهي من أفضل ما شاهدت صراحةً. أحاديث نبينا ﷺ عليها نورٌ وبهاء، ومع شرحٍ ماتعٍ من م علاء حامد -حفظه الله- (حاجة متكلفة بصراحة).. فأنصحكم أن تشاهدوها ولو مقطع واحد أسبوعيًا. ونسأل الله أن ينفعنا بما علمنا وأن يجعلنا ممن يستمعون القول فيتبعون أحسنه",
+    description: "شرح مرئي للأربعين النووية للمهندس علاء حامد.",
   },
   {
     id: "hadith-arbaeen-ibn-uthaymeen",
@@ -568,7 +542,7 @@ export const LIBRARY_ITEMS = [
     url: "https://www.youtube.com/playlist?list=PLXS0usquloW_VC2gPb6nu1FFQTxWc1Ww_",
     cover: "https://i.ytimg.com/vi/LS3DsGsNQ-Q/hqdefault.jpg",
     categories: ["hadith"],
-    text: "https://www.youtube.com/playlist?list=PLXS0usquloW_VC2gPb6nu1FFQTxWc1Ww_\n\nكنت استمعت إليها منذ زمن دراسة متعمقة مفصلة لكن نافعة جدًا وبها العديد من الفوائد",
+    description: "شرح مفصَّل للأربعين النووية للشيخ ابن عثيمين رحمه الله.",
   },
   {
     id: "program-zadi",
@@ -577,6 +551,6 @@ export const LIBRARY_ITEMS = [
     url: "https://zadi.net/home",
     cover: "https://www.zad.tv/wp-content/uploads/2016/11/0000.png",
     categories: [],
-    text: "https://zadi.net/home\n\nأول بدايتي في طلب العلم عن بعد كان عبر منصة زادي، واستفدت من العديد من المساقات المتنوعة. أرشحها لأي أحد كبداية تحببه وتهيئه لطلب العلم مع كونها يسيرة بالنسبة للوقت والجهد.",
+    description: "منصة تعليمية تقدّم مساقات شرعية متنوعة عن بُعد، تصلح بدايةً محبّبة لطلب العلم.",
   },
 ] as const;

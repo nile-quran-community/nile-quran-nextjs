@@ -5,14 +5,11 @@ import { Lalezar, Tajawal } from "next/font/google";
 import { ChevronRight } from "lucide-react";
 import LibraryCard, { MixedTitle } from "@/components/Library/LibraryCard";
 import {
-  TELEGRAM_CHANNEL,
   libraryCategoryLabel,
   libraryTypeLabel,
   linkActionLabel,
-  usesPrivateChannel,
   youtubePlaylistId,
   type LibraryItem,
-  type LibraryLink,
 } from "@/lib/library";
 
 const lalezar = Lalezar({ subsets: ["arabic"], weight: "400" });
@@ -88,14 +85,12 @@ export default function LibraryItemClient({
                 يقدر على الشراء.
               </p>
             ) : null}
-            <MessageText text={item.text} />
+            <p
+              className={`${tajawal.className} mt-4 text-[15px] font-normal leading-8 text-[#043F2E]/80 sm:text-sm`}
+            >
+              {item.description}
+            </p>
             <ItemLinks item={item} />
-            {usesPrivateChannel(item) ? (
-              <div className={`${tajawal.className} mt-4 flex flex-col items-start gap-2 rounded-2xl bg-[#F7FBEA] p-3 text-[15px] leading-7 text-[#043F2E] sm:text-sm`}>
-                <QuietLink href={TELEGRAM_CHANNEL.invite}>انضم إلى القناة أولًا</QuietLink>
-                <p>القناة خاصة، ولن يُفتح رابط التحميل قبل الانضمام إليها.</p>
-              </div>
-            ) : null}
           </div>
         </article>
 
@@ -117,17 +112,13 @@ export default function LibraryItemClient({
 function ItemLinks({ item }: { item: LibraryItem }) {
   const downloads = item.download ?? [];
   const purchases = item.purchase ?? [];
-  const mainLabel = item.url ? linkActionLabel(item.url) : libraryTypeLabel(item.type);
 
   return (
     <div className="mt-4 flex flex-col items-start gap-2">
-      {item.url && item.type !== "playlist" ? <QuietLink href={item.url}>{mainLabel}</QuietLink> : null}
-      {item.url && item.type === "playlist" && !youtubePlaylistId(item.url) ? (
-        <QuietLink href={item.url}>{linkActionLabel(item.url)}</QuietLink>
-      ) : null}
+      {item.url ? <QuietLink href={item.url}>{linkActionLabel(item.url)}</QuietLink> : null}
       {downloads.map((link) => (
         <QuietLink key={link.url} href={link.url}>
-          {downloadCaption(link, downloads.length)}
+          {`اقرأ من ${link.label}`}
         </QuietLink>
       ))}
       {purchases.map((link) => (
@@ -137,31 +128,6 @@ function ItemLinks({ item }: { item: LibraryItem }) {
       ))}
     </div>
   );
-}
-
-function MessageText({ text }: { text: string }) {
-  const parts = text.split(/(https?:\/\/\S+)/g).filter((part) => part.length > 0);
-  const hasComment = parts.some((part) => !part.startsWith("http") && part.trim().length > 0);
-  if (!hasComment) return null;
-
-  return (
-    <p className={`${tajawal.className} mt-4 whitespace-pre-wrap text-[15px] font-normal leading-8 text-[#043F2E]/80 sm:text-sm`}>
-      {parts.map((part, index) =>
-        part.startsWith("http") ? (
-          <span key={`${part}-${index}`} className="mx-1 inline-block">
-            <QuietLink href={part}>{linkActionLabel(part)}</QuietLink>
-          </span>
-        ) : (
-          <span key={index}>{part}</span>
-        ),
-      )}
-    </p>
-  );
-}
-
-function downloadCaption(link: LibraryLink, total: number): string {
-  if (total > 1) return `اقرأ مجانًا — ${link.label}`;
-  return "اقرأ مجانًا";
 }
 
 function QuietLink({ href, children }: { href: string; children: string }) {

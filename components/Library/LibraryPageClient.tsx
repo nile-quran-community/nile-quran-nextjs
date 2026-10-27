@@ -56,7 +56,7 @@ export default function LibraryPageClient() {
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="ابحث في العنوان أو النص"
+            placeholder="ابحث في العنوان أو القسم"
             aria-label="بحث في المكتبة"
             className={`${tajawal.className} h-11 w-full rounded-xl border border-[#043F2E]/15 bg-white pr-10 pl-3.5 text-sm text-[#043F2E] placeholder:text-[#043F2E]/40 focus:border-[#043F2E]/40 focus:outline-none`}
           />
