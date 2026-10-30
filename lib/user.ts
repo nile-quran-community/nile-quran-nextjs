@@ -6,6 +6,7 @@ interface types {
   username: string;
   password: string;
   referrer: string;
+  discord_id: string;
 }
 export async function Login(username: string, password: string) {
   try {

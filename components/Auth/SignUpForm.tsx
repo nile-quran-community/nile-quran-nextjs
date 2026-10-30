@@ -8,6 +8,7 @@ import { signup } from "@/actions/auth-actions";
 import { signupSchema, type SignupValues } from "@/lib/schemas";
 import { Spinner } from "../ui/spinner";
 import InfoTooltip from "./InfoTooltip";
+import DiscordIdHelp from "./DiscordIdField";
 import FieldError from "../ui/field-error";
 
 const tajawal = Tajawal({
@@ -34,6 +35,7 @@ function inputClass(hasError: boolean, withIcon: boolean, locked = false) {
 const API_FIELD_ALIASES: Record<string, keyof SignupValues> = {
   first_name: "firstName",
   last_name: "lastName",
+  discord_id: "discordId",
 };
 
 export default function SignUpForm({ referrer }: Props) {
@@ -56,6 +58,7 @@ export default function SignUpForm({ referrer }: Props) {
       email: "",
       username: "",
       referrer: referrer || "",
+      discordId: "",
       password: "",
     },
   });
@@ -186,6 +189,32 @@ export default function SignUpForm({ referrer }: Props) {
           <p className="text-xs font-medium text-[#043F2E]/60">تمت إضافته تلقائيًا من رابط الدعوة</p>
         )}
         <FieldError id="referrer-error" message={errors.referrer?.message} />
+      </div>
+      <div className="flex flex-col gap-3 items-end">
+        <div className="flex items-center gap-2">
+          <DiscordIdHelp />
+          <label htmlFor="discordId" className="text-[#043F2E] text-[20px] max-sm:text-[16px]">
+            معرف ديسكورد
+          </label>
+        </div>
+        <div className="relative w-full">
+          <AtSign
+            className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#043F2E]/60 pointer-events-none"
+            strokeWidth={2.2}
+          />
+          <input
+            type="text"
+            inputMode="numeric"
+            id="discordId"
+            placeholder="معرّف ديسكورد، مثال: 123456789012345678"
+            dir="ltr"
+            className={inputClass(!!errors.discordId, true)}
+            aria-invalid={!!errors.discordId}
+            aria-describedby={errors.discordId ? "discordId-error" : undefined}
+            {...register("discordId")}
+          />
+        </div>
+        <FieldError id="discordId-error" message={errors.discordId?.message} />
       </div>
       <div className="flex flex-col gap-3 items-end">
         <label htmlFor="password" className="text-[#043F2E] text-[20px] max-sm:text-[16px]">

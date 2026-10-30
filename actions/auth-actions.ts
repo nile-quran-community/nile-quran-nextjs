@@ -166,7 +166,7 @@ export async function signup(values: SignupValues): Promise<{ errors: FormErrors
     return { errors: fieldErrors(parsed.error) };
   }
 
-  const { firstName, lastName, email, referrer, username, password } = parsed.data;
+  const { firstName, lastName, email, referrer, username, password, discordId } = parsed.data;
 
   try {
     const result = await createUser({
@@ -176,6 +176,7 @@ export async function signup(values: SignupValues): Promise<{ errors: FormErrors
       password,
       referrer,
       username,
+      discord_id: discordId,
     });
 
     if (result?.errors) {

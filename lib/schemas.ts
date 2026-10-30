@@ -38,6 +38,13 @@ const emailSchema = z
   .regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "يرجى إدخال بريد إلكتروني صحيح")
   .max(254, "البريد الإلكتروني طويل جدًا");
 
+// Discord user IDs are 17–21 digit numbers; keep the model's ceiling of 32.
+const discordIdSchema = z
+  .string()
+  .trim()
+  .min(1, "معرف ديسكورد مطلوب")
+  .regex(/^[1-9][0-9]{0,31}$/, "معرف ديسكورد يجب أن يكون رقمًا، مثل 123456789012345678");
+
 export const loginSchema = z.object({
   username: z.string().trim().min(1, "اسم المستخدم مطلوب"),
   password: z.string().min(1, "كلمة المرور مطلوبة"),
@@ -49,6 +56,7 @@ export const signupSchema = z.object({
   email: emailSchema,
   username: z.string().trim().min(1, "اسم المستخدم مطلوب"),
   referrer: z.string().trim().min(1, "يجب اختيار جهة الإحالة"),
+  discordId: discordIdSchema,
   password: passwordSchema,
 });
 
@@ -60,6 +68,7 @@ export const editProfileSchema = z
     firstName: nameSchema("الاسم الأول"),
     lastName: nameSchema("اسم العائلة"),
     email: emailSchema,
+    discordId: discordIdSchema,
     password: z.string(),
     confirmPassword: z.string(),
   })
