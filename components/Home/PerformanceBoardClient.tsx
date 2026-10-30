@@ -455,13 +455,22 @@ function PodiumCard({
       </div>
 
       {/* Name */}
-      <Link
-        href={`/profile/${encodeURIComponent(user.username)}`}
-        className={`${tajawal.className} text-xs md:text-sm font-bold text-[#043F2E] text-center truncate w-full px-1 hover:underline`}
-        title={user.name}
-      >
-        {user.name}
-      </Link>
+      {user.username ? (
+        <Link
+          href={`/profile/${encodeURIComponent(user.username)}`}
+          className={`${tajawal.className} text-xs md:text-sm font-bold text-[#043F2E] text-center truncate w-full px-1 hover:underline`}
+          title={user.name}
+        >
+          {user.name}
+        </Link>
+      ) : (
+        <span
+          className={`${tajawal.className} text-xs md:text-sm font-bold text-[#043F2E]/50 text-center truncate w-full px-1`}
+          title={user.name}
+        >
+          {user.name}
+        </span>
+      )}
 
       {/* Points pill */}
       <div
@@ -540,15 +549,24 @@ function RankRow({
         </div>
         <div className="flex-1 min-w-0 flex flex-col gap-1">
           <div className="flex items-center gap-2">
-            <Link
-              href={`/profile/${encodeURIComponent(user.username)}`}
-              className={`${tajawal.className} text-sm font-bold truncate hover:text-[#065f46] hover:underline ${
-                highlight ? "text-[#043F2E]" : "text-[#043F2E]"
-              }`}
-              title={user.name}
-            >
-              {user.name}
-            </Link>
+            {user.username ? (
+              <Link
+                href={`/profile/${encodeURIComponent(user.username)}`}
+                className={`${tajawal.className} text-sm font-bold truncate hover:text-[#065f46] hover:underline ${
+                  highlight ? "text-[#043F2E]" : "text-[#043F2E]"
+                }`}
+                title={user.name}
+              >
+                {user.name}
+              </Link>
+            ) : (
+              <span
+                className={`${tajawal.className} text-sm font-bold truncate text-[#043F2E]/50`}
+                title={user.name}
+              >
+                {user.name}
+              </span>
+            )}
             {highlight && (
               <span
                 className={`${tajawal.className} shrink-0 text-[10px] font-bold text-[#043F2E] bg-[#043F2E]/10 px-1.5 py-0.5 rounded`}
