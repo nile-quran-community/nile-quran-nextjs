@@ -16,37 +16,38 @@ import {
   toPublishAt,
 } from "./announcements.ts";
 
-// --- replaceMentions: Discord pings become links to the member's profile ---
+// --- replaceMentions: @username handles become links to the member's profile ---
 const aliMention = { name: "علي أحمد", username: "ali" };
 const monaMention = { name: "منى", username: "mona" };
 assert.equal(
-  replaceMentions("مبروك <@123>", { "123": aliMention }),
+  replaceMentions("مبروك @ali", { ali: aliMention }),
   "مبروك [علي أحمد](/profile/ali)",
-  "a known ping becomes a profile link",
+  "a known handle becomes a profile link",
 );
 assert.equal(
-  replaceMentions("<@1> و <@2>", { "1": aliMention, "2": monaMention }),
+  replaceMentions("@ali و @mona", { ali: aliMention, mona: monaMention }),
   "[علي أحمد](/profile/ali) و [منى](/profile/mona)",
-  "every ping is replaced, not just the first",
+  "every handle is replaced, not just the first",
 );
 assert.equal(
-  replaceMentions("<@999>", {}),
-  "عضو",
-  "an unknown ID never leaks as raw <@id>, and has no link",
-);
-assert.equal(
-  replaceMentions("<@123> <@123>", { "123": aliMention }),
+  replaceMentions("@ali @ali", { ali: aliMention }),
   "[علي أحمد](/profile/ali) [علي أحمد](/profile/ali)",
 );
+assert.equal(replaceMentions("@ghost و @everyone", {}), "@ghost و @everyone", "unknown handles stay");
 assert.equal(replaceMentions("نص بلا إشارات", {}), "نص بلا إشارات");
-assert.equal(replaceMentions("بريد a@b.com", {}), "بريد a@b.com", "only <@digits> is a ping");
+assert.equal(replaceMentions("بريد a@b.com", {}), "بريد a@b.com", "an email address is not a mention");
 assert.equal(
-  replaceMentions("<@7>", { "7": { name: "x", username: "a.b+c@x" } }),
+  replaceMentions("(@ali)، @ali.", { ali: aliMention }),
+  "([علي أحمد](/profile/ali))، [علي أحمد](/profile/ali).",
+  "punctuation around a handle is kept",
+);
+assert.equal(
+  replaceMentions("@x7", { x7: { name: "x", username: "a.b+c@x" } }),
   "[x](/profile/a.b%2Bc%40x)",
   "the username is URL-encoded in the path",
 );
 assert.equal(
-  replaceMentions("<@7>", { "7": { name: "a]b [c]", username: "x" } }),
+  replaceMentions("@x", { x: { name: "a]b [c]", username: "x" } }),
   "[a\\]b \\[c\\]](/profile/x)",
   "brackets in a name can't break out of the link text",
 );

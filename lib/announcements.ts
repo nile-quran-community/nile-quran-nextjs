@@ -1,7 +1,9 @@
 // Pure helpers for announcements, kept free of "use server" and React so the check file can
 // run them under plain Node (lib/announcements.check.mts).
 
-const MENTION = /<@(\d+)>/g;
+// `@username`, how the backend writes mentions. Not after a letter or digit, so an email
+// address is left alone; the letter classes match the backend's Unicode `\w`.
+const MENTION = /(?<![\p{L}\p{N}_])@([\p{L}\p{N}_]+)/gu;
 
 export interface Mention {
   name: string;
@@ -12,13 +14,12 @@ export interface Mention {
 // a backslash) must not be able to end it early.
 const escapeLinkText = (text: string) => text.replace(/[\\[\]]/g, "\\$&");
 
-// The API maps the Discord IDs pinged in a body to the member (`mentions`, best effort: only
-// people whose Discord ID we hold). A known ping becomes a link to their profile; anyone else
-// reads as "عضو" rather than leaking a raw <@id>.
+// The API maps each handle in a body to the member (`mentions`, keyed by username). A known
+// one becomes a link to their profile; an unknown one, such as `@everyone`, stays as written.
 export function replaceMentions(content: string, mentions: Record<string, Mention>): string {
-  return content.replace(MENTION, (_, id: string) => {
-    const member = mentions[id];
-    if (!member) return "عضو";
+  return content.replace(MENTION, (match, username: string) => {
+    const member = mentions[username];
+    if (!member) return match;
     return `[${escapeLinkText(member.name)}](/profile/${encodeURIComponent(member.username)})`;
   });
 }
