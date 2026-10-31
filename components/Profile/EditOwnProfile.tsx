@@ -5,9 +5,20 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Lalezar, Tajawal } from "next/font/google";
-import { Pencil, X, Mail, Lock, Loader2, Check, UserCheck, AlertCircle } from "lucide-react";
+import {
+  Pencil,
+  X,
+  Mail,
+  Lock,
+  UserCheck,
+  AtSign,
+  Loader2,
+  Check,
+  AlertCircle,
+} from "lucide-react";
 import { updateUser } from "@/actions/profile";
 import FieldError from "@/components/ui/field-error";
+import DiscordIdHelp from "@/components/Auth/DiscordIdField";
 import { editProfileSchema, type EditProfileValues } from "@/lib/schemas";
 
 const lalezar = Lalezar({ subsets: ["arabic"], weight: "400" });
@@ -18,9 +29,10 @@ interface Props {
   firstName: string;
   lastName: string;
   email: string;
+  discordId: string;
 }
 
-export default function EditOwnProfile({ userId, firstName, lastName, email }: Props) {
+export default function EditOwnProfile({ userId, firstName, lastName, email, discordId }: Props) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -39,6 +51,7 @@ export default function EditOwnProfile({ userId, firstName, lastName, email }: P
           firstName={firstName}
           lastName={lastName}
           email={email}
+          discordId={discordId}
           onClose={() => setOpen(false)}
         />
       )}
@@ -51,6 +64,7 @@ function EditModal({
   firstName: initialFirst,
   lastName: initialLast,
   email: initialEmail,
+  discordId: initialDiscordId,
   onClose,
 }: Props & { onClose: () => void }) {
   const router = useRouter();
@@ -65,6 +79,7 @@ function EditModal({
       firstName: initialFirst || "",
       lastName: initialLast || "",
       email: initialEmail || "",
+      discordId: initialDiscordId || "",
       password: "",
       confirmPassword: "",
     },
@@ -74,10 +89,17 @@ function EditModal({
   const onSubmit = handleSubmit(async (values) => {
     setResult(null);
 
-    const data: { first_name?: string; last_name?: string; email?: string; password?: string } = {};
+    const data: {
+      first_name?: string;
+      last_name?: string;
+      email?: string;
+      discord_id?: string;
+      password?: string;
+    } = {};
     if (values.firstName !== initialFirst) data.first_name = values.firstName;
     if (values.lastName !== initialLast) data.last_name = values.lastName;
     if (values.email !== initialEmail) data.email = values.email;
+    if (values.discordId !== initialDiscordId) data.discord_id = values.discordId;
     // The password fields stay empty unless the member actually wants a new
     // password — an untouched blank never reaches the API
     if (values.password) data.password = values.password;
@@ -177,6 +199,31 @@ function EditModal({
                 />
               </div>
               <FieldError message={errors.email?.message} />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-2">
+                <label className={`${tajawal.className} text-xs font-bold text-[#043F2E]/70`}>
+                  معرف ديسكورد
+                </label>
+                <DiscordIdHelp />
+              </div>
+              <div className="relative">
+                <AtSign
+                  className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#043F2E]/40"
+                  strokeWidth={2.2}
+                />
+                <input
+                  disabled={isPending}
+                  type="text"
+                  inputMode="numeric"
+                  dir="ltr"
+                  className={`${inputClass} pr-11 text-end`}
+                  placeholder="123456789012345678"
+                  {...register("discordId")}
+                />
+              </div>
+              <FieldError message={errors.discordId?.message} />
             </div>
 
             {/* Password change sits apart: it is a different act from correcting a

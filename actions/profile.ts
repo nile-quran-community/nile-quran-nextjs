@@ -58,6 +58,9 @@ interface ApiUser extends ProfileFields {
   supervisor: string | null;
   referrer: string | null;
   date_joined: string;
+  /** Populated by the API; not part of the profile-completeness fields, so it
+    lives here rather than on ProfileFields. */
+  discord_id: string;
 }
 
 interface ApiActivity {
@@ -498,6 +501,7 @@ export async function updateUser(
     first_name?: string;
     last_name?: string;
     email?: string;
+    discord_id?: string;
     supervisor?: string | null;
     referrer?: string | null;
     groups?: string[];

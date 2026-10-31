@@ -229,6 +229,7 @@ export default async function ProfilePage({
                   firstName={targetUser.first_name}
                   lastName={targetUser.last_name}
                   email={targetUser.email}
+                  discordId={targetUser.discord_id}
                 />
                 <InviteFriend username={targetUser.username} />
               </div>

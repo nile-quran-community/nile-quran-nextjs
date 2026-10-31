@@ -117,18 +117,32 @@ export async function getLeaderboardData(year: number, month: number) {
 
     // Results are already ordered by points descending (ordering=-points)
 
-    // One bulk fetch for every user, instead of one round trip per leaderboard
-    // row — the previous per-row `getUserDetails` call turned every home page
-    // load into 1+N requests to the backend.
-    const usersResponse = await fetch(`${API_BASE}api/v1/users/`, {
-      headers,
-      cache: "no-store",
-    });
-    if (!usersResponse.ok) {
-      throw new Error(`Failed to fetch users: ${usersResponse.status}`);
+    // DRF paginates /users/ at PAGE_SIZE (50), so a single fetch drops every
+    // user past page 1 — they then map to the "مستخدم" fallback below (their
+    // id is on the leaderboard but not in usersById). Walk `next` like
+    // getAllMembers in ControlBoard.ts.
+    const usersList: User[] = [];
+    let usersUrl: string | null = `${API_BASE}api/v1/users/`;
+    let guard = 0;
+
+    while (usersUrl && guard < 20) {
+      const res: Response = await fetch(usersUrl, {
+        headers,
+        cache: "no-store",
+      });
+      if (!res.ok) {
+        throw new Error(`Failed to fetch users: ${res.status}`);
+      }
+      const usersData: { results?: User[]; next?: string | null } | User[] = await res.json();
+      if (Array.isArray(usersData)) {
+        usersList.push(...usersData);
+        usersUrl = null; // Non-paginated legacy shape — nothing more to fetch.
+      } else {
+        usersList.push(...(usersData.results ?? []));
+        usersUrl = usersData.next ?? null;
+      }
+      guard++;
     }
-    const usersData: { results?: User[] } | User[] = await usersResponse.json();
-    const usersList: User[] = Array.isArray(usersData) ? usersData : (usersData.results ?? []);
     const usersById = new Map(usersList.map((u) => [u.id, u]));
 
     const mappedData: MappedLeaderboardUser[] = results.map((item) => {
