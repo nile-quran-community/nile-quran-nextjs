@@ -42,7 +42,7 @@ export default function LibraryPageClient() {
           icon={BookOpen}
           eyebrow="سلاسل وكتب"
           title="المكتبة"
-          subtitle="الأقسام شبكة. العناصر بطاقات. النوع اختياري."
+          subtitle="مختارات من السلاسل والكتب والمواقع والبرامج النافعة"
         />
       </PageHero>
 
