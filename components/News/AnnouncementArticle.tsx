@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { Lalezar, Tajawal } from "next/font/google";
-import { ArrowRight, CalendarDays, Clock, Lock, Pencil, UserRound } from "lucide-react";
+import { CalendarDays, Clock, Lock, Pencil, UserRound } from "lucide-react";
 import type { Announcement, AnnouncementPreview } from "@/actions/announcements";
 import {
   STATUS_LABELS,
@@ -95,18 +95,9 @@ export function AnnouncementArticle({
       </Hero>
 
       <div className="max-w-3xl mx-auto px-6 md:px-10 py-10 md:py-14 flex flex-col gap-6">
-        <section className="bg-white rounded-3xl border border-[#043F2E]/10 shadow-sm p-5 md:p-8">
-          <ArticleBody content={replaceMentions(a.content, a.mentions)} />
-        </section>
+        <ArticleBody content={replaceMentions(a.content, a.mentions)} />
 
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <Link
-            href="/news"
-            className={`${tajawal.className} flex items-center gap-1.5 text-sm font-bold text-[#043F2E] hover:text-[#065f46] transition-colors`}
-          >
-            <ArrowRight className="w-4 h-4" strokeWidth={2.4} />
-            كل الأخبار
-          </Link>
+        <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-[#043F2E]/10">
           <div className="flex items-center gap-2">
             {canEdit && (
               <Link
