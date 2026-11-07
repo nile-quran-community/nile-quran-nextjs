@@ -72,15 +72,18 @@ export default function EditorList({
     [type, status, author],
   );
 
-  const mounted = useRef(false);
+  // React runs effects twice in development, so a "first run" flag let a second needless
+  // fetch through, and the list flashed its loading state right after arriving.
+  const filters = JSON.stringify([type, status, author.trim()]);
+  const shown = useRef(filters);
   useEffect(() => {
-    if (!mounted.current) {
-      mounted.current = true;
-      return;
-    }
-    const timer = setTimeout(() => load(1), 300);
+    if (filters === shown.current) return;
+    const timer = setTimeout(() => {
+      shown.current = filters;
+      load(1);
+    }, 300);
     return () => clearTimeout(timer);
-  }, [load]);
+  }, [filters, load]);
 
   return (
     <div className="flex flex-col gap-5">

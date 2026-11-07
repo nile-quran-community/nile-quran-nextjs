@@ -67,15 +67,18 @@ export default function NewsListClient({ initial, chips }: Props) {
 
   // The first page is already on screen from the server render; only a changed filter
   // fetches, after a short pause so typing doesn't fire a request per letter.
-  const mounted = useRef(false);
+  // React runs effects twice in development, so a "first run" flag let a second needless
+  // fetch through, and the list flashed its loading state right after arriving.
+  const filters = JSON.stringify([type, query.trim()]);
+  const shown = useRef(filters);
   useEffect(() => {
-    if (!mounted.current) {
-      mounted.current = true;
-      return;
-    }
-    const timer = setTimeout(() => load(1), 300);
+    if (filters === shown.current) return;
+    const timer = setTimeout(() => {
+      shown.current = filters;
+      load(1);
+    }, 300);
     return () => clearTimeout(timer);
-  }, [load]);
+  }, [filters, load]);
 
   return (
     <div className="flex flex-col gap-5">
