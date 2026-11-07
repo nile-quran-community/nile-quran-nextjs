@@ -39,7 +39,7 @@ export default async function NavBar() {
       <div className="relative px-6 md:px-10 lg:px-16 h-[68px] flex justify-between items-center">
         {isLoggedIn ? (
           /* Profile + logout — desktop only, mobile drawer covers this */
-          <div className={`flex items-center gap-3 max-sm:hidden ${tajawal.className}`}>
+          <div className={`flex items-center gap-3 max-lg:hidden ${tajawal.className}`}>
             <LogoutButton variant="icon" />
             <Link
               href={"/profile"}
@@ -62,9 +62,9 @@ export default async function NavBar() {
         <NavBarMobileMenu User={isLoggedIn ? User?.user : undefined} />
 
         {/* Sits next to the hamburger on mobile (justify-between); pushed to the end on desktop */}
-        <Brand className="sm:order-last" />
+        <Brand className="lg:order-last" />
 
-        {/* Nav links — desktop only (NavLinks hides itself below sm), centered independent of side elements' widths */}
+        {/* Nav links — desktop only (NavLinks hides itself below lg), centered independent of side elements' widths */}
         {isLoggedIn && (
           <div className="absolute left-1/2 -translate-x-1/2">
             <NavLinks isAdmin={isAdmin} />

@@ -38,8 +38,9 @@ export default function NavBarMobileMenu({ User }: Props) {
   }, [isMobileMenuOpen]);
 
   useEffect(() => {
-    // the hamburger/drawer are sm:hidden — close the drawer if a resize crosses that breakpoint
-    const mql = window.matchMedia("(min-width: 640px)");
+    // the hamburger/drawer are lg:hidden (the full link row needs ~1024px since it gained News and
+    // Library) — close the drawer if a resize crosses that breakpoint
+    const mql = window.matchMedia("(min-width: 1024px)");
     const handleChange = (e: MediaQueryListEvent) => {
       if (e.matches) setIsMobileMenuOpen(false);
     };
@@ -58,14 +59,14 @@ export default function NavBarMobileMenu({ User }: Props) {
         onClick={() => setIsMobileMenuOpen(true)}
         aria-label="فتح القائمة"
         aria-expanded={isMobileMenuOpen}
-        className="sm:hidden cursor-pointer text-[#BEE663] flex items-center justify-center"
+        className="lg:hidden cursor-pointer text-[#BEE663] flex items-center justify-center"
       >
         <Menu className="w-6 h-6" strokeWidth={2.2} />
       </button>
 
       {/* Overlay — clicking it closes the menu */}
       <motion.div
-        className={`sm:hidden fixed inset-0 top-[68px] bg-black/50 z-40 ${isMobileMenuOpen ? "" : "hidden"}`}
+        className={`lg:hidden fixed inset-0 top-[68px] bg-black/50 z-40 ${isMobileMenuOpen ? "" : "hidden"}`}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -77,7 +78,7 @@ export default function NavBarMobileMenu({ User }: Props) {
         dir="rtl"
         role="dialog"
         aria-modal="true"
-        className={`sm:hidden flex flex-col fixed top-[68px] right-0 w-3/4 max-w-sm h-[calc(100vh-68px)] bg-[#043F2E] border-l border-[#BEE663]/10 box-border z-50 ${isMobileMenuOpen ? "" : "hidden"}`}
+        className={`lg:hidden flex flex-col fixed top-[68px] right-0 w-3/4 max-w-sm h-[calc(100vh-68px)] bg-[#043F2E] border-l border-[#BEE663]/10 box-border z-50 ${isMobileMenuOpen ? "" : "hidden"}`}
         initial={{ x: "100%" }}
         animate={{ x: isMobileMenuOpen ? 0 : "100%" }}
         transition={{ duration: 0.3, ease: "easeOut" }}

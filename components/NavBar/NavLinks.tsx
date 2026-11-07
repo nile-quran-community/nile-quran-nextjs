@@ -11,7 +11,7 @@ export default function NavLinks({ isAdmin }: { isAdmin: boolean }) {
   const pathname = usePathname();
 
   return (
-    <div dir="rtl" className={`flex gap-2 max-sm:hidden ${tajawal.className}`}>
+    <div dir="rtl" className={`flex gap-2 max-lg:hidden ${tajawal.className}`}>
       {NAV_LINKS.filter((link) => !link.adminOnly || isAdmin).map(({ href, label, Icon }) => {
         const isActive = isNavLinkActive(pathname, href);
         return (
