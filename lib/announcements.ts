@@ -24,6 +24,12 @@ export function replaceMentions(content: string, mentions: Record<string, Mentio
   });
 }
 
+// The distinct usernames mentioned in a body, so the editor can look up members it has no
+// `mentions` entry for yet.
+export function mentionHandles(content: string): string[] {
+  return [...new Set(Array.from(content.matchAll(MENTION), (m) => m[1]))];
+}
+
 // ~200 words a minute, and never "0 minutes".
 export function readingMinutes(content: string): number {
   const words = content.split(/\s+/).filter(Boolean).length;

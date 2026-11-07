@@ -2,6 +2,7 @@
 
 import { cookies } from "next/headers";
 import type { Mention } from "@/lib/announcements";
+import { getUserByUsername } from "./profile";
 
 const API_BASE = process.env.BASE_URL;
 const ENDPOINT = `${API_BASE}api/v1/announcements/`;
@@ -181,4 +182,24 @@ export async function updateAnnouncement(
 
 export async function deleteAnnouncement(id: number): Promise<Result<undefined>> {
   return call(`${ENDPOINT}${id}/`, { method: "DELETE" }, "فشل حذف الخبر");
+}
+
+// For the editor's preview: the same `{name, username}` the API puts in `mentions`, for
+// handles typed since the last save. `null` marks a handle no member owns, so the editor
+// doesn't ask again. Same name rule as the API: full name, else the username.
+// One request per handle, capped; a leaderboard post has a handful. Add a
+// batch filter on the users endpoint if bodies ever mention dozens of people.
+export async function resolveMentions(
+  usernames: string[],
+): Promise<Record<string, Mention | null>> {
+  const found = await Promise.all(
+    usernames.slice(0, 20).map(async (username) => {
+      const res = await getUserByUsername(username);
+      if (!res.success || !res.data) return [username, null] as const;
+      const u = res.data;
+      const name = `${u.first_name} ${u.last_name}`.trim() || u.username;
+      return [username, { name, username: u.username }] as const;
+    }),
+  );
+  return Object.fromEntries(found);
 }

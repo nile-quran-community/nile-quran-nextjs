@@ -10,6 +10,7 @@ import {
   lastEditorName,
   readingMinutes,
   replaceMentions,
+  mentionHandles,
   savedMessage,
   safeNextPath,
   toDatetimeLocal,
@@ -51,6 +52,10 @@ assert.equal(
   "[a\\]b \\[c\\]](/profile/x)",
   "brackets in a name can't break out of the link text",
 );
+
+// --- mentionHandles: the distinct usernames a body mentions ---
+assert.deepEqual(mentionHandles("@ali و @mona و @ali، بريد a@b.com"), ["ali", "mona"]);
+assert.deepEqual(mentionHandles("بلا إشارات"), []);
 
 // --- readingMinutes: never zero, grows with length ---
 assert.equal(readingMinutes(""), 1);

@@ -9,13 +9,21 @@ import { Lalezar, Tajawal } from "next/font/google";
 import { ArrowRight, CheckCircle2, ExternalLink, Eye, Globe, Lock } from "lucide-react";
 import {
   createAnnouncement,
+  resolveMentions,
   updateAnnouncement,
   type Announcement,
   type TypeOption,
 } from "@/actions/announcements";
 import { announcementSchema, type AnnouncementValues } from "@/lib/schemas";
 import { toArabicDigits } from "@/lib/utils";
-import { savedMessage, toDatetimeLocal, toPublishAt } from "@/lib/announcements";
+import {
+  mentionHandles,
+  replaceMentions,
+  savedMessage,
+  toDatetimeLocal,
+  toPublishAt,
+  type Mention,
+} from "@/lib/announcements";
 import { Spinner } from "../ui/spinner";
 import FieldError from "../ui/field-error";
 import ArticleBody from "./ArticleBody";
@@ -122,6 +130,25 @@ export default function AnnouncementEditor({
     return () => clearTimeout(timer);
   }, [cardUrl]);
 
+  // The body preview shows @mentions as they will appear: the saved post's `mentions` cover
+  // the handles it had at the last save, and new ones are looked up a short pause after typing
+  // stops. A handle nobody owns is remembered as `null`, so it isn't asked for again.
+  const [lookedUp, setLookedUp] = useState<Record<string, Mention | null>>(() => ({
+    ...current?.mentions,
+  }));
+  useEffect(() => {
+    const missing = mentionHandles(content).filter((handle) => !(handle in lookedUp));
+    if (missing.length === 0) return;
+    const timer = setTimeout(async () => {
+      const found = await resolveMentions(missing);
+      setLookedUp((prev) => ({ ...prev, ...found }));
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [content, lookedUp]);
+  const previewMentions = Object.fromEntries(
+    Object.entries(lookedUp).filter((entry): entry is [string, Mention] => entry[1] !== null),
+  );
+
   // The Save button is at the foot of a long form, so the result is shown there too, and
   // brought into view in case the page is scrolled to somewhere else when it arrives.
   const feedback = useRef<HTMLDivElement>(null);
@@ -219,7 +246,7 @@ export default function AnnouncementEditor({
                 معاينة
               </span>
               {content.trim() ? (
-                <ArticleBody content={content} />
+                <ArticleBody content={replaceMentions(content, previewMentions)} />
               ) : (
                 <p className={`${tajawal.className} text-sm text-[#043F2E]/40`}>
                   ستظهر المعاينة هنا أثناء الكتابة
