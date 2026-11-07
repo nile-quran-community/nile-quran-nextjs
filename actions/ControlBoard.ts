@@ -5,6 +5,7 @@ import { getHijriWeekRange } from "@/lib/utils";
 import { cookies } from "next/headers";
 import type { ProfileFields } from "@/lib/profile-fields";
 import { getCachedPointsCategories } from "./categories";
+import { fetchAllPages } from "@/lib/fetch-all-pages";
 
 const API_BASE = process.env.BASE_URL;
 
@@ -252,8 +253,7 @@ export async function getUsers(group?: string) {
 // ===============================
 // GET ALL MEMBERS (Admin only) — every group, every field, no page cap
 // ===============================
-// `getUsers` above caps out at one page (PAGE_SIZE 50) which is fine for the
-// control board's "Student" tab, wrong for a full member roster. This walks `next`.
+// Unlike `getUsers`, no group filter — the full member roster for the members tab.
 
 export interface Member extends ProfileFields {
   id: number;
@@ -332,29 +332,22 @@ export async function getUserActivities(
     if (!access) throw new Error("No access token found in cookies");
     const { start, end } = getHijriWeekRange(year, month, weekIndex);
 
-    const query = `?date_after=${start}&date_before=${end}`;
-    const response = await fetch(`${API_BASE}api/v1/users/${Id}/activities/${query}`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${access}`,
-        "Accept-Language": "ar",
-        "Content-Type": "application/json",
-      },
-      cache: "no-store",
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Failed to fetch activities: ${response.status} - ${errorText}`);
-    }
-
-    const data = await response.json();
-    return { success: true, activities: data.results };
+    const activities = await fetchAllPages(
+      `${API_BASE}api/v1/users/${Id}/activities/?date_after=${start}&date_before=${end}`,
+      access,
+    );
+    return { success: true, activities };
   } catch (error) {
     console.error("Error fetching user activities:", error);
     return { success: false, error: error };
   }
 }
+
+export type UserPoints = {
+  user: number;
+  points: number;
+  activities: { id: number; category: number; date: string; multiplier: number }[];
+};
 
 export async function getPoints(year: number, month: number, weekIndex: number) {
   try {
@@ -364,23 +357,11 @@ export async function getPoints(year: number, month: number, weekIndex: number) 
     if (!access) throw new Error("No access token found in cookies");
     const { start, end } = getHijriWeekRange(year, month, weekIndex);
 
-    const query = `?date_after=${start}&date_before=${end}`;
-    const response = await fetch(`${API_BASE}api/v1/users/points/${query}`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${access}`,
-        "Accept-Language": "ar",
-        "Content-Type": "application/json",
-      },
-      cache: "no-store",
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Failed to fetch points: ${response.status} - ${errorText}`);
-    }
-    const data = await response.json();
-    return { success: true, points: data.results };
+    const points = await fetchAllPages<UserPoints>(
+      `${API_BASE}api/v1/users/points/?date_after=${start}&date_before=${end}`,
+      access,
+    );
+    return { success: true, points };
   } catch (error) {
     console.error("Error fetching points:", error);
     return { success: false, error: error };

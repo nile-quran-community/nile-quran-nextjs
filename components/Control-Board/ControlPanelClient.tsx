@@ -201,10 +201,7 @@ export default function ControlPanelClient({ currentUserId }: { currentUserId?: 
           }
 
           if (pointsRes && pointsRes.success) {
-            const raw = pointsRes.points;
-            newData.points = {
-              points: Array.isArray(raw) ? raw : (raw as { results?: UserPoints[] })?.results || [],
-            };
+            newData.points = { points: pointsRes.points ?? [] };
           }
 
           newData.categories = categories;
@@ -553,7 +550,7 @@ export default function ControlPanelClient({ currentUserId }: { currentUserId?: 
       if (pointsRes.success) {
         setData((prev) => ({
           ...prev,
-          points: { points: pointsRes.points },
+          points: { points: pointsRes.points ?? [] },
           users: prev.users.map((u) =>
             succeededSupervisors.has(u.id)
               ? { ...u, supervisor: succeededSupervisors.get(u.id)! }
