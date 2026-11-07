@@ -58,7 +58,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      {/* Browser extensions (ColorZilla, Tayamun, ...) inject attributes on <body> before
+          hydration; suppress attribute-mismatch warnings on this element only. */}
       <body
+        suppressHydrationWarning
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#EBF0EB] w-full h-full`}
       >
         <NavBar />

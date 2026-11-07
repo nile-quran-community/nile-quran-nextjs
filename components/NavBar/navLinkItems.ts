@@ -1,9 +1,10 @@
-import { Home, Info, LayoutDashboard, Newspaper, Target } from "lucide-react";
+import { BookOpen, Home, Info, LayoutDashboard, Newspaper, Target } from "lucide-react";
 
 export const NAV_LINKS = [
   { href: "/", label: "الصفحة الرئيسية", Icon: Home },
   { href: "/goals", label: "الأهداف", Icon: Target },
   { href: "/news", label: "الأخبار", Icon: Newspaper },
+  { href: "/library", label: "المكتبة", Icon: BookOpen },
   { href: "/about", label: "عن المجتمع", Icon: Info },
   { href: "/control-board", label: "لوحة التحكم", Icon: LayoutDashboard, adminOnly: true },
 ];
