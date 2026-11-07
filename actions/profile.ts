@@ -12,6 +12,7 @@ import type { WeekRange } from "@/lib/utils";
 import { SUPERVISOR_MANAGED_CATEGORY_IDS } from "@/lib/profile-types";
 import type { ProfileFields } from "@/lib/profile-fields";
 import { getCachedPointsCategories } from "./categories";
+import { fetchAllPages } from "@/lib/fetch-all-pages";
 
 const API_BASE = process.env.BASE_URL;
 
@@ -239,13 +240,13 @@ export async function getCirclePeers(
     const token = await getToken();
     if (!token) throw new Error("No access token");
 
-    const data = await fetchJson<{ results: ApiUser[] }>(
+    const circle = await fetchAllPages<ApiUser>(
       `${API_BASE}api/v1/users/?supervisor=${encodeURIComponent(supervisorUsername)}&group=Student`,
       token,
     );
 
     // The API hands back each peer's email; it has no business reaching the browser
-    const peers = (data.results || [])
+    const peers = circle
       .filter((u) => u.id !== excludeUserId)
       .map((u) => ({
         id: u.id,
@@ -288,12 +289,10 @@ export async function getStudentRank(
           }
         : getCurrentHijriMonthRange();
 
-    const data = await fetchJson<{ results: ApiPoints[] } | ApiPoints[]>(
+    const results = await fetchAllPages<ApiPoints>(
       `${API_BASE}api/v1/users/points/?date_after=${start}&date_before=${end}&ordering=-points`,
       token,
     );
-
-    const results = Array.isArray(data) ? data : (data.results ?? []);
     const me = results.find((p) => p.user === userId);
     if (!me) return { success: true, data: null };
 
@@ -330,9 +329,6 @@ function latestActivityDate(activities?: ApiActivity[]): string | null {
 // Every student, with how long they have been silent. An administrator is the one
 // who can pick up a phone, so this is the list that lets them notice a member
 // slipping away before the term ends.
-//
-// Note: /users/points/ is capped at one page of 50 by the API, so a community past
-// that size will need the endpoint paginated before this list can be complete.
 
 export interface QuietMember {
   id: number;
@@ -351,13 +347,10 @@ export async function getQuietMembers(): Promise<FetchResult<QuietMember[]>> {
 
     // One pass over the whole roster: it yields the students and, from the same
     // rows, the names behind the supervisor usernames the API stores.
-    const [usersRes, pointsRes] = await Promise.all([
-      fetchJson<{ results: ApiUser[] }>(`${API_BASE}api/v1/users/`, token),
-      fetchJson<{ results: ApiPoints[] } | ApiPoints[]>(`${API_BASE}api/v1/users/points/`, token),
+    const [everyone, points] = await Promise.all([
+      fetchAllPages<ApiUser>(`${API_BASE}api/v1/users/`, token),
+      fetchAllPages<ApiPoints>(`${API_BASE}api/v1/users/points/`, token),
     ]);
-
-    const everyone = usersRes.results || [];
-    const points = Array.isArray(pointsRes) ? pointsRes : (pointsRes.results ?? []);
     const nameOf = new Map(
       everyone.map((u) => [u.username, `${u.first_name} ${u.last_name}`.trim() || u.username]),
     );
@@ -427,36 +420,27 @@ export async function getSupervisedStudents(supervisorUsername: string): Promise
     // all-time activity, used only to tell whether they have gone quiet; and
     // this week's recitation on its own — the last one answers "who has not
     // recited yet", which is the supervisor's actual job.
-    const [data, monthPointsData, allPointsData, weekPointsData, weekScopedData] =
-      await Promise.all([
-        fetchJson<{ results: ApiUser[] }>(
-          `${API_BASE}api/v1/users/?supervisor=${encodeURIComponent(supervisorUsername)}&group=Student`,
-          token,
-        ),
-        fetchJson<{ results: ApiPoints[] } | ApiPoints[]>(
-          `${API_BASE}api/v1/users/points/?date_after=${monthStart}&date_before=${monthEnd}`,
-          token,
-        ),
-        fetchJson<{ results: ApiPoints[] } | ApiPoints[]>(`${API_BASE}api/v1/users/points/`, token),
-        fetchJson<{ results: ApiPoints[] } | ApiPoints[]>(
-          `${API_BASE}api/v1/users/points/?date_after=${start}&date_before=${end}`,
-          token,
-        ),
-        fetchJson<{ results: ApiPoints[] } | ApiPoints[]>(
-          `${API_BASE}api/v1/users/points/?date_after=${start}&date_before=${end}`,
-          token,
-        ),
-      ]);
+    const [supervised, monthPoints, allPoints, weekPoints, weekScoped] = await Promise.all([
+      fetchAllPages<ApiUser>(
+        `${API_BASE}api/v1/users/?supervisor=${encodeURIComponent(supervisorUsername)}&group=Student`,
+        token,
+      ),
+      fetchAllPages<ApiPoints>(
+        `${API_BASE}api/v1/users/points/?date_after=${monthStart}&date_before=${monthEnd}`,
+        token,
+      ),
+      fetchAllPages<ApiPoints>(`${API_BASE}api/v1/users/points/`, token),
+      fetchAllPages<ApiPoints>(
+        `${API_BASE}api/v1/users/points/?date_after=${start}&date_before=${end}`,
+        token,
+      ),
+      fetchAllPages<ApiPoints>(
+        `${API_BASE}api/v1/users/points/?date_after=${start}&date_before=${end}`,
+        token,
+      ),
+    ]);
 
-    const normalize = (d: { results: ApiPoints[] } | ApiPoints[]): ApiPoints[] =>
-      Array.isArray(d) ? d : (d.results ?? []);
-
-    const monthPoints = normalize(monthPointsData);
-    const allPoints = normalize(allPointsData);
-    const weekPoints = normalize(weekPointsData);
-    const weekScoped = normalize(weekScopedData);
-
-    const students = data.results.map((student) => {
+    const students = supervised.map((student) => {
       const monthInfo = monthPoints.find((p) => p.user === student.id);
       const allInfo = allPoints.find((p) => p.user === student.id);
       const weekInfo = weekPoints.find((p) => p.user === student.id);
@@ -748,11 +732,10 @@ async function weekAlreadyRecorded(
 ): Promise<boolean> {
   const window = getHijriWeekQueryRange(targetDate);
 
-  const existing = await fetchJson<{ results: ApiActivity[] } | ApiActivity[]>(
+  const rows = await fetchAllPages<ApiActivity>(
     `${API_BASE}api/v1/users/${studentId}/activities/?date_after=${window.start}&date_before=${window.end}`,
     token,
   );
-  const rows = Array.isArray(existing) ? existing : (existing.results ?? []);
 
   return rows.some(
     (a) =>

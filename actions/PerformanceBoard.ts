@@ -2,6 +2,7 @@
 
 import { getHijriMonthDays } from "@/lib/utils";
 import { cookies } from "next/headers";
+import { fetchAllPages } from "@/lib/fetch-all-pages";
 import { hijriToGregorian } from "@tabby_ai/hijri-converter";
 
 const API_BASE = process.env.BASE_URL;
@@ -31,13 +32,6 @@ interface LeaderboardItem {
   activities: Activity[];
 }
 
-interface PaginatedResponse {
-  count: number;
-  next: string | null;
-  previous: string | null;
-  results: LeaderboardItem[];
-}
-
 interface MappedLeaderboardUser {
   id: number;
   name: string;
@@ -45,8 +39,6 @@ interface MappedLeaderboardUser {
   points: number;
   groups: string[];
 }
-
-type APIResponse = LeaderboardItem[] | PaginatedResponse | LeaderboardItem;
 
 export async function getLeaderboardData(year: number, month: number) {
   try {
@@ -78,35 +70,14 @@ export async function getLeaderboardData(year: number, month: number) {
       "0",
     )}-${String(endDate.day).padStart(2, "0")}`;
 
-    const headers = {
-      Authorization: `Bearer ${accessToken.value}`,
-      "Accept-Language": "ar",
-      "Content-Type": "application/json",
-    };
-
-    const query = `?date_after=${start}&date_before=${end}&ordering=-points`;
-    const result = await fetch(`${API_BASE}api/v1/users/points/${query}`, {
-      method: "GET",
-      headers,
-      cache: "no-store",
-    });
-    if (!result.ok) {
-      const errorText = await result.text();
-      throw new Error(`Failed to fetch leaderboard data: ${result.status} - ${errorText}`);
-    }
-
-    const data: APIResponse = await result.json();
-
-    // Handle different possible response structures
-    let results: LeaderboardItem[] = [];
-
-    if (Array.isArray(data)) {
-      results = data;
-    } else if ("results" in data && Array.isArray(data.results)) {
-      results = data.results;
-    } else if ("user" in data && "points" in data) {
-      results = [data];
-    }
+    // Both lists page at 50 — read every page, or member 51+ drops off the board
+    const [results, usersList] = await Promise.all([
+      fetchAllPages<LeaderboardItem>(
+        `${API_BASE}api/v1/users/points/?date_after=${start}&date_before=${end}&ordering=-points`,
+        accessToken.value,
+      ),
+      fetchAllPages<User>(`${API_BASE}api/v1/users/`, accessToken.value),
+    ]);
 
     if (results.length === 0) {
       return {
@@ -117,32 +88,7 @@ export async function getLeaderboardData(year: number, month: number) {
 
     // Results are already ordered by points descending (ordering=-points)
 
-    // DRF paginates /users/ at PAGE_SIZE (50), so a single fetch drops every
-    // user past page 1 — they then map to the "مستخدم" fallback below (their
-    // id is on the leaderboard but not in usersById). Walk `next` like
-    // getAllMembers in ControlBoard.ts.
-    const usersList: User[] = [];
-    let usersUrl: string | null = `${API_BASE}api/v1/users/`;
-    let guard = 0;
-
-    while (usersUrl && guard < 20) {
-      const res: Response = await fetch(usersUrl, {
-        headers,
-        cache: "no-store",
-      });
-      if (!res.ok) {
-        throw new Error(`Failed to fetch users: ${res.status}`);
-      }
-      const usersData: { results?: User[]; next?: string | null } | User[] = await res.json();
-      if (Array.isArray(usersData)) {
-        usersList.push(...usersData);
-        usersUrl = null; // Non-paginated legacy shape — nothing more to fetch.
-      } else {
-        usersList.push(...(usersData.results ?? []));
-        usersUrl = usersData.next ?? null;
-      }
-      guard++;
-    }
+    // One bulk user list, not one round trip per leaderboard row
     const usersById = new Map(usersList.map((u) => [u.id, u]));
 
     const mappedData: MappedLeaderboardUser[] = results.map((item) => {
