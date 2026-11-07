@@ -70,7 +70,7 @@ export function AnnouncementArticle({
   const editor = lastEditorName(a.created_by, a.updated_by);
 
   return (
-    <article dir="rtl" className="w-full bg-[#EBF0EB] min-h-screen">
+    <article dir="rtl" className="w-full bg-white min-h-screen">
       <Hero type={a.type_display} title={a.title} summary={a.summary}>
         <div className={metaClass}>
           <MetaItem icon={UserRound}>{authorName(a.created_by)}</MetaItem>
@@ -102,7 +102,7 @@ export function AnnouncementArticle({
             {canEdit && (
               <Link
                 href={`/news/editor/${a.id}`}
-                className={`${tajawal.className} flex items-center gap-1.5 px-4 h-10 rounded-xl border border-[#043F2E]/20 text-[#043F2E] hover:bg-white text-sm font-bold transition-colors`}
+                className={`${tajawal.className} flex items-center gap-1.5 px-4 h-10 rounded-xl border border-[#043F2E]/20 text-[#043F2E] hover:bg-[#F7FBEA] text-sm font-bold transition-colors`}
               >
                 <Pencil className="w-4 h-4" strokeWidth={2.4} />
                 تعديل
