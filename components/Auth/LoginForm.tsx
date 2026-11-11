@@ -22,7 +22,7 @@ function inputClass(hasError: boolean) {
   ].join(" ");
 }
 
-export default function LoginForm() {
+export default function LoginForm({ next }: { next?: string }) {
   const {
     register,
     handleSubmit,
@@ -39,7 +39,7 @@ export default function LoginForm() {
 
   const onSubmit = handleSubmit(async (values) => {
     // A successful login redirects from the server action and never returns
-    const result = await login(values);
+    const result = await login(values, next);
     for (const [field, message] of Object.entries(result?.errors ?? {})) {
       setError(field === "general" ? "root" : (field as keyof LoginValues), { message });
     }

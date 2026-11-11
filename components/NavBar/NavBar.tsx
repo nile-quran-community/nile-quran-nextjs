@@ -25,6 +25,9 @@ function Brand({ className = "" }: { className?: string }) {
 
 export default async function NavBar() {
   const User = await checkTokenValidity();
+  // /news/[id] is the one page under (main) a logged-out visitor can open (the teaser), so
+  // the bar has to cope with no session: a login link in place of the account controls.
+  const isLoggedIn = !!User?.isValid;
   const initials = getInitials(User?.user?.first_name, User?.user?.last_name);
   const isAdmin = !!User?.user?.groups?.includes("Admin");
   // `is_profile_complete` is computed server-side (see users/models.py) — the
@@ -34,28 +37,39 @@ export default async function NavBar() {
   return (
     <div className="bg-[#043F2E]">
       <div className="relative px-6 md:px-10 lg:px-16 h-[68px] flex justify-between items-center">
-        {/* Profile + logout — desktop only, mobile drawer covers this */}
-        <div className={`flex items-center gap-3 max-sm:hidden ${tajawal.className}`}>
-          <LogoutButton variant="icon" />
+        {isLoggedIn ? (
+          /* Profile + logout — desktop only, mobile drawer covers this */
+          <div className={`flex items-center gap-3 max-lg:hidden ${tajawal.className}`}>
+            <LogoutButton variant="icon" />
+            <Link
+              href={"/profile"}
+              aria-label="حسابي"
+              title="حسابي"
+              className="w-9 h-9 shrink-0 rounded-full bg-[#BEE663] text-[#043F2E] flex items-center justify-center font-bold text-sm"
+            >
+              {initials}
+            </Link>
+          </div>
+        ) : (
           <Link
-            href={"/profile"}
-            aria-label="حسابي"
-            title="حسابي"
-            className="w-9 h-9 shrink-0 rounded-full bg-[#BEE663] text-[#043F2E] flex items-center justify-center font-bold text-sm"
+            href="/auth"
+            className={`${tajawal.className} px-4 h-9 rounded-xl bg-[#BEE663] hover:bg-[#9ADD00] text-[#043F2E] text-sm font-bold flex items-center transition-colors`}
           >
-            {initials}
+            تسجيل الدخول
           </Link>
-        </div>
+        )}
 
-        <NavBarMobileMenu User={User?.user} />
+        <NavBarMobileMenu User={isLoggedIn ? User?.user : undefined} />
 
         {/* Sits next to the hamburger on mobile (justify-between); pushed to the end on desktop */}
-        <Brand className="sm:order-last" />
+        <Brand className="lg:order-last" />
 
-        {/* Nav links — desktop only (NavLinks hides itself below sm), centered independent of side elements' widths */}
-        <div className="absolute left-1/2 -translate-x-1/2">
-          <NavLinks isAdmin={isAdmin} />
-        </div>
+        {/* Nav links — desktop only (NavLinks hides itself below lg), centered independent of side elements' widths */}
+        {isLoggedIn && (
+          <div className="absolute left-1/2 -translate-x-1/2">
+            <NavLinks isAdmin={isAdmin} />
+          </div>
+        )}
       </div>
 
       {isProfileIncomplete && (

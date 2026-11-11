@@ -3,9 +3,11 @@
 import React from "react";
 import GoalsClient from "./GoalsClient";
 import PerformanceBoardClient from "./PerformanceBoardClient";
+import LatestNews from "@/components/News/LatestNews";
 import { getLeaderboardData } from "@/actions/PerformanceBoard";
 import { getPreviousHijriMonth } from "@/lib/utils";
 import type { Goal } from "@/actions/goal";
+import type { Announcement } from "@/actions/announcements";
 
 interface LeaderboardUser {
   id: number;
@@ -21,6 +23,7 @@ interface Props {
   initialLeaderboardData: LeaderboardUser[];
   initialPreviousRanks: Record<number, number>;
   goals: Goal[];
+  announcements: Announcement[] | null;
 }
 
 export default function DashboardContainer({
@@ -29,6 +32,7 @@ export default function DashboardContainer({
   initialLeaderboardData,
   initialPreviousRanks,
   goals,
+  announcements,
 }: Props) {
   // Keep reference for the "Next" limit
   const [currentMonth] = React.useState(initialMonth);
@@ -121,7 +125,10 @@ export default function DashboardContainer({
 
   return (
     <div className="w-full h-full flex items-start gap-10 justify-center px-5 max-lg:flex-col-reverse">
-      <GoalsClient goals={goals} />
+      <div className="w-full lg:w-[360px] xl:w-[400px] lg:shrink-0 lg:mt-[88px] flex flex-col gap-6">
+        <GoalsClient goals={goals} />
+        <LatestNews announcements={announcements} />
+      </div>
       <PerformanceBoardClient
         leaderboardData={leaderboardData}
         isLoading={isLoading}
