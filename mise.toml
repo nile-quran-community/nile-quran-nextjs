@@ -7,12 +7,12 @@ NODE_ENV = "{{ env.NODE_ENV | default(value='development') }}"
 [tools]
 # NOTE: Node
 node = "24"
-pnpm = "11.14.0"
+pnpm = "12.18"
 # NOTE: Formatters and linters
-"npm:oxfmt" = "0.42.0"
-"npm:oxlint" = "1.57.0"
+"npm:oxfmt" = "0.78.0"
+"npm:oxlint" = "1.93.0"
 # NOTE: Utils
-prek = "0.5.3"
+prek = "0.5"
 
 [tasks.install]
 description = "Install dependencies with pnpm"
