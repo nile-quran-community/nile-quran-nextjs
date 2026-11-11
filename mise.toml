@@ -9,8 +9,8 @@ NODE_ENV = "{{ env.NODE_ENV | default(value='development') }}"
 node = "24"
 pnpm = "11.14.0"
 # NOTE: Formatters and linters
-oxfmt = "0.42.0"
-oxlint = "1.57.0"
+"npm:oxfmt" = "0.42.0"
+"npm:oxlint" = "1.57.0"
 # NOTE: Utils
 prek = "0.5.3"
 
