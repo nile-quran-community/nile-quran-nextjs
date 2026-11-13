@@ -136,7 +136,7 @@ export default function EditorList({
       {failed ? (
         <div className="rounded-2xl bg-[#F4E0D6] border border-[#9B3D2E]/30 p-5 flex items-center justify-between gap-3">
           <span className={`${tajawal.className} text-sm font-bold text-[#9B3D2E]`}>
-            تعذر تحميل الأخبار
+            تعذر تحميل الإعلانات
           </span>
           <button
             type="button"
@@ -149,7 +149,7 @@ export default function EditorList({
       ) : items.length === 0 ? (
         <div className="rounded-3xl bg-white border border-[#043F2E]/10 p-10 text-center">
           <span className={`${tajawal.className} text-[#043F2E]/60 text-sm font-medium`}>
-            {loading ? "جارٍ التحميل..." : "لا توجد أخبار مطابقة"}
+            {loading ? "جارٍ التحميل..." : "لا توجد إعلانات مطابقة"}
           </span>
         </div>
       ) : (

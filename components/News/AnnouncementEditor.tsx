@@ -120,7 +120,7 @@ export default function AnnouncementEditor({
   const [today] = useState(() => new Date().toISOString().slice(0, 10));
   const cardDate = (due ? current?.publish_at : toPublishAt(mode, publishAt)) ?? today;
   const cardUrl = `/news/editor/og?${new URLSearchParams({
-    title: title.trim() || "عنوان الخبر",
+    title: title.trim() || "عنوان الإعلان",
     type: typeLabel,
     date: cardDate,
   })}`;
@@ -188,11 +188,11 @@ export default function AnnouncementEditor({
         className={`${tajawal.className} self-start flex items-center gap-1.5 text-sm font-bold text-[#043F2E] hover:text-[#065f46] transition-colors`}
       >
         <ArrowRight className="w-4 h-4" strokeWidth={2.4} />
-        العودة إلى إدارة الأخبار
+        العودة إلى إدارة الإعلانات
       </Link>
 
       <section className="bg-white rounded-3xl border border-[#043F2E]/10 shadow-sm p-5 md:p-7 flex flex-col gap-5">
-        <Field label="نوع الخبر">
+        <Field label="نوع الإعلان">
           <select {...register("type")} className={`${fieldClass(!!errors.type)} h-11`}>
             {typeOptions.map((o) => (
               <option key={o.value} value={o.value}>
@@ -262,7 +262,7 @@ export default function AnnouncementEditor({
         <h2 className={`${lalezar.className} text-xl text-[#043F2E]`}>موعد النشر</h2>
         {due ? (
           <p className={`${tajawal.className} text-sm text-[#043F2E]/70`}>
-            هذا الخبر {current?.status === "published" ? "منشور" : "حان موعد نشره"} بالفعل، فيبقى
+            هذا الإعلان {current?.status === "published" ? "منشور" : "حان موعد نشره"} بالفعل، فيبقى
             موعده كما هو. أي تعديل على النص يصل إلى ديسكورد تلقائيًا.
           </p>
         ) : (
@@ -326,7 +326,7 @@ export default function AnnouncementEditor({
           />
           <div className="p-4 flex flex-col gap-1">
             <span dir="auto" className={`${lalezar.className} text-lg text-[#043F2E]`}>
-              {title || "عنوان الخبر"}
+              {title || "عنوان الإعلان"}
             </span>
             <span dir="auto" className={`${tajawal.className} text-sm text-[#043F2E]/70`}>
               {summary || "الوصف المختصر"}
@@ -348,7 +348,7 @@ export default function AnnouncementEditor({
             </span>
             {current && (
               <Link href={`/news/${current.id}`} className="underline shrink-0">
-                عرض الخبر
+                عرض الإعلان
               </Link>
             )}
           </div>
@@ -386,7 +386,7 @@ export default function AnnouncementEditor({
               className={`${tajawal.className} flex items-center gap-1.5 px-4 h-11 rounded-xl border border-[#043F2E]/20 text-[#043F2E] hover:bg-white text-sm font-bold transition-colors`}
             >
               <ExternalLink className="w-4 h-4" strokeWidth={2.2} />
-              عرض الخبر
+              عرض الإعلان
             </Link>
           )}
         </div>

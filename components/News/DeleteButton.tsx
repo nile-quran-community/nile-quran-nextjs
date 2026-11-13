@@ -48,8 +48,8 @@ export default function DeleteButton({
     <div className="flex flex-col gap-2 rounded-xl bg-[#F4E0D6] border border-[#9B3D2E]/30 p-3">
       <span className={`${tajawal.className} text-sm text-[#9B3D2E]`}>
         {onDiscord
-          ? "سيُحذف الخبر وتُحذف رسالته من ديسكورد أيضًا. هل أنت متأكد؟"
-          : "سيُحذف الخبر نهائيًا. هل أنت متأكد؟"}
+          ? "سيُحذف الإعلان وتُحذف رسالته من ديسكورد أيضًا. هل أنت متأكد؟"
+          : "سيُحذف الإعلان نهائيًا. هل أنت متأكد؟"}
       </span>
       <div className="flex gap-2">
         <button

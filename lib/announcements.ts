@@ -105,7 +105,7 @@ export function savedMessage(status: keyof typeof STATUS_LABELS): string {
     case "draft":
       return "تم حفظ المسودة، ولن يراها غيرك حتى تنشرها.";
     case "scheduled":
-      return "تم الحفظ، وسيُنشر الخبر في موعده ثم على ديسكورد خلال ٥ دقائق.";
+      return "تم الحفظ، وسيُنشر الإعلان في موعده ثم على ديسكورد خلال ٥ دقائق.";
     case "published":
       return "تم الحفظ، وسيتم تحديث رسالة ديسكورد خلال ٥ دقائق.";
     default:

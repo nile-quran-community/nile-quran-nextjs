@@ -20,7 +20,7 @@ const noIndex = { index: false, follow: false };
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const id = parseId((await params).id);
   const res = id ? await getAnnouncementPreview(id) : null;
-  if (!res?.success) return { title: "خبر", robots: noIndex };
+  if (!res?.success) return { title: "إعلان", robots: noIndex };
 
   const { title, summary, publish_at } = res.data;
   const image = `/news/${id}/og`;

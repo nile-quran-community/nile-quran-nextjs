@@ -137,16 +137,16 @@ export async function getAnnouncements(
   for (const [key, value] of Object.entries(filters)) {
     if (value !== undefined && value !== "") params.set(key, String(value));
   }
-  return call(`${ENDPOINT}?${params}`, {}, "تعذر تحميل الأخبار");
+  return call(`${ENDPOINT}?${params}`, {}, "تعذر تحميل الإعلانات");
 }
 
 export async function getAnnouncement(id: number): Promise<Result<Announcement>> {
-  return call(`${ENDPOINT}${id}/`, {}, "تعذر تحميل الخبر");
+  return call(`${ENDPOINT}${id}/`, {}, "تعذر تحميل الإعلان");
 }
 
 // No login needed — this is what a link card and the logged-out teaser are built from
 export async function getAnnouncementPreview(id: number): Promise<Result<AnnouncementPreview>> {
-  return call(`${ENDPOINT}${id}/preview/`, { auth: false }, "تعذر تحميل الخبر");
+  return call(`${ENDPOINT}${id}/preview/`, { auth: false }, "تعذر تحميل الإعلان");
 }
 
 // Labels come from the API (DRF's OPTIONS metadata) instead of a hand-kept list. Only
@@ -154,7 +154,7 @@ export async function getAnnouncementPreview(id: number): Promise<Result<Announc
 export async function getTypeOptions(): Promise<Result<TypeOption[]>> {
   const res = await call<{
     actions?: { POST?: { type?: { choices?: { value: string; display_name: string }[] } } };
-  }>(ENDPOINT, { method: "OPTIONS" }, "تعذر تحميل أنواع الأخبار");
+  }>(ENDPOINT, { method: "OPTIONS" }, "تعذر تحميل أنواع الإعلانات");
   if (!res.success) return res;
   const choices = res.data.actions?.POST?.type?.choices ?? [];
   return {
@@ -166,7 +166,7 @@ export async function getTypeOptions(): Promise<Result<TypeOption[]>> {
 export async function createAnnouncement(
   payload: AnnouncementPayload,
 ): Promise<Result<Announcement>> {
-  return call(ENDPOINT, { method: "POST", body: JSON.stringify(payload) }, "فشل إنشاء الخبر");
+  return call(ENDPOINT, { method: "POST", body: JSON.stringify(payload) }, "فشل إنشاء الإعلان");
 }
 
 export async function updateAnnouncement(
@@ -176,12 +176,12 @@ export async function updateAnnouncement(
   return call(
     `${ENDPOINT}${id}/`,
     { method: "PATCH", body: JSON.stringify(payload) },
-    "فشل تحديث الخبر",
+    "فشل تحديث الإعلان",
   );
 }
 
 export async function deleteAnnouncement(id: number): Promise<Result<undefined>> {
-  return call(`${ENDPOINT}${id}/`, { method: "DELETE" }, "فشل حذف الخبر");
+  return call(`${ENDPOINT}${id}/`, { method: "DELETE" }, "فشل حذف الإعلان");
 }
 
 // For the editor's preview: the same `{name, username}` the API puts in `mentions`, for

@@ -8,7 +8,7 @@ import { PageHero, PageHeroHeading } from "@/components/ui/PageHero";
 import EditorList from "@/components/News/EditorList";
 
 export const metadata: Metadata = {
-  title: "إدارة الأخبار",
+  title: "إدارة الإعلانات",
   description: "إدارة إعلانات مقرأة النيل: المسودات والمجدولة والمنشورة.",
   robots: { index: false, follow: false },
 };
@@ -30,7 +30,7 @@ export default async function NewsEditorPage() {
         <PageHeroHeading
           icon={Settings2}
           eyebrow="لوحة الإعلام"
-          title="إدارة الأخبار"
+          title="إدارة الإعلانات"
           subtitle="المسودات التي كتبتها تظهر لك وحدك، أما المجدولة والمنشورة فيراها كل أعضاء فريق الإعلام."
         />
       </PageHero>

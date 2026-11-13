@@ -108,7 +108,7 @@ export type EditProfileValues = z.infer<typeof editProfileSchema>;
 // logged in, so an announcement should never go out without one.
 export const announcementSchema = z
   .object({
-    type: z.string().min(1, "نوع الخبر مطلوب"),
+    type: z.string().min(1, "نوع الإعلان مطلوب"),
     title: z.string().trim().min(1, "العنوان مطلوب").max(255, "العنوان طويل جدًا"),
     summary: z
       .string()

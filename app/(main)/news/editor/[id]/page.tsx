@@ -8,7 +8,7 @@ import { PageHero, PageHeroHeading } from "@/components/ui/PageHero";
 import AnnouncementEditor from "@/components/News/AnnouncementEditor";
 
 export const metadata: Metadata = {
-  title: "تعديل الخبر",
+  title: "تعديل الإعلان",
   robots: { index: false, follow: false },
 };
 

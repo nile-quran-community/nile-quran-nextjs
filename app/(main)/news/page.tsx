@@ -12,7 +12,7 @@ import NewsListClient, { type TypeChip } from "@/components/News/NewsListClient"
 const tajawal = Tajawal({ subsets: ["arabic"], weight: "700" });
 
 export const metadata: Metadata = {
-  title: "الأخبار",
+  title: "الإعلانات",
   description: "إعلانات مجتمع مقرأة النيل: التجمعات الشهرية ودروس العلم وإعلان المتصدرين.",
   robots: { index: false, follow: false },
 };
@@ -39,8 +39,8 @@ export default async function NewsPage() {
       <PageHero>
         <PageHeroHeading
           icon={Newspaper}
-          eyebrow="أخبار المقرأة"
-          title="الأخبار"
+          eyebrow="إعلانات المقرأة"
+          title="الإعلانات"
           subtitle="تجمعات المقرأة ودروس العلم وإعلان المتصدرين، كل ما يهم المجتمع في مكان واحد."
         />
       </PageHero>
@@ -62,7 +62,7 @@ export default async function NewsPage() {
               className={`${tajawal.className} shrink-0 flex items-center gap-1.5 px-4 h-10 rounded-xl border border-[#043F2E]/20 text-[#043F2E] hover:bg-white text-sm font-bold transition-colors`}
             >
               <Settings2 className="w-4 h-4" strokeWidth={2.4} />
-              إدارة الأخبار
+              إدارة الإعلانات
             </Link>
           </div>
         )}

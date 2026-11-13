@@ -18,7 +18,9 @@ export default function LatestNews({ announcements }: { announcements: Announcem
         <div className="shrink-0 w-10 h-10 rounded-xl bg-[#BEE663] text-[#043F2E] flex items-center justify-center">
           <Newspaper className="w-5 h-5" strokeWidth={2.2} />
         </div>
-        <h2 className={`${lalezar.className} text-2xl text-[#043F2E] leading-tight`}>آخر الأخبار</h2>
+        <h2 className={`${lalezar.className} text-2xl text-[#043F2E] leading-tight`}>
+          آخر الإعلانات
+        </h2>
       </div>
 
       <div className="h-px bg-[#043F2E]/8" />
@@ -26,7 +28,7 @@ export default function LatestNews({ announcements }: { announcements: Announcem
       {announcements === null ? (
         <div className="rounded-2xl bg-[#F4E0D6] border border-[#9B3D2E]/30 p-4 flex flex-col gap-2">
           <span className={`${tajawal.className} text-sm font-bold text-[#9B3D2E]`}>
-            تعذر تحميل الأخبار
+            تعذر تحميل الإعلانات
           </span>
           <Link
             href="/"
@@ -38,7 +40,7 @@ export default function LatestNews({ announcements }: { announcements: Announcem
       ) : announcements.length === 0 ? (
         <div className="rounded-2xl bg-[#F7FBEA] border border-[#043F2E]/8 p-4 text-center">
           <span className={`${tajawal.className} text-[#043F2E]/50 text-sm font-medium`}>
-            لا توجد أخبار بعد، سنخبرك بكل جديد هنا بإذن الله
+            لا توجد إعلانات بعد، سنخبرك بكل جديد هنا بإذن الله
           </span>
         </div>
       ) : (
@@ -74,7 +76,7 @@ export default function LatestNews({ announcements }: { announcements: Announcem
             href="/news"
             className={`${tajawal.className} flex items-center gap-1 text-sm font-bold text-[#043F2E] hover:text-[#065f46] transition-colors`}
           >
-            عرض كل الأخبار
+            عرض كل الإعلانات
             <ChevronLeft className="w-4 h-4" strokeWidth={2.4} />
           </Link>
         </>
