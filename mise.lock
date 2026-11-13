@@ -50,6 +50,9 @@ aube = { path = ".mise/locks/npm-oxlint/1.93.0", digest = "sha256:3f84da90d1a47a
 backend = "npm:oxlint"
 specifiers = ["1.93.0"]
 
+[tools."npm:oxlint".provenance]
+repository = "github.com/oxc-project/oxc"
+
 [[tools.pnpm]]
 version = "12.18.0"
 backend = "aqua:pnpm/pnpm"
